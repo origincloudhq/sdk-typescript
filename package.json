@@ -1,0 +1,24 @@
+{
+  "name": "origincloud-sdk-typescript",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/core",
+    "packages/pvs"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "test": "tsc -b && node --test $(find build -name '*.test.js' | sort)",
+    "generate": "scripts/generate.sh --write",
+    "generate:check": "scripts/generate.sh"
+  },
+  "devDependencies": {
+    "@bufbuild/buf": "1.73.0",
+    "@types/node": "20.19.43",
+    "esbuild": "0.28.2",
+    "typescript": "6.0.3"
+  }
+}
