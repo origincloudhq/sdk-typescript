@@ -1,8 +1,12 @@
 import type { ClientBase as Client } from "./client.js";
+import { readLimited } from "./credentials.js";
 import { OriginCloudError, errorFromResponse } from "./errors.js";
 
 /** The header that carries the consistency token, in responses and in requests. */
 export const CONSISTENCY_TOKEN_HEADER = "Origin-Consistency-Token";
+
+/** The most of a response body that is read. */
+const MAX_RESPONSE_BYTES = 32 << 20;
 
 const FIRST_RETRY_DELAY_MS = 200;
 const MAX_RETRY_DELAY_MS = 10_000;
@@ -97,7 +101,7 @@ export class Service {
     if (signal) init.signal = signal;
 
     let response: Response;
-    let answer: string;
+    let answer: { text: string; truncated: boolean };
     try {
       const fetchImpl = this.client.fetch;
       // Called on globalThis, so that an unbound `window.fetch` works too.
@@ -110,16 +114,21 @@ export class Service {
     const answered = response.headers.get(CONSISTENCY_TOKEN_HEADER);
     if (answered) this.client.consistencyToken = answered;
     try {
-      answer = await response.text();
+      answer = await readLimited(response, MAX_RESPONSE_BYTES);
     } catch (err) {
       throw new TransportError(err);
     }
     if (response.status !== 200) {
-      throw errorFromResponse(response.status, answer);
+      throw errorFromResponse(response.status, answer.text);
     }
-    if (answer.trim() === "") return {};
+    if (answer.truncated) {
+      throw new Error(
+        `origincloud: reading the response to ${request.method} ${request.path}: it is larger than ${MAX_RESPONSE_BYTES} bytes`,
+      );
+    }
+    if (answer.text.trim() === "") return {};
     try {
-      return JSON.parse(answer);
+      return JSON.parse(answer.text);
     } catch (err) {
       throw new Error(`origincloud: reading the response to ${request.method} ${request.path}: ${String(err)}`, {
         cause: err,

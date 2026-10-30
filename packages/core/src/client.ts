@@ -27,7 +27,7 @@ export interface ClientOptions {
   region?: string;
   /**
    * Sends the calls of every service to one base URL, such as a test
-   * server's, instead of the service's own host.
+   * server's, instead of the service's own host. Empty means unset.
    */
   endpoint?: string;
   /** The `fetch` calls are sent with; the platform's by default. */
@@ -39,7 +39,7 @@ export interface ClientOptions {
   userAgent?: string;
   /**
    * How often a retryable call is sent at most, the first attempt
-   * included; 1 turns retries off. The default is 5.
+   * included; 1 turns retries off. The default, and what 0 means, is 5.
    */
   maxAttempts?: number;
 }
@@ -80,11 +80,11 @@ export class ClientBase {
   consistencyToken = "";
 
   protected constructor(options: ClientOptions, defaults: PlatformDefaults) {
-    this.maxAttempts = options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
+    this.maxAttempts = options.maxAttempts || DEFAULT_MAX_ATTEMPTS;
     if (!Number.isInteger(this.maxAttempts) || this.maxAttempts < 1) {
       throw new Error(`origincloud: the most attempts must be at least 1, got ${options.maxAttempts}`);
     }
-    if (options.endpoint !== undefined) {
+    if (options.endpoint) {
       let parsed: URL | undefined;
       try {
         parsed = new URL(options.endpoint);

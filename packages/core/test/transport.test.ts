@@ -72,8 +72,11 @@ test("a request carries its credentials and agent", async () => {
   assert.equal(seen["accept"], "application/json");
   assert.equal(seen["user-agent"], `origincloud-sdk-typescript/${VERSION}`);
 
-  const pkg = createRequire(import.meta.url)("@origincloud/core/package.json") as { version: string };
-  assert.equal(VERSION, pkg.version, "VERSION is the package's version");
+  const require = createRequire(import.meta.url);
+  for (const name of ["@origincloud/core", "@origincloud/pvs"]) {
+    const pkg = require(`${name}/package.json`) as { version: string };
+    assert.equal(VERSION, pkg.version, `VERSION is ${name}'s version`);
+  }
 });
 
 test("a product is added to the agent", async () => {
@@ -233,8 +236,34 @@ test("endpoints", () => {
   );
 });
 
+test("zero most attempts and an empty endpoint mean the defaults", async () => {
+  delete process.env["ORIGINCLOUD_REGION"];
+  const client = new Client({ credentials: accessToken("t"), maxAttempts: 0, endpoint: "" });
+  assert.equal(client.maxAttempts, 5);
+  assert.equal(client.service("pvs").base, "https://pvs.origincloudapis.eu");
+});
+
+test("a response body is read up to 32 MiB", async () => {
+  const big = JSON.stringify({ padding: "x".repeat(32 << 20) });
+  const client = await testClient((req, res) => {
+    if (req.path === "/error") json(res, big, 400);
+    else json(res, big);
+  });
+  await assert.rejects(
+    client.service("pvs").call({ method: "GET", path: "/x" }),
+    /reading the response to GET \/x: it is larger than 33554432 bytes/,
+  );
+  // An error's body that is cut off is an error by its status alone.
+  await assert.rejects(client.service("pvs").call({ method: "GET", path: "/error" }), (err: unknown) => {
+    assert.ok(err instanceof OriginCloudError);
+    assert.equal(err.httpStatus, 400);
+    assert.equal(err.message, "Bad Request");
+    return true;
+  });
+});
+
 test("invalid options are refused", () => {
-  assert.throws(() => new Client({ credentials: accessToken("t"), maxAttempts: 0 }), /at least 1/);
+  assert.throws(() => new Client({ credentials: accessToken("t"), maxAttempts: -1 }), /at least 1/);
   assert.throws(() => new Client({ credentials: accessToken("t"), endpoint: "localhost" }), /absolute URL/);
 });
 
