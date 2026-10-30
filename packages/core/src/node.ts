@@ -11,6 +11,7 @@ import { defaultCredentials } from "./node-credentials.js";
 
 export * from "./common.js";
 export {
+  type CLISession,
   CLISessionCredentials,
   NoCredentialsError,
   cliSession,

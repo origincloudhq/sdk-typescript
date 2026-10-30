@@ -57,12 +57,20 @@ export function defaultCredentials(): Credentials {
   return session;
 }
 
+/** A CLI session, its times in milliseconds since the epoch. */
+export interface CLISession {
+  accessToken: string;
+  expires: number;
+  refreshToken: string;
+  refreshExpires: number;
+}
+
 /** The file the CLI stores its session in. */
 interface StoredSession {
   access_token?: string;
-  expires?: string;
+  expires?: unknown;
   refresh_token?: string;
-  refresh_expires?: string;
+  refresh_expires?: unknown;
 }
 
 /**
@@ -95,12 +103,30 @@ export function cliSession(options: TokenEndpointOptions = {}): CLISessionCreden
   } catch (err) {
     throw new Error(`origincloud: reading the CLI session ${path}: ${String(err)}`, { cause: err });
   }
-  return new CLISessionCredentials(stored, options);
+  return new CLISessionCredentials(
+    {
+      accessToken: stored.access_token ?? "",
+      expires: time(path, "expires", stored.expires),
+      refreshToken: stored.refresh_token ?? "",
+      refreshExpires: time(path, "refresh_expires", stored.refresh_expires),
+    },
+    options,
+  );
 }
 
-function time(value: string | undefined): number {
-  const parsed = value ? Date.parse(value) : NaN;
-  return Number.isNaN(parsed) ? 0 : parsed;
+const RFC3339 = /^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/;
+
+/**
+ * A time the session file holds, in milliseconds since the epoch; 0 when
+ * it holds none. One that isn't an RFC 3339 time is an error.
+ */
+function time(path: string, field: string, value: unknown): number {
+  if (value === undefined || value === null) return 0;
+  const parsed = typeof value === "string" && RFC3339.test(value) ? Date.parse(value) : NaN;
+  if (Number.isNaN(parsed)) {
+    throw new Error(`origincloud: reading the CLI session ${path}: ${field} isn't an RFC 3339 time: ${JSON.stringify(value)}`);
+  }
+  return parsed;
 }
 
 /** The `origin` CLI's session. */
@@ -113,12 +139,12 @@ export class CLISessionCredentials implements Credentials {
   private refreshToken: string;
   private refreshExpiry: number;
 
-  constructor(stored: StoredSession, options: TokenEndpointOptions = {}) {
+  constructor(session: CLISession, options: TokenEndpointOptions = {}) {
     this.tokenUrl = options.tokenUrl ?? TOKEN_URL;
     this.fetch = options.fetch;
-    this.cache = new TokenCache(stored.access_token ?? "", time(stored.expires));
-    this.refreshToken = stored.refresh_token ?? "";
-    this.refreshExpiry = time(stored.refresh_expires);
+    this.cache = new TokenCache(session.accessToken, session.expires);
+    this.refreshToken = session.refreshToken;
+    this.refreshExpiry = session.refreshExpires;
   }
 
   /** The session's access token, renewing the session when the token is about to expire. */
@@ -129,12 +155,11 @@ export class CLISessionCredentials implements Credentials {
       }
       let granted;
       try {
-        granted = await requestToken(
-          this.fetch,
-          this.tokenUrl,
-          { grant_type: "refresh_token", client_id: CLI_CLIENT_ID, refresh_token: this.refreshToken },
-          signal,
-        );
+        granted = await requestToken(this.fetch, this.tokenUrl, {
+          grant_type: "refresh_token",
+          client_id: CLI_CLIENT_ID,
+          refresh_token: this.refreshToken,
+        });
       } catch (err) {
         throw new Error(`renewing the CLI session: ${(err as Error).message}`, { cause: err });
       }
@@ -143,6 +168,6 @@ export class CLISessionCredentials implements Credentials {
         this.refreshExpiry = Date.now() + (Number(granted.refresh_expires_in) || 0) * 1000;
       }
       return { token: granted.access_token, expiry: expiryOf(granted) };
-    });
+    }, signal);
   }
 }

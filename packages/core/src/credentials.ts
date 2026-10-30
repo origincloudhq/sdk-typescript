@@ -51,9 +51,12 @@ export class TokenCache {
 
   /**
    * The cached token, or the one `renew` returns when the cached one is
-   * about to expire. Concurrent callers share one renewal.
+   * about to expire. Concurrent callers share one renewal, which runs
+   * without any caller's signal: a caller whose `signal` aborts stops
+   * waiting for it, with the signal's reason, while the others still get
+   * the token.
    */
-  get(renew: () => Promise<{ token: string; expiry: number }>): Promise<string> {
+  get(renew: () => Promise<{ token: string; expiry: number }>, signal?: AbortSignal): Promise<string> {
     if (this.token && Date.now() + EXPIRY_MARGIN_MS < this.expiry) {
       return Promise.resolve(this.token);
     }
@@ -66,8 +69,60 @@ export class TokenCache {
       .finally(() => {
         this.renewal = undefined;
       });
-    return this.renewal;
+    return abortable(this.renewal, signal);
   }
+}
+
+/** `promise`, or a rejection with the signal's reason once `signal` aborts. */
+function abortable<T>(promise: Promise<T>, signal: AbortSignal | undefined): Promise<T> {
+  if (!signal) return promise;
+  if (signal.aborted) return Promise.reject(signal.reason);
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(signal.reason);
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(value);
+      },
+      (err: unknown) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(err);
+      },
+    );
+  });
+}
+
+/**
+ * The text of `response`'s body, read up to `limit` bytes, and whether it
+ * was longer.
+ */
+export async function readLimited(response: Response, limit: number): Promise<{ text: string; truncated: boolean }> {
+  if (!response.body) return { text: "", truncated: false };
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  let truncated = false;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (size + value.byteLength > limit) {
+      chunks.push(value.subarray(0, limit - size));
+      size = limit;
+      truncated = true;
+      await reader.cancel();
+      break;
+    }
+    chunks.push(value);
+    size += value.byteLength;
+  }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return { text: new TextDecoder().decode(bytes), truncated };
 }
 
 /** A token endpoint's answer. */
@@ -95,7 +150,8 @@ export async function requestToken(
   let body: string;
   try {
     response = await (fetchImpl ?? globalThis.fetch).call(globalThis, tokenUrl, init);
-    body = await response.text();
+    // A token response is small; more than this isn't one.
+    body = (await readLimited(response, 1 << 20)).text;
   } catch (err) {
     throw new Error(`origincloud: requesting a token: ${String(err)}`, { cause: err });
   }
@@ -148,14 +204,13 @@ export class ServiceAccountCredentials implements Credentials {
   /** The current access token, requesting a new one when it is about to expire. */
   token(signal?: AbortSignal): Promise<string> {
     return this.cache.get(async () => {
-      const granted = await requestToken(
-        this.fetch,
-        this.tokenUrl,
-        { grant_type: "client_credentials", client_id: this.clientId, client_secret: this.clientSecret },
-        signal,
-      );
+      const granted = await requestToken(this.fetch, this.tokenUrl, {
+        grant_type: "client_credentials",
+        client_id: this.clientId,
+        client_secret: this.clientSecret,
+      });
       return { token: granted.access_token, expiry: expiryOf(granted) };
-    });
+    }, signal);
   }
 }
 

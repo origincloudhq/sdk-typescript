@@ -177,3 +177,32 @@ test("a CLI session past its refresh expiry asks to log in", async () => {
   assert.ok(session);
   await assert.rejects(session.token(), /log in again with `origin id login`/);
 });
+
+test("a caller that aborts doesn't stop the renewal the others share", async () => {
+  let answer: (response: Response) => void = () => {};
+  const signals: (AbortSignal | null | undefined)[] = [];
+  const credentials = new ServiceAccountCredentials("id", "secret", {
+    fetch: (_, init) => {
+      signals.push(init.signal);
+      return new Promise<Response>((resolve) => (answer = resolve));
+    },
+  });
+  const aborting = new AbortController();
+  const a = credentials.token(aborting.signal);
+  const b = credentials.token();
+  aborting.abort(new Error("A gave up"));
+  await assert.rejects(a, /A gave up/);
+
+  answer(new Response(JSON.stringify({ access_token: "shared", expires_in: 300 }), { status: 200 }));
+  assert.equal(await b, "shared");
+  assert.equal(signals.length, 1, "one renewal");
+  assert.equal(signals[0], undefined, "the renewal runs without a caller's signal");
+});
+
+test("a malformed time in the CLI session is an error", () => {
+  writeSession({ access_token: "a", expires: inAnHour(), refresh_token: "r", refresh_expires: "tomorrow" });
+  assert.throws(() => cliSession(), /refresh_expires isn't an RFC 3339 time/);
+  assert.throws(() => defaultCredentials(), /refresh_expires isn't an RFC 3339 time/);
+  writeSession({ access_token: "a", expires: "", refresh_token: "r", refresh_expires: inAnHour() });
+  assert.throws(() => cliSession(), /expires isn't an RFC 3339 time/);
+});
