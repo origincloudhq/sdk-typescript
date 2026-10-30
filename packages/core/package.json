@@ -1,0 +1,54 @@
+{
+  "name": "@origincloud/core",
+  "version": "0.1.0",
+  "description": "What every Origin Cloud SDK service package shares: credentials, endpoints, retries, errors, long-running operations and read-your-writes.",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/origincloudhq/sdk-typescript#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/origincloudhq/sdk-typescript.git",
+    "directory": "packages/core"
+  },
+  "bugs": "https://github.com/origincloudhq/sdk-typescript/issues",
+  "keywords": [
+    "origincloud",
+    "origin-cloud",
+    "sdk",
+    "cloud"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": {
+      "browser": {
+        "types": "./dist/browser.d.ts",
+        "default": "./dist/browser.js"
+      },
+      "node": {
+        "types": "./dist/node.d.ts",
+        "default": "./dist/node.js"
+      },
+      "default": {
+        "types": "./dist/browser.d.ts",
+        "default": "./dist/browser.js"
+      }
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "default": "./dist/browser.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "!dist/**/*.tsbuildinfo"
+  ]
+}
