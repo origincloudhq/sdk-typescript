@@ -35,7 +35,9 @@ behaves is a change to the generator or `core`.
 A new service in the API needs its package added by hand before it is
 generated: `packages/<service>` with a `package.json`, `tsconfig.json`,
 `README.md` and `LICENSE` as `packages/pvs` has them, listed in the root
-`package.json`'s workspaces and `tsconfig.json`'s references.
+`package.json`'s workspaces and `tsconfig.json`'s references. Until then,
+`scripts/generate.sh --write` warns, naming the service, and generates every
+other package; the check, and so CI, fails on it.
 
 The regeneration workflow (`.github/workflows/regenerate.yml`) moves the SDK
 to the newest API daily, and opens a pull request when that changes anything.

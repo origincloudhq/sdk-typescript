@@ -12,8 +12,9 @@
 # The API's origincloud/<service> is the package @origincloud/<service> in
 # packages/<service>, whose src/ is generated whole; the shared
 # origincloud/longrunning is generated into each package that uses it.
-# A new service needs its package added by hand (package.json, tsconfig.json
-# and README.md, as packages/pvs has them) before it is generated.
+# A new service needs its package added by hand (package.json, tsconfig.json,
+# README.md and LICENSE, as packages/pvs has them) before it is generated:
+# until then --write warns and leaves it out, and the check fails.
 #
 # Needs node, npm (`npm ci` run), git and network access.
 set -euo pipefail
@@ -38,15 +39,19 @@ git -C "${tmp}/api" checkout --quiet FETCH_HEAD
   node generator/dist/main.js "${tmp}/descriptors.json" "${tmp}/gen"
 )
 
-missing=0
+# A service the API has but this repository has no package for yet is left
+# out: --write generates every other package and warns, so that the
+# regeneration pull request still opens, and the check fails until the
+# package is added.
+missing=()
 for dir in "${tmp}/gen"/*/; do
   service="$(basename "${dir}")"
   if [[ ! -f "${ROOT}/packages/${service}/package.json" ]]; then
-    echo "the API has the service ${service}, which has no package: add packages/${service} as packages/pvs is" >&2
-    missing=1
+    echo "WARNING: the API has the service ${service}, which has no package yet: add packages/${service} as packages/pvs is (see CONTRIBUTING.md)" >&2
+    missing+=("${service}")
+    rm -rf "${dir}"
   fi
 done
-[[ "${missing}" -eq 0 ]] || exit 1
 
 # The generated sources, relative to the repository: every service
 # package's src/.
@@ -66,7 +71,9 @@ if [[ "${1:-}" == "--write" ]]; then
 fi
 
 failed=0
-if ! diff <(generated "${ROOT}") <(generated "${tmp}/out") >/dev/null; then
+if [[ "${#missing[@]}" -gt 0 ]]; then
+  failed=1
+elif ! diff <(generated "${ROOT}") <(generated "${tmp}/out") >/dev/null; then
   failed=1
 else
   while read -r file; do
@@ -74,7 +81,11 @@ else
   done < <(generated "${ROOT}")
 fi
 if [[ "${failed}" -eq 1 ]]; then
-  echo "FAILED: the generated code isn't what origincloudhq/api@${revision:0:12} generates; run $0 --write"
+  if [[ "${#missing[@]}" -gt 0 ]]; then
+    echo "FAILED: the API has services without a package: ${missing[*]}; add them as packages/pvs is (see CONTRIBUTING.md)"
+  else
+    echo "FAILED: the generated code isn't what origincloudhq/api@${revision:0:12} generates; run $0 --write"
+  fi
   exit 1
 fi
 echo "ok - the generated code is current (origincloudhq/api@${revision:0:12})"
