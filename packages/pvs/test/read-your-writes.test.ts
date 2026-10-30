@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import type { ServerResponse } from "node:http";
 import { after, test } from "node:test";
-import { setTimeout as sleep } from "node:timers/promises";
 
 import { CONSISTENCY_TOKEN_HEADER, Client, accessToken, reasonOf } from "@origincloud/core";
 import { type Volume, VolumeClient } from "@origincloud/pvs/v1beta1";
@@ -17,34 +16,33 @@ const volumeName = (position: number) => `${zone}/volumes/vol-${position}`;
 const volume = (position: number): Volume => ({ name: volumeName(position), state: "AVAILABLE", sizeGib: 1 });
 
 /**
- * A front door whose read model trails each write by `lag`, as the API's
- * does: a read presenting a token waits up to `bound` for the read model
- * to reach it, then answers UNAVAILABLE; a read without one answers what
- * the read model has, NOT_FOUND for a volume it hasn't seen yet.
+ * A front door whose read model trails every write until the test releases
+ * it, as the API's lags: a read presenting a token the read model hasn't
+ * reached answers UNAVAILABLE, retryable, as the API does once its bound
+ * has passed; a read without one answers what the read model has,
+ * NOT_FOUND for a volume it hasn't seen yet. No answer depends on how long
+ * anything takes.
  */
 class LaggingFrontDoor {
-  /** When each write, by position from 1, reaches the read model. */
-  private readonly visible: number[] = [];
+  /** How many writes were made, and how many the read model has. */
+  private written = 0;
+  private reached = 0;
+  /** How many reads presenting a token were answered UNAVAILABLE. */
+  behind = 0;
+  /** Called when a read presenting a token finds the read model behind. */
+  onBehind: () => void = () => {};
 
-  constructor(
-    private readonly lagMs: number,
-    private readonly boundMs: number,
-  ) {}
-
-  /** The position the read model has reached. */
-  private readModel(): number {
-    let reached = 0;
-    while (reached < this.visible.length && Date.now() >= this.visible[reached]!) reached++;
-    return reached;
+  /** The read model catches up with every write so far. */
+  release(): void {
+    this.reached = this.written;
   }
 
-  readonly handle = async (req: Received, res: ServerResponse): Promise<void> => {
+  readonly handle = (req: Received, res: ServerResponse): void => {
     const presented = position(req.headers[header]);
     if (req.method === "POST" && req.path === `/v1beta1/${zone}/volumes`) {
       assert.deepEqual(JSON.parse(req.body), { sizeGib: 1 });
       assert.ok(req.query.get("requestId"), "a create carries a request id");
-      this.visible.push(Date.now() + this.lagMs);
-      const written = this.visible.length;
+      const written = ++this.written;
       json(res, { name: `${zone}/operations/op-${written}` }, 200, {
         [CONSISTENCY_TOKEN_HEADER]: token(Math.max(presented, written)),
       });
@@ -68,33 +66,31 @@ class LaggingFrontDoor {
     const get = new RegExp(`^/v1beta1/${zone}/volumes/vol-(\\d+)$`).exec(req.path);
     if (req.method === "GET" && get) {
       const wanted = Number(get[1]);
-      const deadline = Date.now() + this.boundMs;
-      while (this.readModel() < presented) {
-        if (Date.now() > deadline) {
-          json(
-            res,
-            {
-              error: {
-                code: 503,
-                status: "UNAVAILABLE",
-                message: "the read model hasn't reached the token yet",
-                details: [
-                  {
-                    "@type": "type.googleapis.com/google.rpc.ErrorInfo",
-                    reason: "SERVICE_UNAVAILABLE",
-                    domain: "origincloudapis.eu",
-                  },
-                  { "@type": "type.googleapis.com/google.rpc.RetryInfo", retryDelay: "0.020s" },
-                ],
-              },
+      if (this.reached < presented) {
+        this.behind++;
+        this.onBehind();
+        json(
+          res,
+          {
+            error: {
+              code: 503,
+              status: "UNAVAILABLE",
+              message: "the read model hasn't reached the token yet",
+              details: [
+                {
+                  "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+                  reason: "SERVICE_UNAVAILABLE",
+                  domain: "origincloudapis.eu",
+                },
+                { "@type": "type.googleapis.com/google.rpc.RetryInfo", retryDelay: "0.010s" },
+              ],
             },
-            503,
-          );
-          return;
-        }
-        await sleep(5);
+          },
+          503,
+        );
+        return;
       }
-      if (this.readModel() < wanted) {
+      if (this.reached < wanted) {
         json(
           res,
           {
@@ -124,9 +120,13 @@ after(async () => {
 });
 
 // A get right after a create's operation is done finds the volume, every
-// time, although the read model is behind the create.
+// time, although the read model is behind the create: the get presents
+// the token, so it is held until the read model has the create, instead
+// of answering NOT_FOUND.
 test("a get after a create is done finds the volume", async () => {
-  const frontDoor = new LaggingFrontDoor(150, 50);
+  const frontDoor = new LaggingFrontDoor();
+  // The read model catches up only once a read waits for it.
+  frontDoor.onBehind = () => frontDoor.release();
   const server = await serve(frontDoor.handle);
   closers.push(server.close);
   const newClient = () => new VolumeClient(new Client({ endpoint: server.url, credentials: accessToken("t") }));
@@ -147,13 +147,15 @@ test("a get after a create is done finds the volume", async () => {
     const got = await volumes.getVolume({ name: created.name! });
     assert.equal(got.name, created.name, `get ${i} after its create`);
     assert.equal(got.state, "AVAILABLE");
+    assert.equal(frontDoor.behind, i + 1, `get ${i} was held for the read model`);
   }
 });
 
 // The token can be handed to another client, such as one in another
 // process, for its reads to show the first client's writes.
 test("a handed-over token shows another client's writes", async () => {
-  const frontDoor = new LaggingFrontDoor(150, 50);
+  const frontDoor = new LaggingFrontDoor();
+  frontDoor.onBehind = () => frontDoor.release();
   const server = await serve(frontDoor.handle);
   closers.push(server.close);
   const writer = new Client({ endpoint: server.url, credentials: accessToken("t") });
@@ -163,4 +165,5 @@ test("a handed-over token shows another client's writes", async () => {
   reader.consistencyToken = writer.consistencyToken;
   const got = await new VolumeClient(reader).getVolume({ name: created.name! });
   assert.equal(got.name, created.name);
+  assert.equal(frontDoor.behind, 1);
 });
