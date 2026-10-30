@@ -1,0 +1,147 @@
+# Origin Cloud SDK for TypeScript
+
+The TypeScript client for Origin Cloud's REST APIs, for Node and for
+browsers. Its service packages are generated from the API definitions in
+[origincloudhq/api](https://github.com/origincloudhq/api); `@origincloud/core`
+is what they share: credentials, endpoints, retries, errors, long-running
+operations and read-your-writes.
+
+```sh
+npm install @origincloud/core @origincloud/pvs
+```
+
+| Package | Import | API |
+|---|---|---|
+| `@origincloud/core` | `@origincloud/core` | The client every service package uses |
+| `@origincloud/pvs` | `@origincloud/pvs/v1beta1` | Persistent volumes: volumes, snapshots, storage classes |
+| | `@origincloud/pvs/longrunning/v1beta1` | PVS operations, for resuming one by name |
+
+The packages are ES modules with type declarations, depend on nothing but
+each other, and send their requests with the platform's `fetch`. They need
+Node 20 or later, or a current browser.
+
+## Example
+
+```ts
+import { Client } from "@origincloud/core";
+import { VolumeClient } from "@origincloud/pvs/v1beta1";
+
+const client = new Client();
+const volumes = new VolumeClient(client);
+
+let volume = await (
+  await volumes.createVolume({
+    parent: "projects/my-project-123/zones/eu-central1-az1",
+    volume: { sizeGib: 10 },
+  })
+).wait();
+
+volume = await (
+  await volumes.updateVolume({
+    volume: { name: volume.name, sizeGib: 20 },
+    updateMask: "sizeGib",
+  })
+).wait();
+console.log(`${volume.name} has ${volume.sizeGib} GiB`);
+
+await (await volumes.deleteVolume({ name: volume.name })).wait();
+```
+
+Messages are plain objects in their JSON form, as the API sends them:
+fields have their camelCase names, enums are their value names (such as
+`"AVAILABLE"`, also available as `Volume_State.AVAILABLE`), 64-bit
+integers, timestamps and durations are strings, and a field mask is a
+comma-separated list of camelCase paths (`"sizeGib,tags"`). A field at its
+default value may be absent from a response: `volume.sizeGib ?? 0`.
+
+## Credentials
+
+### Node
+
+`new Client()` takes the first of:
+
+1. `ORIGINCLOUD_ACCESS_TOKEN`: an access token, sent as it is.
+2. `ORIGINCLOUD_CLIENT_ID` and `ORIGINCLOUD_CLIENT_SECRET`: a service account's
+   credential, exchanged for access tokens as they expire. This is what
+   automation should use. Setting only one of the two is an error.
+3. The session the `origin` CLI stored at its last login (`origin id login`),
+   renewed in memory when it expires; the CLI's file is never written.
+
+It throws when none is found. `credentials` sets them explicitly instead:
+
+```ts
+import { Client, serviceAccount } from "@origincloud/core";
+
+const client = new Client({ credentials: serviceAccount(clientId, clientSecret) });
+```
+
+### Browser
+
+A web application passes the access token of the user's session: any
+function that returns the current token, such as an OIDC client's
+access-token getter. It is asked before every call, so a renewed token is
+picked up without creating a new client.
+
+```ts
+import { Client } from "@origincloud/core";
+import { VolumeClient } from "@origincloud/pvs/v1beta1";
+
+const client = new Client({ credentials: () => session.getAccessToken() });
+const volumes = new VolumeClient(client);
+
+for await (const volume of volumes.allVolumes({ parent: zone })) {
+  console.log(volume.name, volume.state);
+}
+```
+
+Bundlers pick the browser build through the `browser` export condition. It
+reads no environment and no files and imports nothing of Node's, so a client
+created without `credentials` there throws. The Node build is selected by
+the `node` condition; `@origincloud/core/browser` and `@origincloud/core/node`
+name either one explicitly.
+
+## Behaviour
+
+- **Endpoints.** Every service answers at `{service}.origincloudapis.eu`,
+  which serves every resource wherever it lives. The `region` option, or
+  `ORIGINCLOUD_REGION` in Node, picks a region's front door instead,
+  `{service}.{region}.origincloudapis.eu`, for the services that have one.
+  `endpoint` sends every call to one base URL, such as a test server's.
+- **Operations.** A create, update or delete returns an `Operation`; its
+  `wait()` resolves to the resource once the change is complete, or rejects
+  with the error the change failed with. `name`, `done` and `metadata`
+  describe it meanwhile.
+- **Retries.** A call answered as retryable (an error carrying `RetryInfo`,
+  or a gateway's 502, 503 or 504 without an error body), or one that got no
+  answer, is sent again with a growing delay, up to five attempts in all
+  (`maxAttempts`), when sending it again is safe: a read, or a mutation with
+  a request id. The client fills in an empty request id with a UUID, so a
+  retried create never creates twice.
+- **Read-your-writes.** The client keeps the consistency token each write
+  answers with (the `Origin-Consistency-Token` header) and sends it with
+  later calls, waiting on operations included, so a read right after a
+  write, or after waiting on an operation, always sees it. `consistencyToken`
+  reads and sets it, to hand it to another client.
+- **Pages.** Each list method has an `all...` counterpart, an async iterator
+  over every page.
+- **Errors.** A refused call rejects with an `OriginCloudError`: branch on
+  its `reason`, the platform's error code. It also carries `httpStatus`,
+  `status`, `message`, `requestId` and `fieldViolations`.
+- **Cancelling.** Every method takes `{ signal }`, an `AbortSignal` that stops
+  the call and its retries.
+
+## Versions
+
+A service's import path carries its API's version: `@origincloud/pvs/v1beta1`
+is the preview version of the PVS API and may change in incompatible ways,
+like the API itself.
+
+## Contributing
+
+Issues and pull requests are welcome. The service packages are generated from
+the API definitions, so a change to what a service offers starts as an issue;
+see [CONTRIBUTING.md](CONTRIBUTING.md) for how the SDK is built and checked.
+
+## License
+
+Apache License 2.0; see [LICENSE](LICENSE).

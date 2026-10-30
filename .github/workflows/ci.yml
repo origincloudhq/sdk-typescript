@@ -1,0 +1,85 @@
+# Checks every pull request and every push to main: the service packages are
+# what the pinned API definitions generate (scripts/generate.sh), the
+# packages and tests compile under TypeScript's strict checks, and the tests
+# pass on every Node version the SDK supports (the live test skips without
+# a zone).
+#
+# The regeneration pull request is opened with the workflow token, which
+# starts no pull_request run, so regenerate.yml dispatches this workflow on
+# its branch instead.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: 'actions/checkout@v4'
+
+      - name: Node
+        uses: 'actions/setup-node@v4'
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Dependencies
+        run: npm ci
+
+      - name: Generated code
+        run: scripts/generate.sh
+
+      - name: Typecheck
+        run: npm run build
+
+      - name: Packages
+        run: |
+          for package in packages/*/; do
+            cmp LICENSE "${package}LICENSE"
+            (cd "${package}" && npm pack --dry-run --json | node -e '
+              const [{ name, files }] = JSON.parse(require("fs").readFileSync(0, "utf8"));
+              const paths = files.map((f) => f.path);
+              for (const want of ["LICENSE", "README.md", "package.json"]) {
+                if (!paths.includes(want)) throw new Error(`${name} is missing ${want}`);
+              }
+              if (!paths.some((p) => p.startsWith("dist/") && p.endsWith(".d.ts"))) throw new Error(`${name} has no types`);
+              console.log(`${name}: ${paths.length} files`);
+            ')
+          done
+
+      - name: Scripts
+        run: shellcheck scripts/*.sh
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22, 24]
+    steps:
+      - name: Checkout
+        uses: 'actions/checkout@v4'
+
+      - name: Node
+        uses: 'actions/setup-node@v4'
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Dependencies
+        run: npm ci
+
+      - name: Tests
+        run: npm test
