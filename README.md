@@ -10,6 +10,10 @@ operations and read-your-writes.
 npm install @origincloud/core @origincloud/pvs
 ```
 
+`@origincloud/core` is a peer dependency of every service package, so that
+an application has one copy of it, which its errors and operations all come
+from: install it next to them.
+
 | Package | Import | API |
 |---|---|---|
 | `@origincloud/core` | `@origincloud/core` | The client every service package uses |
@@ -99,6 +103,21 @@ reads no environment and no files and imports nothing of Node's, so a client
 created without `credentials` there throws. The Node build is selected by
 the `node` condition; `@origincloud/core/browser` and `@origincloud/core/node`
 name either one explicitly.
+
+### Node with TypeScript's `bundler` module resolution
+
+TypeScript resolving modules as a bundler (`"moduleResolution": "bundler"`)
+doesn't apply the `node` condition, so `@origincloud/core` gives it the
+browser build's types, which lack the Node-only exports. A Node program
+compiled that way imports those from `@origincloud/core/node`:
+
+```ts
+import { Client, defaultCredentials } from "@origincloud/core/node";
+```
+
+That entry point has everything `@origincloud/core` has, and also
+`defaultCredentials`, `cliSession`, `CLISessionCredentials` and
+`NoCredentialsError`.
 
 ## Behaviour
 

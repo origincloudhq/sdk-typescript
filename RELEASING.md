@@ -6,9 +6,10 @@ share their version, so `@origincloud/pvs` always depends on the
 `@origincloud/core` released with it.
 
 1. On a branch, set the next version in `packages/*/package.json`, in the
-   `@origincloud/core` dependency of every service package, and in `VERSION`
-   (`packages/core/src/client.ts`), then run `npm install` to update
-   `package-lock.json`. Merge it once CI passes.
+   `@origincloud/core` peer and development dependency of every service
+   package, and in `VERSION` (`packages/core/src/client.ts`; a test checks
+   they agree), then run `npm install` to update `package-lock.json`. Merge
+   it once CI passes.
 
 2. From a clean checkout of that commit, build and check what will be
    published:

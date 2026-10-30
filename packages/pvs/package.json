@@ -34,7 +34,10 @@
     "src",
     "!dist/**/*.tsbuildinfo"
   ],
-  "dependencies": {
+  "peerDependencies": {
+    "@origincloud/core": "^0.1.0"
+  },
+  "devDependencies": {
     "@origincloud/core": "^0.1.0"
   }
 }
