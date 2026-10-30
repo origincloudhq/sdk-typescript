@@ -210,6 +210,16 @@ test("the consistency token is kept and sent back", async () => {
   assert.equal(client.consistencyToken, "v1.after-failure");
 });
 
+test("a region that isn't a region code is refused", () => {
+  delete process.env["ORIGINCLOUD_REGION"];
+  for (const region of ["eu/central1", "x@evil.com/", "eu central1", "eu-central1:443", "EU-CENTRAL1"]) {
+    assert.throws(() => new Client({ credentials: accessToken("t"), region }), /region code/, region);
+  }
+  process.env["ORIGINCLOUD_REGION"] = "pvs.evil.com/";
+  assert.throws(() => new Client({ credentials: accessToken("t") }), /region code/);
+  delete process.env["ORIGINCLOUD_REGION"];
+});
+
 test("endpoints", () => {
   delete process.env["ORIGINCLOUD_REGION"];
   const cases: [string, boolean, string][] = [

@@ -97,6 +97,11 @@ export class ClientBase {
       this.endpoint = options.endpoint.replace(/\/+$/, "");
     }
     this.region = options.region ?? defaults.region();
+    // The region becomes part of a host name the token is sent to: only a
+    // plain region code, such as `eu-central1`, may get there.
+    if (this.region && !/^[a-z0-9-]+$/.test(this.region)) {
+      throw new Error(`origincloud: the region must be a region code such as eu-central1, got ${JSON.stringify(this.region)}`);
+    }
     this.userAgent = defaults.userAgent(options.userAgent);
     this.fetch = options.fetch;
     this.credentials = options.credentials ? toCredentials(options.credentials) : defaults.credentials();
