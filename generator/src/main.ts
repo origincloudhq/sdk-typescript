@@ -483,7 +483,10 @@ class FileGenerator {
     this.emit(`  async ${name}(request: ${inputType}, options?: ${callOptions}): Promise<${returns}> {`);
 
     const requestId = fieldNamed(inputMessage, "request_id");
-    const idempotent = verb === "GET" || requestId !== undefined;
+    // Or the API declares it safe to repeat, as a read that isn't a GET
+    // (WaitOperation) does.
+    const level = m.options?.idempotencyLevel;
+    const idempotent = verb === "GET" || requestId !== undefined || (level !== undefined && level !== "IDEMPOTENCY_UNKNOWN");
     if (requestId) {
       if (requestId.type !== "TYPE_STRING") fail("request_id isn't a string");
       const key = jsonName(requestId);

@@ -87,5 +87,6 @@ export interface MethodDescriptor {
   options?: {
     "[google.api.http]"?: HttpRule;
     "[google.longrunning.operation_info]"?: { responseType?: string; metadataType?: string };
+    idempotencyLevel?: "IDEMPOTENCY_UNKNOWN" | "NO_SIDE_EFFECTS" | "IDEMPOTENT";
   };
 }
