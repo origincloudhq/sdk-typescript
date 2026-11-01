@@ -48,7 +48,9 @@ export class SnapshotClient {
 
   /**
    * Lists the snapshots in a zone, oldest first. Deleted snapshots aren't
-   * listed.
+   * listed. For every zone's snapshots, list the zones whose `services` name
+   * `pvs` with the location service (`location.origincloudapis.eu`), then
+   * each zone's snapshots.
    */
   async listSnapshots(request: ListSnapshotsRequest, options?: CallOptions): Promise<ListSnapshotsResponse> {
     const p0 = pathValue("parent", request.parent, "projects/*/zones/*");
@@ -156,8 +158,10 @@ export class SnapshotClient {
   }
 
   /**
-   * Unprotects a snapshot, so it can be deleted. Refused while an image is
-   * built from it. The operation is done once it is `UNPROTECTED`.
+   * Unprotects a snapshot, so it can be deleted. Refused with
+   * `FAILED_PRECONDITION` while an image is built from it or a volume not
+   * `DELETED` was created from it; delete those first. The operation is
+   * done once it is `UNPROTECTED`.
    *
    * It answers with an operation to wait on, whose result is the Snapshot.
    */
