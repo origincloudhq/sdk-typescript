@@ -47,6 +47,7 @@ share their version, so `@origincloud/pvs` always depends on the
    ```sh
    npm view @origincloud/core@0.2.0 version
    npm view @origincloud/pvs@0.2.0 dependencies
+   npm view @origincloud/location@0.2.0 dependencies
    ```
 
 Versions follow semantic versioning. Before 1.0, a minor version may change
