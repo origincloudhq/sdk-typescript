@@ -222,7 +222,10 @@ export function pathValue(field: string, value: string | undefined, pattern: str
   const got = (value ?? "").split("/");
   const want = pattern.split("/");
   const valid =
-    got.length === want.length && want.every((segment, i) => (segment === "*" ? got[i] !== "" : got[i] === segment));
+    got.length === want.length &&
+    // A dot segment would move the request to another path, which the
+    // server would act on instead.
+    want.every((segment, i) => (segment === "*" ? got[i] !== "" && got[i] !== "." && got[i] !== ".." : got[i] === segment));
   if (!valid) {
     throw new Error(`origincloud: ${field} must have the form ${pattern}, got ${JSON.stringify(value ?? "")}`);
   }
