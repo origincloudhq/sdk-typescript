@@ -53,7 +53,8 @@ export class OperationClient {
 
   /**
    * Waits until an operation is done or `timeout` has passed, whichever
-   * comes first, and returns it as it is then.
+   * comes first, and returns it as it is then. It only reads, so a client
+   * may repeat it after a transport error.
    */
   async waitOperation(request: WaitOperationRequest, options?: CallOptions): Promise<LongrunningOperation> {
     const p0 = pathValue("name", request.name, "projects/*/zones/*/operations/*");
@@ -62,6 +63,7 @@ export class OperationClient {
         method: "POST",
         path: `/v1beta1/${p0}:wait`,
         body: request,
+        idempotent: true,
       },
       options,
     );
