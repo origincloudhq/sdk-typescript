@@ -289,6 +289,9 @@ test("pathValue", () => {
     "projects/p/zones//volumes/v",
     "projects/p/regions/z/volumes/v",
     "projects/p/zones/z/volumes/v/x",
+    "projects/p/zones/z/volumes/..",
+    "projects/p/zones/z/volumes/.",
+    "projects/../zones/z/volumes/v",
   ]) {
     assert.throws(() => pathValue("name", bad, "projects/*/zones/*/volumes/*"), /name must have the form/, String(bad));
   }
