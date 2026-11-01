@@ -1,0 +1,44 @@
+{
+  "name": "@origincloud/location",
+  "version": "0.1.0",
+  "description": "Origin Cloud's location service: regions and zones, and the services each zone offers.",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/origincloudhq/sdk-typescript#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/origincloudhq/sdk-typescript.git",
+    "directory": "packages/location"
+  },
+  "bugs": "https://github.com/origincloudhq/sdk-typescript/issues",
+  "keywords": [
+    "origincloud",
+    "origin-cloud",
+    "sdk",
+    "location",
+    "regions",
+    "zones"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    "./*": {
+      "types": "./dist/*/index.d.ts",
+      "default": "./dist/*/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "!dist/**/*.tsbuildinfo"
+  ],
+  "peerDependencies": {
+    "@origincloud/core": "^0.1.0"
+  },
+  "devDependencies": {
+    "@origincloud/core": "^0.1.0"
+  }
+}

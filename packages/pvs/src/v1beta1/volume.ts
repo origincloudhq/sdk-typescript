@@ -48,7 +48,9 @@ export class VolumeClient {
 
   /**
    * Lists the volumes in a zone, oldest first. Deleted volumes aren't
-   * listed.
+   * listed. For every zone's volumes, list the zones whose `services` name
+   * `pvs` with the location service (`location.origincloudapis.eu`), then
+   * each zone's volumes.
    */
   async listVolumes(request: ListVolumesRequest, options?: CallOptions): Promise<ListVolumesResponse> {
     const p0 = pathValue("parent", request.parent, "projects/*/zones/*");

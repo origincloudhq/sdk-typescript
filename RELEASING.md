@@ -29,9 +29,10 @@ share their version, so `@origincloud/pvs` always depends on the
    ```sh
    npm publish --workspace @origincloud/core --access public
    npm publish --workspace @origincloud/pvs --access public
+   npm publish --workspace @origincloud/location --access public
    ```
 
-   A preview release takes `--tag next` on both, so that `latest` stays on
+   A preview release takes `--tag next` on each, so that `latest` stays on
    the last stable release.
 
 4. Tag the commit and push the tag:
@@ -46,6 +47,7 @@ share their version, so `@origincloud/pvs` always depends on the
    ```sh
    npm view @origincloud/core@0.2.0 version
    npm view @origincloud/pvs@0.2.0 dependencies
+   npm view @origincloud/location@0.2.0 dependencies
    ```
 
 Versions follow semantic versioning. Before 1.0, a minor version may change

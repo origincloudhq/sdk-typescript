@@ -3,6 +3,7 @@
   "references": [
     { "path": "packages/core" },
     { "path": "packages/pvs" },
+    { "path": "packages/location" },
     { "path": "generator" },
     { "path": "tsconfig.test.json" }
   ]
