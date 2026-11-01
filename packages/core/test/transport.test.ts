@@ -73,7 +73,7 @@ test("a request carries its credentials and agent", async () => {
   assert.equal(seen["user-agent"], `origincloud-sdk-typescript/${VERSION}`);
 
   const require = createRequire(import.meta.url);
-  for (const name of ["@origincloud/core", "@origincloud/pvs"]) {
+  for (const name of ["@origincloud/core", "@origincloud/pvs", "@origincloud/location"]) {
     const pkg = require(`${name}/package.json`) as { version: string };
     assert.equal(VERSION, pkg.version, `VERSION is ${name}'s version`);
   }

@@ -19,6 +19,7 @@ from: install it next to them.
 | `@origincloud/core` | `@origincloud/core` | The client every service package uses |
 | `@origincloud/pvs` | `@origincloud/pvs/v1beta1` | Persistent volumes: volumes, snapshots, storage classes |
 | | `@origincloud/pvs/longrunning/v1beta1` | PVS operations, for resuming one by name |
+| `@origincloud/location` | `@origincloud/location/v1beta1` | Regions and zones, and the services each zone offers |
 
 The packages are ES modules with type declarations, depend on nothing but
 each other, and send their requests with the platform's `fetch`. They need

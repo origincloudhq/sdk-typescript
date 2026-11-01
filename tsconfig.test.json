@@ -6,5 +6,9 @@
     "types": ["node"]
   },
   "include": ["packages/*/test", "test-support"],
-  "references": [{ "path": "packages/core" }, { "path": "packages/pvs" }]
+  "references": [
+    { "path": "packages/core" },
+    { "path": "packages/pvs" },
+    { "path": "packages/location" }
+  ]
 }
