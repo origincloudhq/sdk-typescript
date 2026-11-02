@@ -40,7 +40,11 @@ generated: `packages/<service>` with a `package.json`, `tsconfig.json`,
 other package; the check, and so CI, fails on it.
 
 The regeneration workflow (`.github/workflows/regenerate.yml`) moves the SDK
-to the newest API daily, and opens a pull request when that changes anything.
+to the newest API when it changes, and daily, and opens a pull request when
+that changes anything, with the next version. Once its CI passes, it is
+merged and released without anyone's hands, unless someone added commits to
+it, which then wait for review: a new service's package, and its first
+publish by hand ([RELEASING.md](RELEASING.md#a-new-package)).
 
 ## Checks
 
@@ -57,8 +61,9 @@ ORIGINCLOUD_LIVE_ZONE=projects/<project>/zones/<zone> \
   npm test                    # against the live API
 ```
 
-CI also checks the scripts with `shellcheck` and what each package would
-publish (`npm pack --dry-run`), and runs the tests on Node 20, 22 and 24.
+CI also checks the scripts with `shellcheck`, tests `scripts/version.sh`
+(`scripts/version.test.sh`), checks what each package would publish
+(`npm pack --dry-run`), and runs the tests on Node 20, 22 and 24.
 Releases are described in [RELEASING.md](RELEASING.md).
 
 ## License

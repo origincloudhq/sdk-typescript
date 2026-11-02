@@ -60,7 +60,9 @@ jobs:
           done
 
       - name: Scripts
-        run: shellcheck scripts/*.sh
+        run: |
+          shellcheck scripts/*.sh
+          scripts/version.test.sh
 
   test:
     runs-on: ubuntu-latest
