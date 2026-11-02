@@ -31,7 +31,7 @@ import type {
 } from "./descriptors.js";
 
 /** The services that answer only at their regionless host. */
-const GLOBAL_SERVICES = new Set(["iam", "admin", "location"]);
+const GLOBAL_SERVICES = new Set(["iam", "resourcemanager", "location"]);
 
 /** Packages every service shares, generated into each service package that uses them. */
 const SHARED_PACKAGES = ["origincloud.longrunning."];
