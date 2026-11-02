@@ -4,8 +4,9 @@
 # the branch `regenerate`, refreshed by each later run until it is merged;
 # when it changes nothing, an open one is closed.
 #
-# Commits someone adds to that pull request, such as a new service's
-# package, are kept: a later run generates on top of them, with main merged
+# A service new to the API gets its package scaffolded (scripts/generate.sh
+# --write), so the pull request is complete. Commits someone adds to that
+# pull request, such as a generator change a new method needs, are kept: a later run generates on top of them, with main merged
 # in, and never closes a pull request that has them. Merging main resolves
 # conflicts in what scripts/update.sh writes again anyway (API_REVISION and the service packages' src);
 # any other conflict fails the run until someone merges main into the
@@ -190,7 +191,9 @@ jobs:
 
           body="Generated from [origincloudhq/api@${revision:0:12}](https://github.com/origincloudhq/api/commit/${revision}) ([changes](https://github.com/origincloudhq/api/compare/${PREVIOUS}...${revision})) by scripts/update.sh.
 
-          If CI fails, the API has a new service that needs its package added under packages/ (the Update step's log names it, see CONTRIBUTING.md), or uses something the generator (generator/) doesn't support yet; add or extend it on this branch."
+          A service new to the API gets its package scaffolded under packages/ (described by the API's definitions, with a test of its client, and added to the workspaces, the references and README.md): check its description, and publish its first version by hand once merged (RELEASING.md).
+
+          If CI fails, the API uses something the generator (generator/) doesn't support yet; extend it on this branch."
           if [[ -n "${open}" ]]; then
             gh pr edit "${open}" --body "${body}"
           else

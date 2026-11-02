@@ -12,9 +12,11 @@
 # The API's origincloud/<service> is the package @origincloud/<service> in
 # packages/<service>, whose src/ is generated whole; the shared
 # origincloud/longrunning is generated into each package that uses it.
-# A new service needs its package added by hand (package.json, tsconfig.json,
-# README.md and LICENSE, as packages/pvs has them) before it is generated:
-# until then --write warns and leaves it out, and the check fails.
+# A new service gets its package scaffolded by --write
+# (generator/src/scaffold.ts): package.json, tsconfig.json, README.md, LICENSE
+# and a test of its client, as packages/location has them, its place in the
+# root package.json, tsconfig.json, tsconfig.test.json and README.md, and in
+# package-lock.json. Until then, the check fails.
 #
 # Needs node, npm (`npm ci` run), git and network access.
 set -euo pipefail
@@ -37,17 +39,27 @@ git -C "${tmp}/api" checkout --quiet FETCH_HEAD
   npx --no-install tsc -p generator
   npx --no-install buf build "${tmp}/api" --as-file-descriptor-set -o "${tmp}/descriptors.json"
   node generator/dist/main.js "${tmp}/descriptors.json" "${tmp}/gen"
+  node generator/dist/scaffold.js "${tmp}/descriptors.json" "${ROOT}" "${tmp}/scaffold"
 )
 
-# A service the API has but this repository has no package for yet is left
-# out: --write generates every other package and warns, so that the
-# regeneration pull request still opens, and the check fails until the
-# package is added.
+# A service the API has but this repository has no package for yet:
+# --write scaffolds its package; the check fails.
+if [[ "${1:-}" == "--write" && -d "${tmp}/scaffold" ]]; then
+  cp -R "${tmp}/scaffold/." "${ROOT}/"
+  # Links the new packages into node_modules and adds them to
+  # package-lock.json; twice, as npm leaves a new workspace's name out of the
+  # lock file until the next install.
+  for _ in 1 2; do
+    (cd "${ROOT}" && npm install --ignore-scripts --no-audit --no-fund >/dev/null)
+  done
+  echo "scaffolded:"
+  (cd "${tmp}/scaffold" && find . -type f | sed 's|^\./|  |' | LC_ALL=C sort)
+fi
 missing=()
 for dir in "${tmp}/gen"/*/; do
   service="$(basename "${dir}")"
   if [[ ! -f "${ROOT}/packages/${service}/package.json" ]]; then
-    echo "WARNING: the API has the service ${service}, which has no package yet: add packages/${service} as packages/pvs is (see CONTRIBUTING.md)" >&2
+    echo "WARNING: the API has the service ${service}, which has no package yet: run $0 --write to scaffold it" >&2
     missing+=("${service}")
     rm -rf "${dir}"
   fi
@@ -82,7 +94,7 @@ else
 fi
 if [[ "${failed}" -eq 1 ]]; then
   if [[ "${#missing[@]}" -gt 0 ]]; then
-    echo "FAILED: the API has services without a package: ${missing[*]}; add them as packages/pvs is (see CONTRIBUTING.md)"
+    echo "FAILED: the API has services without a package: ${missing[*]}; run $0 --write to scaffold them"
   else
     echo "FAILED: the generated code isn't what origincloudhq/api@${revision:0:12} generates; run $0 --write"
   fi

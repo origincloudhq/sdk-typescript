@@ -12,7 +12,7 @@
   },
   "scripts": {
     "build": "tsc -b",
-    "test": "tsc -b && node --test $(find build -name '*.test.js' | sort)",
+    "test": "tsc -b && node --test $(find build generator/dist -name '*.test.js' | sort)",
     "generate": "scripts/generate.sh --write",
     "generate:check": "scripts/generate.sh"
   },

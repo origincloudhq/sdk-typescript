@@ -26,7 +26,10 @@ export interface MessageDescriptor {
   field?: FieldDescriptor[];
   nestedType?: MessageDescriptor[];
   enumType?: EnumDescriptor[];
-  options?: { mapEntry?: boolean };
+  options?: {
+    mapEntry?: boolean;
+    "[google.api.resource]"?: { type?: string; pattern?: string[]; plural?: string; singular?: string };
+  };
 }
 
 export type FieldType =

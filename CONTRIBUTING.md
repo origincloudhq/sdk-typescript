@@ -32,19 +32,25 @@ offers starts in the API, which is why it is requested by opening an issue
 rather than by editing a generated package; a change to how every client
 behaves is a change to the generator or `core`.
 
-A new service in the API needs its package added by hand before it is
-generated: `packages/<service>` with a `package.json`, `tsconfig.json`,
-`README.md` and `LICENSE` as `packages/pvs` has them, listed in the root
-`package.json`'s workspaces and `tsconfig.json`'s references. Until then,
-`scripts/generate.sh --write` warns, naming the service, and generates every
-other package; the check, and so CI, fails on it.
+A new service in the API gets its package scaffolded by
+`scripts/generate.sh --write` (`generator/src/scaffold.ts`):
+`packages/<service>` with a `package.json`, `tsconfig.json`, `README.md`,
+`LICENSE` and a test of its client (`test/client.test.ts`) as
+`packages/location` has them, listed in the root `package.json`'s workspaces,
+`tsconfig.json`'s and `tsconfig.test.json`'s references, README.md's table and
+`package-lock.json`. Its description says what the API's definitions do: the
+first sentence of the package's comment (on a file's `package` statement), or
+else of its one service's comment, or else the resources it serves, but those
+within another of its resources, such as "ACLs, DNS policies, … and VPCs". A
+better description starts in the API, with a package comment. Until a service
+has its package, the check, and so CI, fails on it.
 
 The regeneration workflow (`.github/workflows/regenerate.yml`) moves the SDK
 to the newest API when it changes, and daily, and opens a pull request when
 that changes anything, with the next version. Once its CI passes, it is
 merged and released without anyone's hands, unless someone added commits to
-it, which then wait for review: a new service's package, and its first
-publish by hand ([RELEASING.md](RELEASING.md#a-new-package)).
+it or it adds a service, which then wait for review: a new package needs its
+first publish by hand ([RELEASING.md](RELEASING.md#a-new-package)).
 
 ## Checks
 

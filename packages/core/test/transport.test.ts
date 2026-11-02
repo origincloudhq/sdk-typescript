@@ -231,11 +231,13 @@ test("endpoints", () => {
     const client = new Client({ credentials: accessToken("t"), region });
     assert.equal(client.service("pvs", regional).base, want, `region ${region}, regional ${regional}`);
   }
-  assert.equal(
-    new Client({ credentials: accessToken("t"), region: "eu-central1" }).service("iam").base,
-    "https://iam.origincloudapis.eu",
-    "a global service has no regional host",
-  );
+  for (const global of ["iam", "resourcemanager", "location"]) {
+    assert.equal(
+      new Client({ credentials: accessToken("t"), region: "eu-central1" }).service(global).base,
+      `https://${global}.origincloudapis.eu`,
+      `${global} is a global service, which has no regional host`,
+    );
+  }
 
   process.env["ORIGINCLOUD_REGION"] = "eu-west1";
   assert.equal(new Client({ credentials: accessToken("t") }).service("pvs").base, "https://pvs.eu-west1.origincloudapis.eu");
