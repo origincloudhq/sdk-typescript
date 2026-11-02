@@ -1,0 +1,127 @@
+# Publishes the version every package names (scripts/version.sh) to npm,
+# once CI passed on the push to main that set it and it has no tag yet
+# (scripts/version.sh unreleased), then tags that commit. The regeneration
+# pull request sets the version, so a merged regeneration is released; a
+# version set by hand in a pull request is released the same way
+# (RELEASING.md).
+#
+# It publishes with npm's trusted publishing: the job's OIDC token,
+# exchanged for a short-lived npm token, so no token is stored here, and npm
+# attaches the provenance of each package. Trusted publishing reaches only
+# packages that exist, so a package's first version is published by hand;
+# until it is, the release fails, naming it. A package whose version is on
+# npm already is skipped, so a release that failed half way finishes when it
+# runs again.
+name: Release
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    # The environment npm's trusted publisher names.
+    environment: release
+    env:
+      HEAD: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - name: Checkout
+        uses: 'actions/checkout@v4'
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Version
+        id: version
+        run: |
+          set -euo pipefail
+          version="$(scripts/version.sh current)"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          if scripts/version.sh unreleased; then
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "v${version} is released already, or older than the newest tag: nothing to release"
+          fi
+
+      # Trusted publishing needs npm 11.5.1 or later, which Node 24 ships.
+      - name: Node
+        if: steps.version.outputs.release == 'true'
+        uses: 'actions/setup-node@v4'
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+
+      - name: Build
+        if: steps.version.outputs.release == 'true'
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run build
+
+      # The published packages, the core package first: the others depend
+      # on it.
+      - name: Packages
+        id: packages
+        if: steps.version.outputs.release == 'true'
+        run: |
+          set -euo pipefail
+          packages="$(node -p 'require("./package.json").workspaces.map((w) => require(`./${w}/package.json`).name).join("\n")' \
+            | sort | awk '$0 == "@origincloud/core" { print; next } { rest = rest $0 "\n" } END { printf "%s", rest }')"
+          missing=()
+          for package in ${packages}; do
+            status="$(curl -s -o /dev/null -w '%{http_code}' "https://registry.npmjs.org/${package/\//%2f}")"
+            if [[ "${status}" == 404 ]]; then
+              missing+=("${package}")
+            elif [[ "${status}" != 200 ]]; then
+              echo "::error::npm answered ${status} for ${package}"
+              exit 1
+            fi
+          done
+          if [[ "${#missing[@]}" -gt 0 ]]; then
+            echo "::error::not on npm yet: ${missing[*]}. A package's first version is published by hand (RELEASING.md); then run this again."
+            exit 1
+          fi
+          echo "packages=$(echo "${packages}" | paste -sd ' ' -)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish
+        if: steps.version.outputs.release == 'true'
+        env:
+          PACKAGES: ${{ steps.packages.outputs.packages }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          for package in ${PACKAGES}; do
+            status="$(curl -s -o /dev/null -w '%{http_code}' "https://registry.npmjs.org/${package/\//%2f}/${VERSION}")"
+            if [[ "${status}" == 200 ]]; then
+              echo "${package} ${VERSION} is on npm already"
+              continue
+            fi
+            npm publish --workspace "${package}" --access public
+          done
+
+      - name: Tag
+        if: steps.version.outputs.release == 'true'
+        env:
+          TAG: v${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag -a "${TAG}" -m "${TAG}" "${HEAD}"
+          git push --quiet origin "${TAG}"
