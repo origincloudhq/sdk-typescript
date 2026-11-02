@@ -82,6 +82,14 @@ test("helpers", () => {
   assert.equal(parentPattern("roles/{role}"), "");
   assert.equal(firstSentence("A. B.\n\nC."), "A");
   assert.equal(firstSentence("Ends here."), "Ends here");
+  const one = (comment: string): FileDescriptor => ({
+    name: "origincloud/one/v1/one.proto",
+    package: "origincloud.one.v1",
+    service: [{ name: "OneService" }],
+    sourceCodeInfo: { location: [{ path: [6, 0], leadingComments: comment }] },
+  });
+  assert.equal(describe({ file: [one(" A service of its own.\n")] }, "one").what, "a service of its own");
+  assert.equal(describe({ file: [one(" VPCs and more.\n")] }, "one").what, "VPCs and more");
 });
 
 test("a new package is scaffolded as packages/location is, and added to the workspace, the references and the README", () => {

@@ -149,9 +149,9 @@ export function firstSentence(comment: string): string {
   return (end >= 0 ? line.slice(0, end) : line).replace(/\.+$/, "").trim();
 }
 
-/** text with a lowercase first letter, unless the word it starts is an abbreviation: "The" is "the", but "VPCs" stays. */
+/** text with a lowercase first letter, unless the word it starts is an abbreviation: "The" is "the" and "A" is "a", but "VPCs" stays. */
 function lowerFirst(text: string): string {
-  return /^[A-Z][a-z]/.test(text) ? text.charAt(0).toLowerCase() + text.slice(1) : text;
+  return /^[A-Z]([a-z]|\s|$)/.test(text) ? text.charAt(0).toLowerCase() + text.slice(1) : text;
 }
 
 function upperFirst(text: string): string {
