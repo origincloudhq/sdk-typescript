@@ -5,7 +5,10 @@
   "workspaces": [
     "packages/core",
     "packages/pvs",
-    "packages/location"
+    "packages/location",
+    "packages/compute",
+    "packages/network",
+    "packages/resourcemanager"
   ],
   "engines": {
     "node": ">=20"

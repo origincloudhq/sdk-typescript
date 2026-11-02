@@ -1,0 +1,42 @@
+{
+  "name": "@origincloud/network",
+  "version": "0.3.0",
+  "description": "Origin Cloud's network service: VPCs, subnets, routing, gateways, floating IPs, network interfaces, security groups, ACLs and DNS policies.",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/origincloudhq/sdk-typescript#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/origincloudhq/sdk-typescript.git",
+    "directory": "packages/network"
+  },
+  "bugs": "https://github.com/origincloudhq/sdk-typescript/issues",
+  "keywords": [
+    "origincloud",
+    "origin-cloud",
+    "sdk",
+    "network"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    "./*": {
+      "types": "./dist/*/index.d.ts",
+      "default": "./dist/*/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "!dist/**/*.tsbuildinfo"
+  ],
+  "peerDependencies": {
+    "@origincloud/core": "^0.3.0"
+  },
+  "devDependencies": {
+    "@origincloud/core": "^0.3.0"
+  }
+}
