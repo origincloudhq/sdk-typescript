@@ -81,7 +81,12 @@ test("a failed operation throws its error", async () => {
       code: 9,
       message: "the volume is attached",
       details: [
-        { "@type": "type.googleapis.com/google.rpc.ErrorInfo", reason: "VOLUME_IN_USE", domain: "origincloudapis.eu" },
+        {
+          "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+          reason: "VOLUME_IN_USE",
+          domain: "origincloudapis.eu",
+          metadata: { instance: "projects/p/zones/z/instances/i" },
+        },
         { "@type": "type.googleapis.com/google.rpc.RequestInfo", requestId: "req-9" },
       ],
     },
@@ -91,6 +96,7 @@ test("a failed operation throws its error", async () => {
     assert.equal(err.httpStatus, 0);
     assert.equal(err.status, "FAILED_PRECONDITION");
     assert.equal(err.reason, "VOLUME_IN_USE");
+    assert.deepEqual(err.metadata, { instance: "projects/p/zones/z/instances/i" });
     assert.equal(err.message, "the volume is attached");
     assert.equal(err.requestId, "req-9");
     return true;

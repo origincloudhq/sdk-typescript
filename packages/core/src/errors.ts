@@ -10,6 +10,7 @@ export interface OriginCloudErrorFields {
   httpStatus: number;
   status: string;
   reason: string;
+  metadata: Record<string, string>;
   message: string;
   requestId: string;
   fieldViolations: FieldViolation[];
@@ -31,6 +32,13 @@ export class OriginCloudError extends Error {
    * branch on.
    */
   readonly reason: string;
+  /**
+   * What the error is about, by key, as the API names it alongside
+   * {@link OriginCloudError.reason}: such as `serviceAccount`, the name of
+   * the service account a `CONFLICT` is about. Empty when the API names
+   * nothing.
+   */
+  readonly metadata: Readonly<Record<string, string>>;
   /** Identifies the request to Origin Cloud's support. */
   readonly requestId: string;
   /** The request fields that were refused, by their JSON path. */
@@ -50,6 +58,7 @@ export class OriginCloudError extends Error {
     this.httpStatus = fields.httpStatus ?? 0;
     this.status = fields.status ?? "";
     this.reason = fields.reason ?? "";
+    this.metadata = fields.metadata ?? {};
     this.requestId = fields.requestId ?? "";
     this.fieldViolations = fields.fieldViolations ?? [];
     this.retryDelayMs = fields.retryDelayMs ?? 0;
@@ -137,6 +146,16 @@ function str(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
+/** The string values of a JSON map; empty when it isn't one. */
+function strings(value: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!isRecord(value)) return out;
+  for (const [key, v] of Object.entries(value)) {
+    if (typeof v === "string") out[key] = v;
+  }
+  return out;
+}
+
 /** A JSON duration, such as `1.5s`, in milliseconds; 0 when it isn't one. */
 export function parseDuration(value: unknown): number {
   const match = typeof value === "string" ? /^(\d+(?:\.\d+)?)s$/.exec(value) : null;
@@ -151,6 +170,7 @@ function readDetails(details: unknown, into: Partial<OriginCloudErrorFields>): v
     switch (detail["@type"]) {
       case TYPE_ERROR_INFO:
         into.reason = str(detail["reason"]);
+        into.metadata = strings(detail["metadata"]);
         break;
       case TYPE_REQUEST_INFO:
         into.requestId = str(detail["requestId"]);
