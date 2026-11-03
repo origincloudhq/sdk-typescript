@@ -8,7 +8,8 @@
     "packages/location",
     "packages/compute",
     "packages/network",
-    "packages/resourcemanager"
+    "packages/resourcemanager",
+    "packages/iam"
   ],
   "engines": {
     "node": ">=20"

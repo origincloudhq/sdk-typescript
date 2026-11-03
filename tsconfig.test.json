@@ -12,6 +12,7 @@
     { "path": "packages/location" },
     { "path": "packages/compute" },
     { "path": "packages/network" },
-    { "path": "packages/resourcemanager" }
+    { "path": "packages/resourcemanager" },
+    { "path": "packages/iam" }
   ]
 }
