@@ -1,6 +1,6 @@
 {
   "name": "@origincloud/compute",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Origin Cloud's compute service: instances, images, key pairs, volume attachments and the instance catalog.",
   "license": "Apache-2.0",
   "homepage": "https://github.com/origincloudhq/sdk-typescript#readme",
@@ -34,9 +34,9 @@
     "!dist/**/*.tsbuildinfo"
   ],
   "peerDependencies": {
-    "@origincloud/core": "^0.3.0"
+    "@origincloud/core": "^0.4.0"
   },
   "devDependencies": {
-    "@origincloud/core": "^0.3.0"
+    "@origincloud/core": "^0.4.0"
   }
 }
