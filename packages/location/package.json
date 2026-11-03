@@ -1,6 +1,6 @@
 {
   "name": "@origincloud/location",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Origin Cloud's location service: regions and zones, and the services each zone offers.",
   "license": "Apache-2.0",
   "homepage": "https://github.com/origincloudhq/sdk-typescript#readme",
@@ -36,9 +36,9 @@
     "!dist/**/*.tsbuildinfo"
   ],
   "peerDependencies": {
-    "@origincloud/core": "^0.8.0"
+    "@origincloud/core": "^0.9.0"
   },
   "devDependencies": {
-    "@origincloud/core": "^0.8.0"
+    "@origincloud/core": "^0.9.0"
   }
 }
