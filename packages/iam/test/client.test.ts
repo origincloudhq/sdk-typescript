@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
 
-import { Client, accessToken } from "@origincloud/core";
+import { Client, OriginCloudError, accessToken } from "@origincloud/core";
 import { AuditLogClient, RoleBindingClient, ServiceAccountClient, UserClient } from "@origincloud/iam/v1beta1";
 
 import { type Received, json, serve } from "../../../test-support/fake-server.js";
@@ -111,6 +111,68 @@ test("createServiceAccount answers with its client secret", async () => {
   assert.deepEqual(JSON.parse(created.body), { displayName: "CI" });
   assert.deepEqual([...created.query.keys()], ["requestId"]);
   assert.match(created.query.get("requestId") ?? "", uuid);
+});
+
+// A create whose answer was lost is sent again with the same request id.
+// The API holds that request id, but no longer the client secret it
+// answered with: it refuses the repeat, naming the account it created.
+test("a repeated createServiceAccount is refused with the account it created", async () => {
+  const account = "organizations/o/serviceAccounts/s";
+  const calls: Received[] = [];
+  const server = await serve((req, res) => {
+    calls.push(req);
+    if (calls.length === 1) {
+      res.socket?.destroy();
+      return;
+    }
+    json(
+      res,
+      {
+        error: {
+          code: 409,
+          status: "FAILED_PRECONDITION",
+          message:
+            `the service account ${account} was created by an earlier request with this request_id; ` +
+            "its client secret was returned only to that request. To get a working secret, delete that account and create a new one",
+          details: [
+            {
+              "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+              reason: "CONFLICT",
+              domain: "origincloudapis.eu",
+              metadata: { serviceAccount: account },
+            },
+            { "@type": "type.googleapis.com/google.rpc.RequestInfo", requestId: "req-2" },
+          ],
+        },
+      },
+      409,
+    );
+  });
+  closers.push(server.close);
+  const client = new Client({ endpoint: server.url, credentials: accessToken("t") });
+
+  await assert.rejects(
+    new ServiceAccountClient(client).createServiceAccount({
+      parent: "organizations/o",
+      serviceAccount: { displayName: "CI" },
+    }),
+    (err: unknown) => {
+      assert.ok(err instanceof OriginCloudError);
+      assert.equal(err.httpStatus, 409);
+      assert.equal(err.reason, "CONFLICT");
+      assert.deepEqual(err.metadata, { serviceAccount: account });
+      assert.match(err.message, /organizations\/o\/serviceAccounts\/s/);
+      assert.equal(err.retryable, false);
+      return true;
+    },
+  );
+
+  // Sent twice, with one request id; the refusal is not sent again.
+  assert.equal(calls.length, 2);
+  const [first, second] = calls;
+  assert.ok(first && second);
+  assert.match(first.query.get("requestId") ?? "", uuid);
+  assert.equal(second.query.get("requestId"), first.query.get("requestId"));
 });
 
 test("createRoleBinding keeps a given request id", async () => {

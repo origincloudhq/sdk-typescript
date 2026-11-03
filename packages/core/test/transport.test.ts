@@ -44,6 +44,28 @@ const badRequest = {
   },
 };
 
+const account = "organizations/o/serviceAccounts/s";
+
+// A create repeated with a request id the API already holds.
+const conflict = {
+  error: {
+    code: 409,
+    status: "FAILED_PRECONDITION",
+    message:
+      `the service account ${account} was created by an earlier request with this request_id; ` +
+      "its client secret was returned only to that request. To get a working secret, delete that account and create a new one",
+    details: [
+      {
+        "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+        reason: "CONFLICT",
+        domain: "origincloudapis.eu",
+        metadata: { serviceAccount: account },
+      },
+      { "@type": "type.googleapis.com/google.rpc.RequestInfo", requestId: "req-2" },
+    ],
+  },
+};
+
 const servers: (() => Promise<void>)[] = [];
 after(async () => {
   for (const close of servers) await close();
@@ -146,6 +168,7 @@ test("an error that isn't retryable is not retried, and says what was refused", 
     assert.equal(err.message, "the request is invalid");
     assert.equal(err.requestId, "req-1");
     assert.deepEqual(err.fieldViolations, [{ field: "volume.sizeGib", description: "must be at least 1" }]);
+    assert.deepEqual(err.metadata, {});
     assert.equal(err.retryable, false);
     assert.equal(String(err), "origincloud: INVALID_ARGUMENT: the request is invalid (request req-1)");
     assert.equal(reasonOf(err), "INVALID_ARGUMENT");
@@ -153,6 +176,63 @@ test("an error that isn't retryable is not retried, and says what was refused", 
   });
   assert.equal(calls, 1);
   assert.equal(reasonOf(new Error("x")), "");
+});
+
+test("a conflict is not retried, and names what it is about", async () => {
+  let calls = 0;
+  const client = await testClient((_, res) => {
+    calls++;
+    json(res, conflict, 409);
+  });
+  await assert.rejects(client.service("iam").call({ method: "POST", path: "/x", idempotent: true }), (err: unknown) => {
+    assert.ok(err instanceof OriginCloudError);
+    assert.equal(err.httpStatus, 409);
+    assert.equal(err.status, "FAILED_PRECONDITION");
+    assert.equal(err.reason, "CONFLICT");
+    assert.deepEqual(err.metadata, { serviceAccount: account });
+    assert.equal(err.message, conflict.error.message);
+    assert.equal(err.requestId, "req-2");
+    assert.equal(err.retryable, false);
+    return true;
+  });
+  assert.equal(calls, 1);
+});
+
+test("metadata keeps the string values only, and is empty without an ErrorInfo", async () => {
+  const client = await testClient((req, res) => {
+    if (req.path === "/odd") {
+      json(
+        res,
+        {
+          error: {
+            code: 409,
+            status: "ABORTED",
+            details: [
+              {
+                "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+                reason: "CONFLICT",
+                metadata: { serviceAccount: account, count: 2, nested: { a: "b" } },
+              },
+            ],
+          },
+        },
+        409,
+      );
+    } else {
+      res.writeHead(404, { "Content-Type": "text/html" });
+      res.end("<html>not found</html>");
+    }
+  });
+  const metadataOf = (path: string) =>
+    client
+      .service("pvs")
+      .call({ method: "GET", path })
+      .then(
+        () => assert.fail("the call succeeded"),
+        (err: unknown) => (err instanceof OriginCloudError ? err.metadata : assert.fail(String(err))),
+      );
+  assert.deepEqual(await metadataOf("/odd"), { serviceAccount: account });
+  assert.deepEqual(await metadataOf("/proxy"), {});
 });
 
 test("a proxy error without a status is retryable", async () => {

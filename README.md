@@ -151,8 +151,10 @@ That entry point has everything `@origincloud/core` has, and also
 - **Pages.** Each list method has an `all...` counterpart, an async iterator
   over every page.
 - **Errors.** A refused call rejects with an `OriginCloudError`: branch on
-  its `reason`, the platform's error code. It also carries `httpStatus`,
-  `status`, `message`, `requestId` and `fieldViolations`.
+  its `reason`, the platform's error code. `metadata` names what the error
+  is about, by key, such as `serviceAccount` on a `CONFLICT`, and is empty
+  when the API names nothing. It also carries `httpStatus`, `status`,
+  `message`, `requestId` and `fieldViolations`.
 - **Cancelling.** Every method takes `{ signal }`, an `AbortSignal` that stops
   the call and its retries.
 
