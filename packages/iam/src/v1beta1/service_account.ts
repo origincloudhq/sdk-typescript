@@ -209,9 +209,11 @@ export interface CreateServiceAccountRequest {
   serviceAccount?: ServiceAccount;
   /**
    * A UUID. A repeat of the request with the same `requestId` within a
-   * day returns the service account the first request created, as it is
-   * now, instead of creating a second one. The repeat's response has no
-   * `clientSecret`: the secret is shown once.
+   * day creates nothing and is refused with `CONFLICT`: the secret went to
+   * the first request only. The error's `ErrorInfo` metadata names the
+   * service account under `serviceAccount`; delete it and create a new one
+   * to get a working secret. The same `requestId` with a different
+   * request is refused with `CONFLICT` without that metadata.
    */
   requestId?: string;
 }
