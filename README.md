@@ -25,6 +25,7 @@ from: install it next to them.
 | `@origincloud/network` | `@origincloud/network/v1beta1` | VPCs, subnets, routing, gateways, floating IPs, network interfaces, security groups, ACLs and DNS policies |
 | | `@origincloud/network/longrunning/v1beta1` | Network operations, for resuming one by name |
 | `@origincloud/resourcemanager` | `@origincloud/resourcemanager/v1beta1` | Organizations, projects and their quotas |
+| `@origincloud/iam` | `@origincloud/iam/v1beta1` | Users, service accounts, roles, role bindings, permissions and the audit log |
 
 The packages are ES modules with type declarations, depend on nothing but
 each other, and send their requests with the platform's `fetch`. They need

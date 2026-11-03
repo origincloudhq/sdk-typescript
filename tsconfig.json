@@ -7,6 +7,7 @@
     { "path": "packages/compute" },
     { "path": "packages/network" },
     { "path": "packages/resourcemanager" },
+    { "path": "packages/iam" },
     { "path": "generator" },
     { "path": "tsconfig.test.json" }
   ]
