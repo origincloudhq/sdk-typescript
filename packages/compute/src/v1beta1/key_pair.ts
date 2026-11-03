@@ -78,7 +78,8 @@ export class KeyPairClient {
    * `ssh-ed25519` key and returns its private half in `privateKey`, in
    * this response only. A repeat of a generating request with the same
    * `requestId` can't return the private key again, and is refused with
-   * `FAILED_PRECONDITION`: delete the key pair and create another.
+   * `CONFLICT`, its `ErrorInfo` metadata naming the key pair under
+   * `keyPair`: delete it and create another.
    */
   async createKeyPair(request: CreateKeyPairRequest, options?: CallOptions): Promise<KeyPair> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
@@ -192,8 +193,11 @@ export interface CreateKeyPairRequest {
    */
   keyPair?: KeyPair;
   /**
-   * A UUID; a repeat with the same id returns the first request's key pair
-   * instead of creating a second one.
+   * A UUID; a repeat with the same id creates no second key pair. A repeat
+   * importing a key returns the first request's key pair; a repeat
+   * generating one is refused with `CONFLICT`, as the private key went to
+   * the first request only, and the error's `ErrorInfo` metadata names the
+   * key pair under `keyPair`.
    */
   requestId?: string;
 }
