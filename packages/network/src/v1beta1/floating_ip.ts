@@ -172,9 +172,9 @@ export interface FloatingIp {
    */
   privateAddress?: string;
   /**
-   * Whether the platform assigned the address at launch, from a subnet
-   * with `autoAssignPublicIp`. Such an address is released when its
-   * instance is terminated.
+   * Whether the platform assigned the address at launch, to an interface
+   * the launch created in a subnet with `autoAssignPublicIp`. Such an
+   * address is released when its instance is terminated.
    */
   autoAssigned?: boolean;
   /** When the floating IP was created. */

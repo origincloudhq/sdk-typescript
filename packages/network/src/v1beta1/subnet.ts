@@ -105,8 +105,8 @@ export class SubnetClient {
 
   /**
    * Changes a subnet's public address assignment or tags.
-   * `autoAssignPublicIp` applies to instances launched afterwards. The
-   * operation is done once the change is recorded.
+   * `autoAssignPublicIp` applies to launches afterwards that create
+   * their interface. The operation is done once the change is recorded.
    *
    * It answers with an operation to wait on, whose result is the Subnet.
    */
@@ -182,8 +182,12 @@ export interface Subnet {
    */
   acl?: string;
   /**
-   * Whether an instance launched into the subnet gets a floating IP of
-   * its own, released when the instance is terminated.
+   * Whether a launch that creates its network interface in the subnet,
+   * as the GraphQL API's `launchInstance` does, gives that interface a
+   * floating IP of its own, released when the instance is terminated.
+   * `CreateInstance` takes existing interfaces, so an instance it launches
+   * gets none: create a floating IP and a floating IP association for its
+   * interface instead.
    */
   autoAssignPublicIp?: boolean;
   /** The subnet's IPv4 range. */
