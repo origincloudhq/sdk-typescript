@@ -20,3 +20,9 @@ test("getCase gets a resource by its name from support.origincloudapis.eu", asyn
   assert.deepEqual(urls, ["https://support.origincloudapis.eu/v1beta1/organizations/x/cases/x"]);
   assert.equal(got.name, "organizations/x/cases/x");
 });
+
+// Support is global: it has no regional host.
+test("a client with a region still calls support.origincloudapis.eu", () => {
+  const client = new Client({ credentials: accessToken("t"), region: "eu-central1" });
+  assert.equal(new CaseClient(client).service.base, "https://support.origincloudapis.eu");
+});
