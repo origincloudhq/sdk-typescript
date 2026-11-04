@@ -9,7 +9,10 @@
     "packages/compute",
     "packages/network",
     "packages/resourcemanager",
-    "packages/iam"
+    "packages/iam",
+    "packages/billing",
+    "packages/observability",
+    "packages/support"
   ],
   "engines": {
     "node": ">=20"
