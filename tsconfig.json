@@ -8,6 +8,9 @@
     { "path": "packages/network" },
     { "path": "packages/resourcemanager" },
     { "path": "packages/iam" },
+    { "path": "packages/billing" },
+    { "path": "packages/observability" },
+    { "path": "packages/support" },
     { "path": "generator" },
     { "path": "tsconfig.test.json" }
   ]

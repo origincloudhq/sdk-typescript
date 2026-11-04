@@ -26,6 +26,9 @@ from: install it next to them.
 | | `@origincloud/network/longrunning/v1beta1` | Network operations, for resuming one by name |
 | `@origincloud/resourcemanager` | `@origincloud/resourcemanager/v1beta1` | Organizations, projects and their quotas |
 | `@origincloud/iam` | `@origincloud/iam/v1beta1` | Users, service accounts, roles, role bindings, permissions and the audit log |
+| `@origincloud/billing` | `@origincloud/billing/v1beta1` | Billing accounts and the projects they pay for, payment methods, cost and usage, spend limits and the price list |
+| `@origincloud/observability` | `@origincloud/observability/v1beta1` | The metrics the platform collects for a project's compute instances, volumes and network interfaces |
+| `@origincloud/support` | `@origincloud/support/v1beta1` | Support cases, each a conversation between an organization and Origin Cloud support about a question or a problem |
 
 The packages are ES modules with type declarations, depend on nothing but
 each other, and send their requests with the platform's `fetch`. They need

@@ -1,0 +1,42 @@
+{
+  "name": "@origincloud/observability",
+  "version": "0.10.0",
+  "description": "Origin Cloud's observability service: the metrics the platform collects for a project's compute instances, volumes and network interfaces.",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/origincloudhq/sdk-typescript#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/origincloudhq/sdk-typescript.git",
+    "directory": "packages/observability"
+  },
+  "bugs": "https://github.com/origincloudhq/sdk-typescript/issues",
+  "keywords": [
+    "origincloud",
+    "origin-cloud",
+    "sdk",
+    "observability"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    "./*": {
+      "types": "./dist/*/index.d.ts",
+      "default": "./dist/*/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "!dist/**/*.tsbuildinfo"
+  ],
+  "peerDependencies": {
+    "@origincloud/core": "^0.10.0"
+  },
+  "devDependencies": {
+    "@origincloud/core": "^0.10.0"
+  }
+}
