@@ -311,7 +311,7 @@ test("endpoints", () => {
     const client = new Client({ credentials: accessToken("t"), region });
     assert.equal(client.service("pvs", regional).base, want, `region ${region}, regional ${regional}`);
   }
-  for (const global of ["iam", "resourcemanager", "location"]) {
+  for (const global of ["iam", "resourcemanager", "location", "billing", "support"]) {
     assert.equal(
       new Client({ credentials: accessToken("t"), region: "eu-central1" }).service(global).base,
       `https://${global}.origincloudapis.eu`,

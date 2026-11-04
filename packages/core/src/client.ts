@@ -7,7 +7,7 @@ export const VERSION = "0.9.0";
 const DEFAULT_MAX_ATTEMPTS = 5;
 
 /** The services that answer only at their regionless host. */
-const GLOBAL_SERVICES = new Set(["iam", "resourcemanager", "location"]);
+const GLOBAL_SERVICES = new Set(["iam", "resourcemanager", "location", "billing", "support"]);
 
 /** How a {@link Client} is configured. */
 export interface ClientOptions {
