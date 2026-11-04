@@ -136,8 +136,7 @@ export interface Case {
   urn?: string;
   /**
    * The project the case is about, `projects/{project}`, one of the
-   * organization's. Unset means the case is about the organization as a
-   * whole.
+   * organization's. Empty for a case about the organization as a whole.
    */
   project?: string;
   /** A one-line summary. Not empty. */
