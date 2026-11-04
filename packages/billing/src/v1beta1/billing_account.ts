@@ -415,8 +415,6 @@ export type PaymentMethod_State = (typeof PaymentMethod_State)[keyof typeof Paym
 export interface ProjectBillingInfo {
   /** The billing info's resource name, `projects/{project}/billingInfo`. */
   name?: string;
-  /** The project, `projects/{project}`. */
-  project?: string;
   /**
    * The billing account that pays for the project's usage, one of its
    * organization's.
