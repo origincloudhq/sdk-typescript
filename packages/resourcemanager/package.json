@@ -1,6 +1,6 @@
 {
   "name": "@origincloud/resourcemanager",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "Origin Cloud's resourcemanager service: organizations, projects and their quotas.",
   "license": "Apache-2.0",
   "homepage": "https://github.com/origincloudhq/sdk-typescript#readme",
@@ -34,9 +34,9 @@
     "!dist/**/*.tsbuildinfo"
   ],
   "peerDependencies": {
-    "@origincloud/core": "^0.12.0"
+    "@origincloud/core": "^0.13.0"
   },
   "devDependencies": {
-    "@origincloud/core": "^0.12.0"
+    "@origincloud/core": "^0.13.0"
   }
 }
