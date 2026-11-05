@@ -174,7 +174,9 @@ export interface FloatingIp {
   /**
    * Whether the platform assigned the address at launch, to an interface
    * the launch created in a subnet with `autoAssignPublicIp`. Such an
-   * address is released when its instance is terminated.
+   * address is part of that interface: its association can't be removed
+   * nor the address deleted, and it is released with the interface when
+   * its instance is terminated.
    */
   autoAssigned?: boolean;
   /** When the floating IP was created. */

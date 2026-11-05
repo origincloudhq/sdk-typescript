@@ -104,8 +104,10 @@ export class FloatingIpAssociationClient {
 
   /**
    * Removes a floating IP's association: the address reaches nothing, and
-   * stays allocated. The operation is done once the change is recorded; the
-   * network applies it within seconds.
+   * stays allocated. Refused for an address the platform assigned at
+   * launch (`autoAssigned`), which is released with its network interface.
+   * The operation is done once the change is recorded; the network applies
+   * it within seconds.
    *
    * It answers with an operation to wait on, which has no result.
    */
