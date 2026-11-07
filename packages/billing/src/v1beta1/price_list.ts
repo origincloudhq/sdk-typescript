@@ -63,7 +63,7 @@ export interface PriceList {
    * `network_nat_gateway`, `network_vpc_egress`, `network_vpc_ingress`,
    * `network_vpc_internal`, `storage_volume`, `storage_snapshot`,
    * `observability_custom_metric`, `observability_api_request`,
-   * `observability_ingested_sample`.
+   * `observability_ingested_sample`, `dns_hosted_zone`, `dns_query`.
    */
   families?: PriceFamily[];
 }
@@ -93,7 +93,7 @@ export interface Price {
   dimensions?: Record<string, string>;
   /**
    * What is counted: `seconds`, `gib_hours`, `gb` (decimal, 10^9 bytes),
-   * `metric_months`, `requests` or `samples`.
+   * `metric_months`, `requests`, `samples` or `queries`.
    */
   unit_type?: string;
   /**

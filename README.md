@@ -29,6 +29,7 @@ from: install it next to them.
 | `@origincloud/billing` | `@origincloud/billing/v1beta1` | Billing accounts and the projects they pay for, payment methods, cost and usage, spend limits and the price list |
 | `@origincloud/observability` | `@origincloud/observability/v1beta1` | The metrics the platform collects for a project's compute instances, volumes and network interfaces |
 | `@origincloud/support` | `@origincloud/support/v1beta1` | Support cases, each a conversation between an organization and Origin Cloud support about a question or a problem |
+| `@origincloud/dns` | `@origincloud/dns/v1beta1` | Hosted zones, their record sets, and private zones' VPC attachments |
 
 The packages are ES modules with type declarations, depend on nothing but
 each other, and send their requests with the platform's `fetch`. They need

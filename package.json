@@ -12,7 +12,8 @@
     "packages/iam",
     "packages/billing",
     "packages/observability",
-    "packages/support"
+    "packages/support",
+    "packages/dns"
   ],
   "engines": {
     "node": ">=20"
