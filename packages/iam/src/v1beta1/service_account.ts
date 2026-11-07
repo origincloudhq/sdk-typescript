@@ -81,9 +81,9 @@ export class ServiceAccountClient {
   }
 
   /**
-   * Creates a service account and its client secret. The response is the
-   * only place the secret is ever shown: store it now. Needs
-   * `iam.service_account.create` on the organization.
+   * Creates a service account and, for an `EXTERNAL` one, its client
+   * secret. The response is the only place the secret is ever shown: store
+   * it now. Needs `iam.service_account.create` on the organization.
    */
   async createServiceAccount(request: CreateServiceAccountRequest, options?: CallOptions): Promise<ServiceAccount> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
@@ -132,12 +132,15 @@ export interface ServiceAccount {
    * `serviceAccount:{service_account}`.
    */
   member?: string;
-  /** The OAuth 2.0 client id it authenticates with. */
+  /**
+   * The OAuth 2.0 client id it authenticates with; empty for a `WORKLOAD`
+   * service account.
+   */
   clientId?: string;
   /**
    * The OAuth 2.0 client secret it authenticates with. Set only in the
-   * response that created the service account, and empty everywhere else:
-   * it can't be read again.
+   * response that created an `EXTERNAL` service account, and empty
+   * everywhere else: it can't be read again.
    */
   clientSecret?: string;
   /** Where the service account is in its lifecycle. */
@@ -151,7 +154,40 @@ export interface ServiceAccount {
   createTime?: string;
   /** When the service account was deleted; unset while it is active. */
   deleteTime?: string;
+  /**
+   * How the service account authenticates; `EXTERNAL` when the create
+   * leaves it unset.
+   */
+  type?: ServiceAccount_Type;
 }
+
+/**
+ * How the service account authenticates. Set when it is created; it
+ * never changes.
+ */
+export const ServiceAccount_Type = {
+  /**
+   * Not set. A create that leaves it unset creates an `EXTERNAL` service
+   * account.
+   */
+  TYPE_UNSPECIFIED: "TYPE_UNSPECIFIED",
+  /**
+   * Authenticates with an OAuth 2.0 client id and secret, for software
+   * outside Origin Cloud such as a CI pipeline.
+   */
+  EXTERNAL: "EXTERNAL",
+  /**
+   * Has no client id or secret and can't be given one: no credential of
+   * its own authenticates as it, wherever it was copied to.
+   */
+  WORKLOAD: "WORKLOAD",
+} as const;
+
+/**
+ * How the service account authenticates. Set when it is created; it
+ * never changes.
+ */
+export type ServiceAccount_Type = (typeof ServiceAccount_Type)[keyof typeof ServiceAccount_Type];
 
 /** Where the service account is in its lifecycle. */
 export const ServiceAccount_State = {
@@ -205,7 +241,7 @@ export interface CreateServiceAccountRequest {
    * `organizations/{organization}`.
    */
   parent?: string;
-  /** The service account to create: its `displayName`. */
+  /** The service account to create: its `displayName` and `type`. */
   serviceAccount?: ServiceAccount;
   /**
    * A UUID. A repeat of the request with the same `requestId` within a
