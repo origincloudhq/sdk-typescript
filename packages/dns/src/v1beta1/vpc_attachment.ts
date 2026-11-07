@@ -32,7 +32,7 @@ export class VpcAttachmentClient {
 
   /** A client of VpcAttachmentService that sends its calls through `client`. */
   constructor(client: Client) {
-    this.service = client.service("dns", true);
+    this.service = client.service("dns", false);
   }
 
   /** Returns a VPC attachment. */

@@ -47,7 +47,7 @@ export class HostedZoneClient {
 
   /** A client of HostedZoneService that sends its calls through `client`. */
   constructor(client: Client) {
-    this.service = client.service("dns", true);
+    this.service = client.service("dns", false);
   }
 
   /** Returns a hosted zone. */

@@ -33,7 +33,7 @@ export class RecordSetClient {
 
   /** A client of RecordSetService that sends its calls through `client`. */
   constructor(client: Client) {
-    this.service = client.service("dns", true);
+    this.service = client.service("dns", false);
   }
 
   /** Returns a record set. */
