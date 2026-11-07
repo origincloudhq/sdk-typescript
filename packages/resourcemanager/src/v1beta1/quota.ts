@@ -19,6 +19,10 @@ export interface OrganizationQuota {
   maxVpcs?: string;
   /** The most floating IPs. */
   maxPublicIps?: string;
+  /** The most DNS hosted zones, including those not yet verified. */
+  maxHostedZones?: string;
+  /** The most DNS record sets, summed over every hosted zone. */
+  maxRecordSets?: string;
   /** How much of each limit the organization's projects use together. */
   usage?: QuotaUsage;
 }
@@ -50,6 +54,16 @@ export interface ProjectQuota {
   maxVpcs?: string;
   /** The most floating IPs; unset means no budget. */
   maxPublicIps?: string;
+  /**
+   * The most DNS hosted zones, including those not yet verified; unset
+   * means no budget.
+   */
+  maxHostedZones?: string;
+  /**
+   * The most DNS record sets, summed over the project's hosted zones; unset
+   * means no budget.
+   */
+  maxRecordSets?: string;
   /** How much of each budget the project uses. */
   usage?: QuotaUsage;
 }
@@ -70,4 +84,14 @@ export interface QuotaUsage {
   vpcs?: string;
   /** Floating IPs. */
   publicIps?: string;
+  /**
+   * DNS hosted zones, including those not yet verified; unset while they
+   * can't be counted, the other figures answered all the same.
+   */
+  hostedZones?: string;
+  /**
+   * DNS record sets; unset while they can't be counted, the other figures
+   * answered all the same.
+   */
+  recordSets?: string;
 }
