@@ -1,6 +1,6 @@
 {
   "name": "@origincloud/dns",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "description": "Origin Cloud's DNS service: hosted zones, their record sets, and private zones' VPC attachments.",
   "license": "Apache-2.0",
   "homepage": "https://github.com/origincloudhq/sdk-typescript#readme",
@@ -34,9 +34,9 @@
     "!dist/**/*.tsbuildinfo"
   ],
   "peerDependencies": {
-    "@origincloud/core": "^0.16.0"
+    "@origincloud/core": "^0.17.0"
   },
   "devDependencies": {
-    "@origincloud/core": "^0.16.0"
+    "@origincloud/core": "^0.17.0"
   }
 }

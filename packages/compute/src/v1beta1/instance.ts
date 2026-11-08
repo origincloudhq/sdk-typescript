@@ -294,6 +294,14 @@ export interface Instance {
    * `networkInterfaces`; an interface not attached yet has none.
    */
   interfaceAddresses?: InterfaceAddresses[];
+  /**
+   * The service account the instance runs as,
+   * `organizations/{organization}/serviceAccounts/{service_account}`: a
+   * `WORKLOAD` service account of the instance's organization that isn't
+   * deleted. Launching with one needs `iam.service_account.act_as` on the
+   * organization as well. Empty for an instance that runs as none.
+   */
+  serviceAccount?: string;
 }
 
 /** Where the instance is in its lifecycle. */
