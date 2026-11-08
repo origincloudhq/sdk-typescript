@@ -1,6 +1,6 @@
 {
   "name": "@origincloud/iam",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "description": "Origin Cloud's IAM service: users, service accounts, roles, role bindings, permissions and the audit log.",
   "license": "Apache-2.0",
   "homepage": "https://github.com/origincloudhq/sdk-typescript#readme",
@@ -34,9 +34,9 @@
     "!dist/**/*.tsbuildinfo"
   ],
   "peerDependencies": {
-    "@origincloud/core": "^0.16.0"
+    "@origincloud/core": "^0.17.0"
   },
   "devDependencies": {
-    "@origincloud/core": "^0.16.0"
+    "@origincloud/core": "^0.17.0"
   }
 }
