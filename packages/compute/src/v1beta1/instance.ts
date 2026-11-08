@@ -109,7 +109,8 @@ export class InstanceClient {
   }
 
   /**
-   * Changes an instance's type or tags. A new `instanceType` needs the
+   * Changes an instance's type, tags or service account. A new
+   * `instanceType` needs the
    * instance `STOPPED`, and is refused with `FAILED_PRECONDITION`
    * otherwise; it takes effect at the next start. A larger type is checked
    * against the same vCPU quota a launch is. The operation is done once the
@@ -298,8 +299,10 @@ export interface Instance {
    * The service account the instance runs as,
    * `organizations/{organization}/serviceAccounts/{service_account}`: a
    * `WORKLOAD` service account of the instance's organization that isn't
-   * deleted. Launching with one needs `iam.service_account.act_as` on the
-   * organization as well. Empty for an instance that runs as none.
+   * deleted. Launching with one, or updating the instance to one, needs
+   * `iam.service_account.act_as` on the organization as well; an update
+   * that leaves it empty removes it, and a terminated instance's can't
+   * change. Empty for an instance that runs as none.
    */
   serviceAccount?: string;
 }
@@ -506,7 +509,11 @@ export interface CreateInstanceRequest {
 export interface UpdateInstanceRequest {
   /** The instance, by its name, with the fields to change. */
   instance?: Instance;
-  /** The fields to change: `instanceType`, `tags`, or both. `*` is both. */
+  /**
+   * The fields to change: any of `instanceType`, `tags` and
+   * `serviceAccount`. `*` is all three, so an empty `serviceAccount`
+   * under it removes the instance's.
+   */
   updateMask?: string;
   /**
    * A UUID; a repeat with the same id returns the first request's
