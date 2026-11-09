@@ -28,7 +28,8 @@ const CLI_CLIENT_ID = "origin-cli";
 
 /**
  * Thrown by {@link defaultCredentials} when it finds no credentials, and by
- * {@link InstanceMetadataCredentials} when no metadata service answers.
+ * {@link InstanceMetadataCredentials} when no metadata service of Origin
+ * Cloud's answers.
  */
 export class NoCredentialsError extends Error {
   constructor(options?: ErrorOptions) {
@@ -271,12 +272,15 @@ export class InstanceMetadataCredentials implements Credentials {
       { [METADATA_TTL_HEADER]: String(METADATA_SESSION_TTL_SECONDS) },
       METADATA_SESSION_TIMEOUT_MS,
     );
-    // Not an instance's address: no metadata service is there for it.
-    if (answer.status === 404) throw new NoCredentialsError();
     if (answer.status === 403) throw proxyRefused();
-    if (answer.status !== 200) {
+    if (answer.status === 503) {
       throw new Error(`origincloud: the metadata service refused a session (HTTP ${answer.status})`);
     }
+    // Only this platform's metadata service grants the session. Anything
+    // else is no metadata service of ours: an address that is no instance
+    // (404), or another cloud's metadata service at the same address,
+    // which refuses a request it doesn't know (such as 400, 405 or 411).
+    if (answer.status !== 200) throw new NoCredentialsError();
     const token = answer.text.trim();
     if (!token || answer.truncated) throw notACredential();
     return { token, expiry: Date.now() + METADATA_SESSION_TTL_SECONDS * 1000 };

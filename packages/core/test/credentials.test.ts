@@ -333,10 +333,9 @@ test("the metadata service's refusals say why", async () => {
 });
 
 test("a refused metadata session says why", async () => {
-  const answers: [number, RegExp | typeof NoCredentialsError][] = [
-    [404, NoCredentialsError],
+  const answers: [number, RegExp][] = [
     [403, /refused a request that came through a proxy$/],
-    [400, /^Error: origincloud: the metadata service refused a session \(HTTP 400\)$/],
+    [503, /^Error: origincloud: the metadata service refused a session \(HTTP 503\)$/],
   ];
   for (const [status, expected] of answers) {
     const server = await serve((_, res) => {
@@ -344,6 +343,17 @@ test("a refused metadata session says why", async () => {
     });
     closers.push(server.close);
     await assert.rejects(instanceMetadata({ endpoint: server.url }).token(), expected);
+  }
+});
+
+test("another cloud's metadata service, or no instance's address, means no credentials", async () => {
+  // Such as AWS's 400, GCP's 404 or 405 and Azure's 411 to a request they don't know.
+  for (const status of [400, 404, 405, 411]) {
+    const server = await serve((_, res) => {
+      res.writeHead(status).end();
+    });
+    closers.push(server.close);
+    await assert.rejects(instanceMetadata({ endpoint: server.url }).token(), NoCredentialsError, `HTTP ${status}`);
   }
 });
 

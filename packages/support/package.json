@@ -1,6 +1,6 @@
 {
   "name": "@origincloud/support",
-  "version": "0.20.0",
+  "version": "0.20.1",
   "description": "Origin Cloud's support service: support cases, each a conversation between an organization and Origin Cloud support about a question or a problem.",
   "license": "Apache-2.0",
   "homepage": "https://github.com/origincloudhq/sdk-typescript#readme",
@@ -34,9 +34,9 @@
     "!dist/**/*.tsbuildinfo"
   ],
   "peerDependencies": {
-    "@origincloud/core": "^0.20.0"
+    "@origincloud/core": "^0.20.1"
   },
   "devDependencies": {
-    "@origincloud/core": "^0.20.0"
+    "@origincloud/core": "^0.20.1"
   }
 }
