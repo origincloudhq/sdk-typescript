@@ -81,8 +81,14 @@ default value may be absent from a response: `volume.sizeGib ?? 0`.
    automation should use. Setting only one of the two is an error.
 3. The session the `origin` CLI stored at its last login (`origin id login`),
    renewed in memory when it expires; the CLI's file is never written.
+4. The instance's metadata service, at `http://169.254.169.254`: on an
+   instance that runs as a service account, that account's access tokens,
+   requested as they expire. Nothing is asked until the first call, which
+   rejects with `NoCredentialsError` within about a second where no metadata
+   service answers. `ORIGINCLOUD_METADATA_DISABLED=true` leaves this step out,
+   and `new Client()` then throws when none of the others is found.
 
-It throws when none is found. `credentials` sets them explicitly instead:
+`credentials` sets them explicitly instead:
 
 ```ts
 import { Client, serviceAccount } from "@origincloud/core";
@@ -127,7 +133,8 @@ import { Client, defaultCredentials } from "@origincloud/core/node";
 ```
 
 That entry point has everything `@origincloud/core` has, and also
-`defaultCredentials`, `cliSession`, `CLISessionCredentials` and
+`defaultCredentials`, `cliSession`, `CLISessionCredentials`,
+`instanceMetadata`, `InstanceMetadataCredentials`, `METADATA_ENDPOINT` and
 `NoCredentialsError`.
 
 ## Behaviour

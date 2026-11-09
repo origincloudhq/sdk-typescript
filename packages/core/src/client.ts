@@ -14,8 +14,8 @@ export interface ClientOptions {
   /**
    * The credentials calls are sent with: {@link Credentials}, or a function
    * returning an access token, such as an OIDC session's token getter.
-   * Required in a browser; in Node they are found in the environment or
-   * the CLI's session when left out.
+   * Required in a browser; in Node they are found in the environment, the
+   * CLI's session or the instance's metadata service when left out.
    */
   credentials?: Credentials | TokenSource;
   /**

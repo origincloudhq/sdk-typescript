@@ -7,15 +7,24 @@ import { after, beforeEach, test } from "node:test";
 import {
   CLISessionCredentials,
   Client,
+  InstanceMetadataCredentials,
+  METADATA_ENDPOINT,
   NoCredentialsError,
   ServiceAccountCredentials,
   cliSession,
   defaultCredentials,
+  instanceMetadata,
 } from "@origincloud/core";
 
-import { json, serve } from "../../../test-support/fake-server.js";
+import { type Received, json, serve } from "../../../test-support/fake-server.js";
 
-const ENV = ["ORIGINCLOUD_ACCESS_TOKEN", "ORIGINCLOUD_CLIENT_ID", "ORIGINCLOUD_CLIENT_SECRET", "ORIGINCLOUD_REGION"];
+const ENV = [
+  "ORIGINCLOUD_ACCESS_TOKEN",
+  "ORIGINCLOUD_CLIENT_ID",
+  "ORIGINCLOUD_CLIENT_SECRET",
+  "ORIGINCLOUD_REGION",
+  "ORIGINCLOUD_METADATA_DISABLED",
+];
 const saved = Object.fromEntries(["XDG_DATA_HOME", ...ENV].map((name) => [name, process.env[name]]));
 const dirs: string[] = [];
 const closers: (() => Promise<void>)[] = [];
@@ -101,9 +110,23 @@ test("half a service account is refused", () => {
   assert.throws(() => defaultCredentials(), /must be set together/);
 });
 
+test("without the environment or a CLI session, the instance's metadata service is asked", () => {
+  const credentials = defaultCredentials();
+  assert.ok(credentials instanceof InstanceMetadataCredentials);
+  assert.equal(credentials.endpoint, METADATA_ENDPOINT);
+  assert.equal(METADATA_ENDPOINT, "http://169.254.169.254");
+});
+
 test("no credentials at all", () => {
+  process.env["ORIGINCLOUD_METADATA_DISABLED"] = "TRUE";
   assert.throws(() => defaultCredentials(), NoCredentialsError);
   assert.throws(() => new Client(), NoCredentialsError);
+  assert.throws(
+    () => defaultCredentials(),
+    /log in with `origin id login`, or run on an instance that runs as a service account$/,
+  );
+  process.env["ORIGINCLOUD_METADATA_DISABLED"] = "1";
+  assert.ok(defaultCredentials() instanceof InstanceMetadataCredentials, "only `true` disables it");
 });
 
 test("a service account token is reused until it is about to expire", async () => {
@@ -205,4 +228,141 @@ test("a malformed time in the CLI session is an error", () => {
   assert.throws(() => defaultCredentials(), /refresh_expires isn't an RFC 3339 time/);
   writeSession({ access_token: "a", expires: "", refresh_token: "r", refresh_expires: inAnHour() });
   assert.throws(() => cliSession(), /expires isn't an RFC 3339 time/);
+});
+
+/**
+ * A metadata service handing out sessions numbered from 1 and the access
+ * tokens `credential` answers with, by the session presented; it records
+ * the requests it got.
+ */
+async function metadataServer(credential: (session: string, request: Received) => { status: number; body: unknown }) {
+  const requests: Received[] = [];
+  let sessions = 0;
+  const server = await serve((req, res) => {
+    requests.push(req);
+    if (req.method === "PUT" && req.path === "/latest/api/token") {
+      res.writeHead(200, { "Content-Type": "text/plain" });
+      res.end(`session-${++sessions}`);
+      return;
+    }
+    if (req.method === "GET" && req.path === "/latest/meta-data/service-account/token") {
+      const { status, body } = credential(String(req.headers["x-origincloud-metadata-token"]), req);
+      json(res, body, status);
+      return;
+    }
+    res.writeHead(404).end();
+  });
+  closers.push(server.close);
+  return { url: server.url, requests };
+}
+
+const granted = (token: string, expiresAt = inAnHour()) => ({
+  status: 200,
+  body: { access_token: token, token_type: "Bearer", expires_at: expiresAt },
+});
+
+test("an instance's token comes from its metadata service and is reused until it is about to expire", async () => {
+  const { url, requests } = await metadataServer((session) => granted(`token-for-${session}`));
+  const credentials = instanceMetadata({ endpoint: url });
+  assert.equal(requests.length, 0, "creating them sends no request");
+  assert.equal(await credentials.token(), "token-for-session-1");
+  assert.equal(await credentials.token(), "token-for-session-1");
+  assert.deepEqual(
+    requests.map((r) => `${r.method} ${r.path}`),
+    ["PUT /latest/api/token", "GET /latest/meta-data/service-account/token"],
+  );
+  assert.equal(requests[0]?.headers["x-origincloud-metadata-token-ttl-seconds"], "21600");
+  assert.equal(requests[1]?.headers["x-origincloud-metadata-token"], "session-1");
+
+  // A token within the expiry margin is replaced, with the same session.
+  let issued = 0;
+  const short = await metadataServer(() => granted(`token-${++issued}`, new Date(Date.now() + 10_000).toISOString()));
+  const renewing = instanceMetadata({ endpoint: short.url });
+  assert.equal(await renewing.token(), "token-1");
+  assert.equal(await renewing.token(), "token-2");
+  assert.equal(short.requests.filter((r) => r.method === "PUT").length, 1);
+});
+
+test("a session the metadata service refuses is opened again, once", async () => {
+  const { url, requests } = await metadataServer((session) =>
+    session === "session-1" ? { status: 401, body: "" } : granted(`token-for-${session}`),
+  );
+  assert.equal(await instanceMetadata({ endpoint: url }).token(), "token-for-session-2");
+  assert.equal(requests.length, 4);
+
+  const refusing = await metadataServer(() => ({ status: 401, body: "" }));
+  await assert.rejects(
+    instanceMetadata({ endpoint: refusing.url }).token(),
+    /^Error: origincloud: the metadata service answered HTTP 401$/,
+  );
+  assert.equal(refusing.requests.length, 4, "one retry");
+});
+
+test("the metadata service's refusals say why", async () => {
+  const cases: [{ status: number; body: unknown }, RegExp][] = [
+    [{ status: 404, body: "" }, /^Error: origincloud: the instance runs as no service account$/],
+    [
+      { status: 403, body: "" },
+      /^Error: origincloud: the metadata service refused a request that came through a proxy$/,
+    ],
+    [{ status: 503, body: "" }, /^Error: origincloud: the metadata service answered HTTP 503$/],
+    [{ status: 200, body: "not json" }, /the metadata service's answer is not a credential$/],
+    [{ status: 200, body: { access_token: "", expires_at: inAnHour() } }, /is not a credential$/],
+    [{ status: 200, body: { access_token: "t", expires_at: "tomorrow" } }, /is not a credential$/],
+  ];
+  for (const [answer, message] of cases) {
+    const { url } = await metadataServer(() => answer);
+    await assert.rejects(instanceMetadata({ endpoint: url }).token(), message);
+  }
+});
+
+test("a refused metadata session says why", async () => {
+  const answers: [number, RegExp | typeof NoCredentialsError][] = [
+    [404, NoCredentialsError],
+    [403, /refused a request that came through a proxy$/],
+    [400, /^Error: origincloud: the metadata service refused a session \(HTTP 400\)$/],
+  ];
+  for (const [status, expected] of answers) {
+    const server = await serve((_, res) => {
+      res.writeHead(status).end();
+    });
+    closers.push(server.close);
+    await assert.rejects(instanceMetadata({ endpoint: server.url }).token(), expected);
+  }
+});
+
+test("where no metadata service answers, there are no credentials, at once", async () => {
+  const server = await serve((_, res) => {
+    res.end();
+  });
+  await server.close();
+  const started = Date.now();
+  await assert.rejects(instanceMetadata({ endpoint: server.url }).token(), NoCredentialsError);
+  assert.ok(Date.now() - started < 1500, `took ${Date.now() - started} ms`);
+});
+
+test("a metadata service that doesn't answer is given up on within a second", async () => {
+  const server = await serve(() => new Promise<void>(() => {}));
+  closers.push(server.close);
+  const started = Date.now();
+  await assert.rejects(instanceMetadata({ endpoint: server.url }).token(), NoCredentialsError);
+  const took = Date.now() - started;
+  assert.ok(took >= 900 && took < 2000, `took ${took} ms`);
+});
+
+test("the metadata credentials send their requests with the fetch they are given", async () => {
+  const sent: string[] = [];
+  const credentials = new InstanceMetadataCredentials({
+    endpoint: "http://metadata.test",
+    fetch: async (input, init) => {
+      sent.push(`${init.method} ${input}`);
+      if (init.method === "PUT") return new Response("s", { status: 200 });
+      return new Response(JSON.stringify({ access_token: "via-fetch", expires_at: inAnHour() }), { status: 200 });
+    },
+  });
+  assert.equal(await credentials.token(), "via-fetch");
+  assert.deepEqual(sent, [
+    "PUT http://metadata.test/latest/api/token",
+    "GET http://metadata.test/latest/meta-data/service-account/token",
+  ]);
 });
