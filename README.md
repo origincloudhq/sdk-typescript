@@ -86,7 +86,8 @@ default value may be absent from a response: `volume.sizeGib ?? 0`.
    account, that account's access tokens, replaced a minute before they
    expire. Nothing is asked until the first call, which rejects with
    `NoCredentialsError` within about two seconds where no metadata service
-   answers; a 503 is tried again twice. `ORIGINCLOUD_METADATA_DISABLED=true`
+   answers, or where another cloud's answers instead; a 503 is tried again
+   twice. `ORIGINCLOUD_METADATA_DISABLED=true`
    leaves this step out, and `new Client()` then throws when none of the
    others is found.
 
