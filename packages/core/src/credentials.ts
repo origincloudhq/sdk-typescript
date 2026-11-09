@@ -45,11 +45,14 @@ export function accessToken(token: string): Credentials {
 export class TokenCache {
   private token = "";
   private expiry = 0;
+  private readonly margin: number;
   private renewal: Promise<string> | undefined;
 
-  constructor(token = "", expiry = 0) {
+  /** `margin` is how long before its expiry, in milliseconds, the token is replaced. */
+  constructor(token = "", expiry = 0, margin = EXPIRY_MARGIN_MS) {
     this.token = token;
     this.expiry = expiry;
+    this.margin = margin;
   }
 
   /**
@@ -60,7 +63,7 @@ export class TokenCache {
    * the token.
    */
   get(renew: () => Promise<{ token: string; expiry: number }>, signal?: AbortSignal): Promise<string> {
-    if (this.token && Date.now() + EXPIRY_MARGIN_MS < this.expiry) {
+    if (this.token && Date.now() + this.margin < this.expiry) {
       return Promise.resolve(this.token);
     }
     this.renewal ??= renew()

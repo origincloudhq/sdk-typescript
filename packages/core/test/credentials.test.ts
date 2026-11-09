@@ -24,6 +24,7 @@ const ENV = [
   "ORIGINCLOUD_CLIENT_SECRET",
   "ORIGINCLOUD_REGION",
   "ORIGINCLOUD_METADATA_DISABLED",
+  "ORIGINCLOUD_METADATA_ENDPOINT",
 ];
 const saved = Object.fromEntries(["XDG_DATA_HOME", ...ENV].map((name) => [name, process.env[name]]));
 const dirs: string[] = [];
@@ -115,6 +116,11 @@ test("without the environment or a CLI session, the instance's metadata service 
   assert.ok(credentials instanceof InstanceMetadataCredentials);
   assert.equal(credentials.endpoint, METADATA_ENDPOINT);
   assert.equal(METADATA_ENDPOINT, "http://169.254.169.254");
+
+  process.env["ORIGINCLOUD_METADATA_ENDPOINT"] = "http://127.0.0.1:8080/";
+  const elsewhere = defaultCredentials();
+  assert.ok(elsewhere instanceof InstanceMetadataCredentials);
+  assert.equal(elsewhere.endpoint, "http://127.0.0.1:8080");
 });
 
 test("no credentials at all", () => {
@@ -281,6 +287,16 @@ test("an instance's token comes from its metadata service and is reused until it
   assert.equal(await renewing.token(), "token-1");
   assert.equal(await renewing.token(), "token-2");
   assert.equal(short.requests.filter((r) => r.method === "PUT").length, 1);
+
+  // Its margin is a minute, not the 30 seconds of other tokens.
+  const soon = await metadataServer(() => granted(`token-${++issued}`, new Date(Date.now() + 45_000).toISOString()));
+  const early = instanceMetadata({ endpoint: soon.url });
+  assert.equal(await early.token(), "token-3");
+  assert.equal(await early.token(), "token-4");
+  const later = await metadataServer(() => granted(`token-${++issued}`, new Date(Date.now() + 90_000).toISOString()));
+  const kept = instanceMetadata({ endpoint: later.url });
+  assert.equal(await kept.token(), "token-5");
+  assert.equal(await kept.token(), "token-5");
 });
 
 test("a session the metadata service refuses is opened again, once", async () => {
@@ -341,13 +357,67 @@ test("where no metadata service answers, there are no credentials, at once", asy
   assert.ok(Date.now() - started < 1500, `took ${Date.now() - started} ms`);
 });
 
-test("a metadata service that doesn't answer is given up on within a second", async () => {
+test("a metadata service that doesn't answer is given up on within two seconds", async () => {
   const server = await serve(() => new Promise<void>(() => {}));
   closers.push(server.close);
   const started = Date.now();
   await assert.rejects(instanceMetadata({ endpoint: server.url }).token(), NoCredentialsError);
   const took = Date.now() - started;
-  assert.ok(took >= 900 && took < 2000, `took ${took} ms`);
+  assert.ok(took >= 1900 && took < 3000, `took ${took} ms`);
+});
+
+/**
+ * A metadata service answering each request with the next of `statuses`
+ * for its path, then 200; it records when requests came.
+ */
+async function busyServer(statuses: Record<string, number[]>) {
+  const times: Record<string, number[]> = {};
+  const server = await serve((req, res) => {
+    (times[req.method] ??= []).push(Date.now());
+    const status = statuses[req.method]?.shift() ?? 200;
+    if (status !== 200) {
+      res.writeHead(status).end();
+    } else if (req.method === "PUT") {
+      res.end("session");
+    } else {
+      json(res, { access_token: "after-503", expires_at: inAnHour() });
+    }
+  });
+  closers.push(server.close);
+  return { url: server.url, times };
+}
+
+test("a 503 is tried again after 100 ms, then 200 ms", async () => {
+  const { url, times } = await busyServer({ PUT: [503], GET: [503, 503] });
+  assert.equal(await instanceMetadata({ endpoint: url }).token(), "after-503");
+  assert.equal(times["PUT"]?.length, 2);
+  assert.equal(times["GET"]?.length, 3);
+  const [first = 0, second = 0, third = 0] = times["GET"] ?? [];
+  assert.ok(second - first >= 90 && third - second >= 190, `waited ${second - first} and ${third - second} ms`);
+
+  const unavailable = await busyServer({ GET: [503, 503, 503] });
+  await assert.rejects(
+    instanceMetadata({ endpoint: unavailable.url }).token(),
+    /^Error: origincloud: the metadata service answered HTTP 503$/,
+  );
+  assert.equal(unavailable.times["GET"]?.length, 3, "three attempts in all");
+
+  const noSession = await busyServer({ PUT: [503, 503, 503] });
+  await assert.rejects(
+    instanceMetadata({ endpoint: noSession.url }).token(),
+    /^Error: origincloud: the metadata service refused a session \(HTTP 503\)$/,
+  );
+  assert.equal(noSession.times["PUT"]?.length, 3);
+});
+
+test("a caller that aborts stops waiting for the metadata service's retries", async () => {
+  const { url } = await busyServer({ GET: [503, 503, 503] });
+  const aborting = new AbortController();
+  const started = Date.now();
+  const pending = instanceMetadata({ endpoint: url }).token(aborting.signal);
+  setTimeout(() => aborting.abort(new Error("gave up")), 50);
+  await assert.rejects(pending, /gave up/);
+  assert.ok(Date.now() - started < 250, `took ${Date.now() - started} ms`);
 });
 
 test("the metadata credentials send their requests with the fetch they are given", async () => {

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 
 import {
   type Credentials,
@@ -20,6 +21,7 @@ const ENV_ACCESS_TOKEN = "ORIGINCLOUD_ACCESS_TOKEN";
 const ENV_CLIENT_ID = "ORIGINCLOUD_CLIENT_ID";
 const ENV_CLIENT_SECRET = "ORIGINCLOUD_CLIENT_SECRET";
 const ENV_METADATA_DISABLED = "ORIGINCLOUD_METADATA_DISABLED";
+const ENV_METADATA_ENDPOINT = "ORIGINCLOUD_METADATA_ENDPOINT";
 
 /** The OAuth client the CLI logs in as, which its refresh token belongs to. */
 const CLI_CLIENT_ID = "origin-cli";
@@ -50,6 +52,7 @@ export class NoCredentialsError extends Error {
  * 3. The session the `origin` CLI stored at its last login (`origin id login`).
  * 4. The instance's metadata service ({@link instanceMetadata}), asked at the
  *    first call: on an instance that runs as a service account, its tokens.
+ *    `ORIGINCLOUD_METADATA_ENDPOINT` names another base URL;
  *    `ORIGINCLOUD_METADATA_DISABLED=true` leaves this out.
  *
  * It throws a {@link NoCredentialsError} when none is found; where there is
@@ -67,7 +70,8 @@ export function defaultCredentials(): Credentials {
   const session = cliSession();
   if (session) return session;
   if (process.env[ENV_METADATA_DISABLED]?.toLowerCase() === "true") throw new NoCredentialsError();
-  return instanceMetadata();
+  const endpoint = process.env[ENV_METADATA_ENDPOINT];
+  return instanceMetadata(endpoint ? { endpoint } : {});
 }
 
 /** A CLI session, its times in milliseconds since the epoch. */
@@ -195,11 +199,17 @@ const METADATA_TOKEN_HEADER = "X-Origincloud-Metadata-Token";
 const METADATA_SESSION_TTL_SECONDS = 21600;
 
 // fetch can't bound connecting apart from the whole request. The session
-// request, which the service answers at once, gets the connect timeout,
-// so that where no metadata service answers the chain gives up within a
-// second; the token request gets the whole request's.
-const METADATA_CONNECT_TIMEOUT_MS = 1000;
-const METADATA_REQUEST_TIMEOUT_MS = 5000;
+// request, which the service answers at once, gets a short bound, so that
+// where no metadata service answers the chain gives up within two seconds;
+// the token request, which the host signs, gets a longer one.
+const METADATA_SESSION_TIMEOUT_MS = 2000;
+const METADATA_TOKEN_TIMEOUT_MS = 5000;
+
+/** How long before its expiry a metadata access token is replaced. */
+const METADATA_EXPIRY_MARGIN_MS = 60_000;
+
+/** How long to wait before sending a request again that was answered 503: twice, so three attempts in all. */
+const METADATA_RETRY_DELAYS_MS = [100, 200];
 
 /** How {@link InstanceMetadataCredentials} reach the metadata service. */
 export interface InstanceMetadataOptions {
@@ -221,11 +231,11 @@ export class InstanceMetadataCredentials implements Credentials {
   endpoint: string;
   /** The `fetch` its requests are sent with; the platform's when unset. */
   fetch: FetchLike | undefined;
-  private readonly cache = new TokenCache();
+  private readonly cache = new TokenCache("", 0, METADATA_EXPIRY_MARGIN_MS);
   private session = new TokenCache();
 
   constructor(options: InstanceMetadataOptions = {}) {
-    this.endpoint = options.endpoint ?? METADATA_ENDPOINT;
+    this.endpoint = (options.endpoint ?? METADATA_ENDPOINT).replace(/\/+$/, "");
     this.fetch = options.fetch;
   }
 
@@ -245,20 +255,22 @@ export class InstanceMetadataCredentials implements Credentials {
   /** Asks for the service account's token with the current session. */
   private async requestToken(): Promise<{ status: number; text: string; truncated: boolean }> {
     const session = await this.session.get(() => this.openSession());
-    return this.send(`${this.endpoint}/latest/meta-data/service-account/token`, {
-      method: "GET",
-      headers: { [METADATA_TOKEN_HEADER]: session },
-      signal: AbortSignal.timeout(METADATA_REQUEST_TIMEOUT_MS),
-    });
+    return this.send(
+      "GET",
+      "/latest/meta-data/service-account/token",
+      { [METADATA_TOKEN_HEADER]: session },
+      METADATA_TOKEN_TIMEOUT_MS,
+    );
   }
 
   /** Opens a session, which the token requests present. */
   private async openSession(): Promise<{ token: string; expiry: number }> {
-    const answer = await this.send(`${this.endpoint}/latest/api/token`, {
-      method: "PUT",
-      headers: { [METADATA_TTL_HEADER]: String(METADATA_SESSION_TTL_SECONDS) },
-      signal: AbortSignal.timeout(METADATA_CONNECT_TIMEOUT_MS),
-    });
+    const answer = await this.send(
+      "PUT",
+      "/latest/api/token",
+      { [METADATA_TTL_HEADER]: String(METADATA_SESSION_TTL_SECONDS) },
+      METADATA_SESSION_TIMEOUT_MS,
+    );
     // Not an instance's address: no metadata service is there for it.
     if (answer.status === 404) throw new NoCredentialsError();
     if (answer.status === 403) throw proxyRefused();
@@ -270,13 +282,28 @@ export class InstanceMetadataCredentials implements Credentials {
     return { token, expiry: Date.now() + METADATA_SESSION_TTL_SECONDS * 1000 };
   }
 
-  /** Sends one request; no answer at all means there is no metadata service. */
-  private async send(url: string, init: RequestInit): Promise<{ status: number; text: string; truncated: boolean }> {
-    try {
-      const response = await (this.fetch ?? globalThis.fetch).call(globalThis, url, init);
-      return { status: response.status, ...(await readLimited(response, MAX_TOKEN_RESPONSE_BYTES)) };
-    } catch (err) {
-      throw new NoCredentialsError({ cause: err });
+  /**
+   * Sends a request, again while the service answers 503, and returns the
+   * last answer. No answer at all means there is no metadata service.
+   */
+  private async send(
+    method: string,
+    path: string,
+    headers: Record<string, string>,
+    timeoutMs: number,
+  ): Promise<{ status: number; text: string; truncated: boolean }> {
+    for (let attempt = 0; ; attempt++) {
+      let answer;
+      try {
+        const init: RequestInit = { method, headers, signal: AbortSignal.timeout(timeoutMs) };
+        const response = await (this.fetch ?? globalThis.fetch).call(globalThis, this.endpoint + path, init);
+        answer = { status: response.status, ...(await readLimited(response, MAX_TOKEN_RESPONSE_BYTES)) };
+      } catch (err) {
+        throw new NoCredentialsError({ cause: err });
+      }
+      const delay = METADATA_RETRY_DELAYS_MS[attempt];
+      if (answer.status !== 503 || delay === undefined) return answer;
+      await sleep(delay);
     }
   }
 }
