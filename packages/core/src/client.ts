@@ -2,7 +2,7 @@ import { type Credentials, type FetchLike, type TokenSource, toCredentials } fro
 import { Service } from "./transport.js";
 
 /** This SDK's version, sent in the User-Agent header from Node. */
-export const VERSION = "0.19.0";
+export const VERSION = "0.20.0";
 
 const DEFAULT_MAX_ATTEMPTS = 5;
 
@@ -14,8 +14,8 @@ export interface ClientOptions {
   /**
    * The credentials calls are sent with: {@link Credentials}, or a function
    * returning an access token, such as an OIDC session's token getter.
-   * Required in a browser; in Node they are found in the environment or
-   * the CLI's session when left out.
+   * Required in a browser; in Node they are found in the environment, the
+   * CLI's session or the instance's metadata service when left out.
    */
   credentials?: Credentials | TokenSource;
   /**

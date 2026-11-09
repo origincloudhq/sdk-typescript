@@ -7,6 +7,9 @@ export const TOKEN_URL = "https://auth.origincloud.eu/realms/origincloud/protoco
 /** How long before its expiry a token is replaced, so that it doesn't expire on the way. */
 const EXPIRY_MARGIN_MS = 30_000;
 
+/** How much of a token response is read: one is small, and more than this isn't one. */
+export const MAX_TOKEN_RESPONSE_BYTES = 1 << 20;
+
 /** The `fetch` the SDK sends its requests with. */
 export type FetchLike = (input: string, init: RequestInit) => Promise<Response>;
 
@@ -42,11 +45,14 @@ export function accessToken(token: string): Credentials {
 export class TokenCache {
   private token = "";
   private expiry = 0;
+  private readonly margin: number;
   private renewal: Promise<string> | undefined;
 
-  constructor(token = "", expiry = 0) {
+  /** `margin` is how long before its expiry, in milliseconds, the token is replaced. */
+  constructor(token = "", expiry = 0, margin = EXPIRY_MARGIN_MS) {
     this.token = token;
     this.expiry = expiry;
+    this.margin = margin;
   }
 
   /**
@@ -57,7 +63,7 @@ export class TokenCache {
    * the token.
    */
   get(renew: () => Promise<{ token: string; expiry: number }>, signal?: AbortSignal): Promise<string> {
-    if (this.token && Date.now() + EXPIRY_MARGIN_MS < this.expiry) {
+    if (this.token && Date.now() + this.margin < this.expiry) {
       return Promise.resolve(this.token);
     }
     this.renewal ??= renew()
@@ -150,8 +156,7 @@ export async function requestToken(
   let body: string;
   try {
     response = await (fetchImpl ?? globalThis.fetch).call(globalThis, tokenUrl, init);
-    // A token response is small; more than this isn't one.
-    body = (await readLimited(response, 1 << 20)).text;
+    body = (await readLimited(response, MAX_TOKEN_RESPONSE_BYTES)).text;
   } catch (err) {
     throw new Error(`origincloud: requesting a token: ${String(err)}`, { cause: err });
   }

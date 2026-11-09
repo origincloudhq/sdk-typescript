@@ -11,8 +11,8 @@ import { VolumeClient } from "@origincloud/pvs/v1beta1";
 const volumes = new VolumeClient(new Client());
 ```
 
-In Node, `new Client()` finds its credentials in the environment or the
-`origin` CLI's session; in a browser, pass the session's access-token getter
+In Node, `new Client()` finds its credentials in the environment, the
+`origin` CLI's session or the instance's metadata service; in a browser, pass the session's access-token getter
 as `credentials`. See the [repository's README](https://github.com/origincloudhq/sdk-typescript#readme)
 for credentials and behaviour.
 
