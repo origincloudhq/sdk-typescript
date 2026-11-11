@@ -30,6 +30,7 @@ from: install it next to them.
 | `@origincloud/observability` | `@origincloud/observability/v1beta1` | The metrics the platform collects for a project's compute instances, volumes and network interfaces |
 | `@origincloud/support` | `@origincloud/support/v1beta1` | Support cases, each a conversation between an organization and Origin Cloud support about a question or a problem |
 | `@origincloud/dns` | `@origincloud/dns/v1beta1` | Hosted zones, their record sets, and private zones' VPC attachments |
+| `@origincloud/sts` | `@origincloud/sts/v1beta1` | The security token service: it turns a token from an identity provider outside Origin Cloud, such as a CI job's OIDC token, into the access token of a WORKLOAD service account that trusts it through a federated credential |
 
 The packages are ES modules with type declarations, depend on nothing but
 each other, and send their requests with the platform's `fetch`. They need
