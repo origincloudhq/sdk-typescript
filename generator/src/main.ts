@@ -32,6 +32,10 @@ import type {
 
 /** The services that answer only at their regionless host. */
 const GLOBAL_SERVICES = new Set(["iam", "resourcemanager", "location", "billing", "support", "dns", "sts"]);
+// The services that authenticate no caller: their calls are sent without
+// the client's credentials, so that they work with none. The security token
+// service's request carries its own proof, the token it exchanges.
+const UNAUTHENTICATED_SERVICES = new Set(["sts"]);
 
 /** Packages every service shares, generated into each service package that uses them. */
 const SHARED_PACKAGES = ["origincloud.longrunning."];
@@ -431,7 +435,7 @@ class FileGenerator {
     );
     (s.method ?? []).forEach((m, i) => {
       try {
-        this.method(m, [...path, SERVICE_METHOD, i]);
+        this.method(m, [...path, SERVICE_METHOD, i], !UNAUTHENTICATED_SERVICES.has(shortcode));
       } catch (err) {
         if (err instanceof GenerateError) fail(`${s.name}.${m.name}: ${err.message}`);
         throw err;
@@ -440,7 +444,7 @@ class FileGenerator {
     this.emit("}", "");
   }
 
-  private method(m: MethodDescriptor, path: number[]): void {
+  private method(m: MethodDescriptor, path: number[], authenticated: boolean): void {
     if (m.clientStreaming || m.serverStreaming) fail("streaming isn't supported");
     const rule = m.options?.["[google.api.http]"];
     if (!rule) fail("no google.api.http binding");
@@ -526,6 +530,7 @@ class FileGenerator {
       request.push(`query: ${this.core("query", false)}(request, ${JSON.stringify(skip).replace(/,/g, ", ")})`);
     }
     if (idempotent) request.push("idempotent: true");
+    if (!authenticated) request.push("unauthenticated: true");
 
     const call = ["      {", ...request.map((r) => `        ${r},`), "      },", "      options,", "    );"];
     if (operation) {
