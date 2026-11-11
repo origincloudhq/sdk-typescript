@@ -17,6 +17,7 @@
     { "path": "packages/billing" },
     { "path": "packages/observability" },
     { "path": "packages/support" },
-    { "path": "packages/dns" }
+    { "path": "packages/dns" },
+    { "path": "packages/sts" }
   ]
 }

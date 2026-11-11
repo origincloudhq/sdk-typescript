@@ -1,6 +1,6 @@
 {
   "name": "@origincloud/core",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "description": "What every Origin Cloud SDK service package shares: credentials, endpoints, retries, errors, long-running operations and read-your-writes.",
   "license": "Apache-2.0",
   "homepage": "https://github.com/origincloudhq/sdk-typescript#readme",

@@ -17,7 +17,9 @@ import {
  * Service accounts: an organization's credentials for software, which
  * authenticate with the OAuth 2.0 client credentials grant and never log
  * in interactively. A new service account holds no role: grant it one with
- * a role binding on its `member`.
+ * a role binding on its `member`. An `EXTERNAL` service account's client
+ * secret expires (`secretExpireTime`): rotate it before then with
+ * RotateServiceAccountSecret.
  */
 export class ServiceAccountClient {
   /**
@@ -82,8 +84,9 @@ export class ServiceAccountClient {
 
   /**
    * Creates a service account and, for an `EXTERNAL` one, its client
-   * secret. The response is the only place the secret is ever shown: store
-   * it now. Needs `iam.service_account.create` on the organization.
+   * secret, which expires after `secretLifetime`. The response is the
+   * only place the secret is ever shown: store it now. Needs
+   * `iam.service_account.create` on the organization.
    */
   async createServiceAccount(request: CreateServiceAccountRequest, options?: CallOptions): Promise<ServiceAccount> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
@@ -94,6 +97,29 @@ export class ServiceAccountClient {
         path: `/v1beta1/${p0}/serviceAccounts`,
         body: request.serviceAccount,
         query: query(request, ["parent", "serviceAccount"]),
+        idempotent: true,
+      },
+      options,
+    );
+  }
+
+  /**
+   * Issues a new client secret for an `EXTERNAL` service account and
+   * returns the service account with it in `clientSecret`, the only place
+   * it is ever shown. The previous secret is refused from then on, and the
+   * new one is accepted at once, also when the previous one had expired.
+   * It expires after `secretLifetime`. An access token issued before
+   * stays valid until it expires, within minutes. Needs
+   * `iam.service_account.create` on the organization.
+   */
+  async rotateServiceAccountSecret(request: RotateServiceAccountSecretRequest, options?: CallOptions): Promise<ServiceAccount> {
+    if (!request.requestId) request = { ...request, requestId: newRequestId() };
+    const p0 = pathValue("name", request.name, "organizations/*/serviceAccounts/*");
+    return this.service.call<ServiceAccount>(
+      {
+        method: "POST",
+        path: `/v1beta1/${p0}:rotateSecret`,
+        body: request,
         idempotent: true,
       },
       options,
@@ -139,8 +165,8 @@ export interface ServiceAccount {
   clientId?: string;
   /**
    * The OAuth 2.0 client secret it authenticates with. Set only in the
-   * response that created an `EXTERNAL` service account, and empty
-   * everywhere else: it can't be read again.
+   * response that created an `EXTERNAL` service account or rotated its
+   * secret, and empty everywhere else: it can't be read again.
    */
   clientSecret?: string;
   /** Where the service account is in its lifecycle. */
@@ -159,6 +185,13 @@ export interface ServiceAccount {
    * leaves it unset.
    */
   type?: ServiceAccount_Type;
+  /**
+   * When the client secret expires. From then on the secret is refused, so
+   * no new access token is issued with it, until RotateServiceAccountSecret
+   * issues a new one. Unset when the service account has no secret that
+   * expires, such as a `WORKLOAD` one.
+   */
+  secretExpireTime?: string;
 }
 
 /**
@@ -193,7 +226,10 @@ export type ServiceAccount_Type = (typeof ServiceAccount_Type)[keyof typeof Serv
 export const ServiceAccount_State = {
   /** Not set. */
   STATE_UNSPECIFIED: "STATE_UNSPECIFIED",
-  /** Its credential is accepted. */
+  /**
+   * Not deleted. An `EXTERNAL` service account's client secret is
+   * accepted until `secretExpireTime`.
+   */
   ACTIVE: "ACTIVE",
   /** Deleted: its credential is refused, and it holds no role binding. */
   DELETED: "DELETED",
@@ -252,10 +288,36 @@ export interface CreateServiceAccountRequest {
    * request is refused with `CONFLICT` without that metadata.
    */
   requestId?: string;
+  /**
+   * How long an `EXTERNAL` service account's client secret is accepted,
+   * from its creation: more than zero and at most 365 days. 90 days when
+   * left out. A `WORKLOAD` service account has no secret, and a create of
+   * one that sets it is refused.
+   */
+  secretLifetime?: string;
 }
 
 /** The request for DeleteServiceAccount. */
 export interface DeleteServiceAccountRequest {
   /** The service account to delete. */
   name?: string;
+}
+
+/** The request for RotateServiceAccountSecret. */
+export interface RotateServiceAccountSecretRequest {
+  /** The `EXTERNAL` service account whose secret to replace. */
+  name?: string;
+  /**
+   * How long the new secret is accepted, from now: more than zero and at
+   * most 365 days. 90 days when left out.
+   */
+  secretLifetime?: string;
+  /**
+   * A UUID. A repeat of the request with the same `requestId` within a
+   * day issues no secret and is refused with `CONFLICT`: the secret went
+   * to the first request only. Rotate again with a new `requestId` to get
+   * a working secret. The same `requestId` with a different request is
+   * refused with `CONFLICT` too.
+   */
+  requestId?: string;
 }
