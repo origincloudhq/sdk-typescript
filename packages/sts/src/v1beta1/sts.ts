@@ -20,7 +20,7 @@ export class SecurityTokenClient {
 
   /** A client of SecurityTokenService that sends its calls through `client`. */
   constructor(client: Client) {
-    this.service = client.service("sts", true);
+    this.service = client.service("sts", false);
   }
 
   /**
