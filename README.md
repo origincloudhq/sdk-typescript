@@ -84,7 +84,8 @@ default value may be absent from a response: `volume.sizeGib ?? 0`.
    access tokens of the workload service account whose federated credential
    trusts it: no secret is stored. The token is read from the file
    `ORIGINCLOUD_OIDC_TOKEN_FILE` names (any CI provider, or a Kubernetes
-   projected token), or else, in GitHub Actions, requested from GitHub, which
+   projected token), or else taken from `ORIGINCLOUD_OIDC_TOKEN`, which holds
+   the token itself, or else, in GitHub Actions, requested from GitHub, which
    the workflow allows with `permissions: id-token: write`; its audience is
    `https://sts.origincloudapis.eu`, or `ORIGINCLOUD_OIDC_AUDIENCE`. A fresh
    job token is exchanged a minute before each access token expires. A job
@@ -92,6 +93,21 @@ default value may be absent from a response: `volume.sizeGib ?? 0`.
    with why, and the steps below aren't tried. `ORIGINCLOUD_OIDC_DISABLED=true`
    leaves this step out, such as on a self-hosted runner that should use its
    instance's service account.
+
+   In GitLab CI, `id_tokens` sets the variable, and the job needs no script:
+
+   ```yaml
+   deploy:
+     id_tokens:
+       ORIGINCLOUD_OIDC_TOKEN:
+         aud: https://sts.origincloudapis.eu
+   ```
+
+   A token in the variable can't be renewed: each access token is exchanged
+   for the same job token, which works until that token expires; the call
+   then rejects saying so. A job that outlasts its token asks the CI provider
+   for a longer-lived one, or names a file the provider rotates in
+   `ORIGINCLOUD_OIDC_TOKEN_FILE`.
 4. The session the `origin` CLI stored at its last login (`origin id login`),
    renewed in memory when it expires; the CLI's file is never written.
 5. The instance's metadata service, at `http://169.254.169.254` or
@@ -112,9 +128,10 @@ import { Client, serviceAccount } from "@origincloud/core";
 const client = new Client({ credentials: serviceAccount(clientId, clientSecret) });
 ```
 
-`githubActions()`, `oidcTokenFile(path)` and `federated(getToken)` exchange a
-CI job's token the same way, from GitHub Actions, a file, or any function
-that returns a fresh one.
+`githubActions()`, `oidcTokenFile(path)`, `oidcToken(token)` and
+`federated(getToken)` exchange a CI job's token the same way, from GitHub
+Actions, a file, a token given as it is, or any function that returns a
+fresh one.
 
 ### Browser
 

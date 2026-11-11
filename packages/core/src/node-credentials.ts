@@ -25,6 +25,7 @@ const ENV_METADATA_DISABLED = "ORIGINCLOUD_METADATA_DISABLED";
 const ENV_METADATA_ENDPOINT = "ORIGINCLOUD_METADATA_ENDPOINT";
 const ENV_OIDC_DISABLED = "ORIGINCLOUD_OIDC_DISABLED";
 const ENV_OIDC_TOKEN_FILE = "ORIGINCLOUD_OIDC_TOKEN_FILE";
+const ENV_OIDC_TOKEN = "ORIGINCLOUD_OIDC_TOKEN";
 const ENV_OIDC_AUDIENCE = "ORIGINCLOUD_OIDC_AUDIENCE";
 const ENV_STS_ENDPOINT = "ORIGINCLOUD_STS_ENDPOINT";
 const ENV_GITHUB_REQUEST_URL = "ACTIONS_ID_TOKEN_REQUEST_URL";
@@ -43,7 +44,8 @@ export class NoCredentialsError extends Error {
     super(
       "origincloud: no credentials: set ORIGINCLOUD_CLIENT_ID and ORIGINCLOUD_CLIENT_SECRET, " +
         "set ORIGINCLOUD_ACCESS_TOKEN, run in a CI job whose OIDC token the STS trusts " +
-        "(GitHub Actions with `permissions: id-token: write`, or ORIGINCLOUD_OIDC_TOKEN_FILE), " +
+        "(GitHub Actions with `permissions: id-token: write`, ORIGINCLOUD_OIDC_TOKEN_FILE " +
+        "or ORIGINCLOUD_OIDC_TOKEN), " +
         "log in with `origin id login`, " +
         "or run on an instance that runs as a service account",
       options,
@@ -61,9 +63,11 @@ export class NoCredentialsError extends Error {
  *    one of the two set is an error.
  * 3. A CI job's OIDC token, exchanged at the STS for a workload service
  *    account's access tokens ({@link federated}): the file
- *    `ORIGINCLOUD_OIDC_TOKEN_FILE` names, or else GitHub Actions' token when
- *    `ACTIONS_ID_TOKEN_REQUEST_URL` and `ACTIONS_ID_TOKEN_REQUEST_TOKEN` are
- *    set. `ORIGINCLOUD_STS_ENDPOINT` names another STS,
+ *    `ORIGINCLOUD_OIDC_TOKEN_FILE` names, or else the token
+ *    `ORIGINCLOUD_OIDC_TOKEN` holds (as GitLab CI's `id_tokens` sets it), or
+ *    else GitHub Actions' token when `ACTIONS_ID_TOKEN_REQUEST_URL` and
+ *    `ACTIONS_ID_TOKEN_REQUEST_TOKEN` are set. `ORIGINCLOUD_STS_ENDPOINT`
+ *    names another STS,
  *    `ORIGINCLOUD_OIDC_AUDIENCE` another audience for GitHub's token;
  *    `ORIGINCLOUD_OIDC_DISABLED=true` leaves this out. A job token found is
  *    the credential: its errors are the first call's, not a reason to look
@@ -400,7 +404,8 @@ export interface GitHubActionsOptions extends FederatedOptions {
 /**
  * Credentials that exchange a CI job's OIDC token at the STS (RFC 8693) for
  * the access tokens of the workload service account a federated credential
- * trusts it for. Each exchange asks for a fresh job token.
+ * trusts it for. Each exchange asks its source for the job token, which is
+ * a fresh one unless the token was given as it is ({@link oidcToken}).
  */
 export class FederatedCredentials implements Credentials {
   /** The STS's base URL. */
@@ -518,6 +523,55 @@ export function oidcTokenFile(path: string, options?: FederatedOptions): Federat
 }
 
 /**
+ * Credentials that exchange the OIDC token `token`, such as the one GitLab
+ * CI's `id_tokens` sets in a variable. A token given as it is can't be
+ * renewed: every exchange sends the same one, which works until it expires;
+ * one whose `exp` claim has passed is refused before it is sent. Creating
+ * them sends no request.
+ */
+export function oidcToken(token: string, options?: FederatedOptions): FederatedCredentials {
+  return givenToken(token, options);
+}
+
+/**
+ * Credentials that exchange `token`, given as it is; `variable` is the
+ * environment variable it came from, if any, which its expiry names.
+ */
+function givenToken(token: string, options: FederatedOptions = {}, variable?: string): FederatedCredentials {
+  const subjectToken = token.trim();
+  return new FederatedCredentials(() => {
+    const expiry = expiryClaim(subjectToken);
+    if (expiry !== undefined && expiry <= Date.now()) {
+      throw new Error(
+        `origincloud: the CI job's OIDC token${variable ? ` in ${variable}` : ""} expired at ` +
+          `${new Date(expiry).toISOString()}: a token given as it is can't be renewed: ask the CI ` +
+          `provider for a longer-lived one, or use ${ENV_OIDC_TOKEN_FILE}`,
+      );
+    }
+    return subjectToken;
+  }, options);
+}
+
+/**
+ * The time a JWT's `exp` claim names, in milliseconds since the epoch, read
+ * without verifying the token; `undefined` when it can't be read, which
+ * leaves the STS to judge the token.
+ */
+function expiryClaim(jwt: string): number | undefined {
+  const payload = jwt.split(".")[1];
+  if (!payload) return undefined;
+  let exp: unknown;
+  try {
+    exp = (JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as Record<string, unknown> | null)?.["exp"];
+  } catch {
+    return undefined;
+  }
+  if (typeof exp !== "number") return undefined;
+  const expiry = exp * 1000;
+  return Number.isNaN(new Date(expiry).getTime()) ? undefined : expiry;
+}
+
+/**
  * Credentials that exchange the GitHub Actions job's OIDC token, requested
  * from GitHub at every exchange. GitHub sets `ACTIONS_ID_TOKEN_REQUEST_URL`
  * and `ACTIONS_ID_TOKEN_REQUEST_TOKEN` only when the workflow grants
@@ -568,7 +622,8 @@ export function githubActions(options: GitHubActionsOptions = {}): FederatedCred
 
 /**
  * The CI job's credentials the environment names, unless
- * `ORIGINCLOUD_OIDC_DISABLED=true`: a token file before GitHub Actions.
+ * `ORIGINCLOUD_OIDC_DISABLED=true`: a token file, which may be rotated in
+ * place, before a token in a variable, before GitHub Actions.
  */
 function ciJobCredentials(): FederatedCredentials | undefined {
   if (process.env[ENV_OIDC_DISABLED]?.toLowerCase() === "true") return undefined;
@@ -576,6 +631,8 @@ function ciJobCredentials(): FederatedCredentials | undefined {
   const options: GitHubActionsOptions = endpoint ? { endpoint } : {};
   const file = process.env[ENV_OIDC_TOKEN_FILE];
   if (file) return oidcTokenFile(file, options);
+  const token = process.env[ENV_OIDC_TOKEN];
+  if (token) return givenToken(token, options, ENV_OIDC_TOKEN);
   if (!process.env[ENV_GITHUB_REQUEST_URL] || !process.env[ENV_GITHUB_REQUEST_TOKEN]) return undefined;
   const audience = process.env[ENV_OIDC_AUDIENCE];
   if (audience) options.audience = audience;
