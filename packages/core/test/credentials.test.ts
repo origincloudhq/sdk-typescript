@@ -7,13 +7,19 @@ import { after, beforeEach, test } from "node:test";
 import {
   CLISessionCredentials,
   Client,
+  FederatedCredentials,
   InstanceMetadataCredentials,
   METADATA_ENDPOINT,
   NoCredentialsError,
+  OIDC_AUDIENCE,
+  STS_ENDPOINT,
   ServiceAccountCredentials,
   cliSession,
   defaultCredentials,
+  federated,
+  githubActions,
   instanceMetadata,
+  oidcTokenFile,
 } from "@origincloud/core";
 
 import { type Received, json, serve } from "../../../test-support/fake-server.js";
@@ -25,6 +31,13 @@ const ENV = [
   "ORIGINCLOUD_REGION",
   "ORIGINCLOUD_METADATA_DISABLED",
   "ORIGINCLOUD_METADATA_ENDPOINT",
+  "ORIGINCLOUD_OIDC_DISABLED",
+  "ORIGINCLOUD_OIDC_TOKEN_FILE",
+  "ORIGINCLOUD_OIDC_AUDIENCE",
+  "ORIGINCLOUD_STS_ENDPOINT",
+  // A GitHub Actions runner sets these when its workflow may request an OIDC token.
+  "ACTIONS_ID_TOKEN_REQUEST_URL",
+  "ACTIONS_ID_TOKEN_REQUEST_TOKEN",
 ];
 const saved = Object.fromEntries(["XDG_DATA_HOME", ...ENV].map((name) => [name, process.env[name]]));
 const dirs: string[] = [];
@@ -445,4 +458,317 @@ test("the metadata credentials send their requests with the fetch they are given
     "PUT http://metadata.test/latest/api/token",
     "GET http://metadata.test/latest/meta-data/service-account/token",
   ]);
+});
+
+/**
+ * An STS answering token exchanges with access tokens numbered from 1,
+ * expiring after `expiresIn` seconds, unless `answer` answers otherwise; it
+ * records the forms it got and when.
+ */
+async function stsServer(expiresIn: number, answer?: (form: URLSearchParams) => { status: number; body: unknown } | undefined) {
+  const forms: URLSearchParams[] = [];
+  const times: number[] = [];
+  const requests: Received[] = [];
+  const server = await serve((req, res) => {
+    requests.push(req);
+    const form = new URLSearchParams(req.body);
+    forms.push(form);
+    times.push(Date.now());
+    const answered = answer?.(form);
+    if (answered) {
+      json(res, answered.body, answered.status);
+      return;
+    }
+    json(res, {
+      access_token: `access-${forms.length}`,
+      issued_token_type: "urn:ietf:params:oauth:token-type:access_token",
+      token_type: "Bearer",
+      expires_in: expiresIn,
+    });
+  });
+  closers.push(server.close);
+  return { url: server.url, forms, times, requests };
+}
+
+/**
+ * GitHub Actions' token endpoint, answering with job tokens numbered from
+ * 1, or `status` when it is set; it records the requests it got.
+ */
+async function githubServer(status = 200) {
+  const requests: Received[] = [];
+  const server = await serve((req, res) => {
+    requests.push(req);
+    if (status !== 200) {
+      json(res, { message: "Unable to get ACTIONS_ID_TOKEN_REQUEST_URL env variable" }, status);
+      return;
+    }
+    json(res, { count: 1, value: `job-token-${requests.length}` });
+  });
+  closers.push(server.close);
+  return { url: server.url, requests };
+}
+
+/** Points GitHub Actions' environment variables at `url`, as a runner sets them. */
+function inGitHubActions(url: string) {
+  process.env["ACTIONS_ID_TOKEN_REQUEST_URL"] = `${url}/idtoken?api-version=2.0`;
+  process.env["ACTIONS_ID_TOKEN_REQUEST_TOKEN"] = "request-token";
+}
+
+function writeTokenFile(token: string): string {
+  const path = join(dataHome, "oidc-token");
+  writeFileSync(path, token);
+  return path;
+}
+
+test("a GitHub Actions job's token is requested for the STS and exchanged there", async () => {
+  const github = await githubServer();
+  const sts = await stsServer(900);
+  inGitHubActions(github.url);
+  const credentials = githubActions({ endpoint: sts.url + "/" });
+  assert.equal(sts.forms.length + github.requests.length, 0, "creating them sends no request");
+  assert.equal(await credentials.token(), "access-1");
+
+  const [request] = github.requests;
+  assert.equal(request?.method, "GET");
+  assert.equal(request?.path, "/idtoken");
+  assert.equal(request?.query.get("api-version"), "2.0");
+  assert.equal(request?.query.get("audience"), "https://sts.origincloudapis.eu");
+  assert.equal(request?.headers["authorization"], "bearer request-token");
+  assert.equal(OIDC_AUDIENCE, "https://sts.origincloudapis.eu");
+
+  assert.equal(sts.requests[0]?.method, "POST");
+  assert.equal(sts.requests[0]?.path, "/v1/token");
+  assert.equal(sts.requests[0]?.headers["content-type"], "application/x-www-form-urlencoded");
+  assert.deepEqual(Object.fromEntries(sts.forms[0] ?? []), {
+    grant_type: "urn:ietf:params:oauth:grant-type:token-exchange",
+    subject_token: "job-token-1",
+    subject_token_type: "urn:ietf:params:oauth:token-type:jwt",
+  });
+
+  // A request URL without a query gets one; the audience is encoded.
+  process.env["ACTIONS_ID_TOKEN_REQUEST_URL"] = `${github.url}/plain`;
+  await githubActions({ endpoint: sts.url, audience: "api://a b&c" }).token();
+  assert.equal(github.requests[1]?.path, "/plain");
+  assert.deepEqual([...(github.requests[1]?.query ?? [])], [["audience", "api://a b&c"]]);
+});
+
+test("an exchanged token is reused until a minute before its expiry, then renewed with a fresh job token", async () => {
+  const github = await githubServer();
+  inGitHubActions(github.url);
+
+  const sts = await stsServer(3600);
+  const credentials = githubActions({ endpoint: sts.url });
+  assert.equal(await credentials.token(), "access-1");
+  assert.equal(await credentials.token(), "access-1");
+  assert.equal(sts.forms.length, 1);
+
+  // Its margin is a minute.
+  const soon = await stsServer(45);
+  const renewing = githubActions({ endpoint: soon.url });
+  assert.equal(await renewing.token(), "access-1");
+  assert.equal(await renewing.token(), "access-2");
+  assert.deepEqual(
+    soon.forms.map((f) => f.get("subject_token")),
+    ["job-token-2", "job-token-3"],
+    "every exchange asks GitHub for a fresh job token",
+  );
+  const later = await stsServer(90);
+  const kept = githubActions({ endpoint: later.url });
+  assert.equal(await kept.token(), "access-1");
+  assert.equal(await kept.token(), "access-1");
+
+  // Concurrent callers share one exchange.
+  const shared = await stsServer(900);
+  const concurrent = githubActions({ endpoint: shared.url });
+  const tokens = await Promise.all([concurrent.token(), concurrent.token(), concurrent.token()]);
+  assert.deepEqual(tokens, ["access-1", "access-1", "access-1"]);
+  assert.equal(shared.forms.length, 1);
+});
+
+test("the token file is read again at every exchange", async () => {
+  const path = writeTokenFile("file-token-1\n");
+  const sts = await stsServer(30);
+  const credentials = oidcTokenFile(path, { endpoint: sts.url });
+  assert.equal(await credentials.token(), "access-1");
+  writeTokenFile("file-token-2");
+  assert.equal(await credentials.token(), "access-2");
+  assert.deepEqual(
+    sts.forms.map((f) => f.get("subject_token")),
+    ["file-token-1", "file-token-2"],
+  );
+
+  writeTokenFile(" \n");
+  await assert.rejects(oidcTokenFile(path, { endpoint: sts.url }).token(), /the OIDC token file .* is empty$/);
+  await assert.rejects(
+    oidcTokenFile(join(dataHome, "missing"), { endpoint: sts.url }).token(),
+    /^Error: origincloud: reading the OIDC token file: .*ENOENT/,
+  );
+  assert.equal(sts.forms.length, 2, "nothing is exchanged without a token");
+});
+
+test("any source of job tokens can be exchanged, with the fetch given", async () => {
+  const sent: string[] = [];
+  let issued = 0;
+  const credentials = federated(() => `own-token-${++issued}`, {
+    fetch: async (input, init) => {
+      sent.push(`${init.method} ${input} ${String(init.body)}`);
+      return new Response(JSON.stringify({ access_token: "via-fetch", expires_in: 900 }), { status: 200 });
+    },
+  });
+  assert.ok(credentials instanceof FederatedCredentials);
+  assert.equal(credentials.endpoint, STS_ENDPOINT);
+  assert.equal(STS_ENDPOINT, "https://sts.origincloudapis.eu");
+  assert.equal(await credentials.token(), "via-fetch");
+  assert.equal(sent.length, 1);
+  assert.match(sent[0] ?? "", /^POST https:\/\/sts\.origincloudapis\.eu\/v1\/token .*subject_token=own-token-1&/);
+
+  await assert.rejects(federated(() => "").token(), /^Error: origincloud: the CI job's OIDC token is empty$/);
+});
+
+test("an STS answering 503 is tried again after 200 ms, then 400 ms", async () => {
+  let unavailable = 2;
+  const sts = await stsServer(900, () =>
+    unavailable-- > 0 ? { status: 503, body: { error: "temporarily_unavailable" } } : undefined,
+  );
+  const path = writeTokenFile("file-token");
+  assert.equal(await oidcTokenFile(path, { endpoint: sts.url }).token(), "access-3");
+  const [first = 0, second = 0, third = 0] = sts.times;
+  assert.ok(second - first >= 190 && third - second >= 390, `waited ${second - first} and ${third - second} ms`);
+
+  const down = await stsServer(900, () => ({ status: 503, body: { error: "temporarily_unavailable" } }));
+  await assert.rejects(
+    oidcTokenFile(path, { endpoint: down.url }).token(),
+    /^Error: origincloud: the STS is temporarily unavailable \(HTTP 503\): try again later$/,
+  );
+  assert.equal(down.forms.length, 3, "three attempts in all");
+});
+
+test("a job token the STS refuses says what to check, and never shows a token", async () => {
+  const path = writeTokenFile("secret-job-token");
+  const refusing = await stsServer(900, () => ({ status: 400, body: { error: "invalid_grant" } }));
+  const err = await oidcTokenFile(path, { endpoint: refusing.url })
+    .token()
+    .then(() => assert.fail("resolved"), (e: unknown) => e as Error);
+  assert.match(
+    err.message,
+    /^origincloud: the STS refused the CI job's OIDC token \(invalid_grant\): check the federated credential's issuer, audience and conditions against the token's claims$/,
+  );
+  assert.equal(refusing.forms.length, 1, "a refusal isn't retried");
+
+  const malformed = await stsServer(900, (form) => ({
+    status: 400,
+    body: { error: "invalid_request", error_description: `unsupported subject_token ${form.get("subject_token")}` },
+  }));
+  await assert.rejects(
+    oidcTokenFile(path, { endpoint: malformed.url }).token(),
+    /^Error: origincloud: the STS refused the token exchange \(HTTP 400\): invalid_request: unsupported subject_token \[token\]$/,
+  );
+
+  const broken = await stsServer(900, () => ({ status: 200, body: { token_type: "Bearer" } }));
+  await assert.rejects(oidcTokenFile(path, { endpoint: broken.url }).token(), /the STS's answer is not a credential$/);
+  const failing = await stsServer(900, () => ({ status: 500, body: "oops" }));
+  await assert.rejects(
+    oidcTokenFile(path, { endpoint: failing.url }).token(),
+    /^Error: origincloud: the STS refused the token exchange \(HTTP 500\)$/,
+  );
+});
+
+test("a failed GitHub token request names `permissions: id-token: write`, and never the request token", async () => {
+  const sts = await stsServer(900);
+  for (const status of [403, 404, 500]) {
+    const github = await githubServer(status);
+    inGitHubActions(github.url);
+    const err = await githubActions({ endpoint: sts.url })
+      .token()
+      .then(() => assert.fail("resolved"), (e: unknown) => e as Error);
+    assert.match(
+      err.message,
+      new RegExp(
+        `^origincloud: requesting the job's OIDC token from GitHub Actions: HTTP ${status}: ` +
+          "does the workflow grant `permissions: id-token: write`\\?$",
+      ),
+    );
+    assert.ok(!err.message.includes("request-token"));
+  }
+  assert.equal(sts.forms.length, 0);
+
+  delete process.env["ACTIONS_ID_TOKEN_REQUEST_TOKEN"];
+  assert.throws(
+    () => githubActions(),
+    /ACTIONS_ID_TOKEN_REQUEST_URL and ACTIONS_ID_TOKEN_REQUEST_TOKEN aren't set: the workflow needs `permissions: id-token: write`$/,
+  );
+});
+
+test("in the default chain, a CI job's token comes after the service account and before the CLI session", async () => {
+  const github = await githubServer();
+  const sts = await stsServer(900);
+  inGitHubActions(github.url);
+  process.env["ORIGINCLOUD_STS_ENDPOINT"] = sts.url;
+  process.env["ORIGINCLOUD_OIDC_AUDIENCE"] = "api://custom";
+  writeSession({ access_token: "from-session", expires: inAnHour(), refresh_token: "r", refresh_expires: inAnHour() });
+
+  const credentials = defaultCredentials();
+  assert.ok(credentials instanceof FederatedCredentials);
+  assert.equal(credentials.endpoint, sts.url);
+  assert.equal(await credentials.token(), "access-1");
+  assert.equal(github.requests[0]?.query.get("audience"), "api://custom");
+
+  process.env["ORIGINCLOUD_CLIENT_ID"] = "id";
+  process.env["ORIGINCLOUD_CLIENT_SECRET"] = "secret";
+  assert.ok(defaultCredentials() instanceof ServiceAccountCredentials);
+  process.env["ORIGINCLOUD_ACCESS_TOKEN"] = "from-env";
+  assert.equal(await defaultCredentials().token(), "from-env");
+
+  delete process.env["ORIGINCLOUD_STS_ENDPOINT"];
+  delete process.env["ORIGINCLOUD_CLIENT_ID"];
+  delete process.env["ORIGINCLOUD_CLIENT_SECRET"];
+  delete process.env["ORIGINCLOUD_ACCESS_TOKEN"];
+  const byDefault = defaultCredentials();
+  assert.ok(byDefault instanceof FederatedCredentials);
+  assert.equal(byDefault.endpoint, STS_ENDPOINT);
+});
+
+test("in the default chain, the token file comes before GitHub Actions", async () => {
+  const github = await githubServer();
+  const sts = await stsServer(900);
+  inGitHubActions(github.url);
+  process.env["ORIGINCLOUD_STS_ENDPOINT"] = sts.url;
+  process.env["ORIGINCLOUD_OIDC_TOKEN_FILE"] = writeTokenFile("file-token");
+  assert.equal(await defaultCredentials().token(), "access-1");
+  assert.equal(sts.forms[0]?.get("subject_token"), "file-token");
+  assert.equal(github.requests.length, 0);
+});
+
+test("a CI job's token that fails is the default chain's error, not a reason to look further", async () => {
+  const github = await githubServer(403);
+  const sts = await stsServer(900);
+  inGitHubActions(github.url);
+  process.env["ORIGINCLOUD_STS_ENDPOINT"] = sts.url;
+  writeSession({ access_token: "from-session", expires: inAnHour(), refresh_token: "r", refresh_expires: inAnHour() });
+  await assert.rejects(defaultCredentials().token(), /permissions: id-token: write/);
+
+  process.env["ORIGINCLOUD_OIDC_TOKEN_FILE"] = join(dataHome, "missing");
+  await assert.rejects(defaultCredentials().token(), /reading the OIDC token file/);
+});
+
+test("ORIGINCLOUD_OIDC_DISABLED=true leaves the CI job's token out of the default chain", async () => {
+  const github = await githubServer();
+  inGitHubActions(github.url);
+  process.env["ORIGINCLOUD_OIDC_TOKEN_FILE"] = writeTokenFile("file-token");
+  process.env["ORIGINCLOUD_OIDC_DISABLED"] = "True";
+  assert.ok(defaultCredentials() instanceof InstanceMetadataCredentials);
+  writeSession({ access_token: "from-session", expires: inAnHour(), refresh_token: "r", refresh_expires: inAnHour() });
+  assert.equal(await defaultCredentials().token(), "from-session");
+  assert.equal(github.requests.length, 0);
+
+  process.env["ORIGINCLOUD_OIDC_DISABLED"] = "1";
+  assert.ok(defaultCredentials() instanceof FederatedCredentials, "only `true` disables it");
+});
+
+test("half of GitHub Actions' variables is no CI job's token", () => {
+  process.env["ACTIONS_ID_TOKEN_REQUEST_URL"] = "http://127.0.0.1:1/idtoken";
+  assert.ok(defaultCredentials() instanceof InstanceMetadataCredentials);
+  delete process.env["ACTIONS_ID_TOKEN_REQUEST_URL"];
+  process.env["ACTIONS_ID_TOKEN_REQUEST_TOKEN"] = "request-token";
+  assert.ok(defaultCredentials() instanceof InstanceMetadataCredentials);
 });
