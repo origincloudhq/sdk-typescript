@@ -19,6 +19,7 @@ import {
   federated,
   githubActions,
   instanceMetadata,
+  oidcToken,
   oidcTokenFile,
 } from "@origincloud/core";
 
@@ -33,6 +34,8 @@ const ENV = [
   "ORIGINCLOUD_METADATA_ENDPOINT",
   "ORIGINCLOUD_OIDC_DISABLED",
   "ORIGINCLOUD_OIDC_TOKEN_FILE",
+  // GitLab CI sets this when a job's `id_tokens` names it.
+  "ORIGINCLOUD_OIDC_TOKEN",
   "ORIGINCLOUD_OIDC_AUDIENCE",
   "ORIGINCLOUD_STS_ENDPOINT",
   // A GitHub Actions runner sets these when its workflow may request an OIDC token.
@@ -514,6 +517,12 @@ function inGitHubActions(url: string) {
   process.env["ACTIONS_ID_TOKEN_REQUEST_TOKEN"] = "request-token";
 }
 
+/** An unsigned JWT whose payload holds `claims`. */
+function unsignedJwt(claims: Record<string, unknown>): string {
+  const part = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64url");
+  return `${part({ alg: "none", typ: "JWT" })}.${part(claims)}.`;
+}
+
 function writeTokenFile(token: string): string {
   const path = join(dataHome, "oidc-token");
   writeFileSync(path, token);
@@ -604,6 +613,40 @@ test("the token file is read again at every exchange", async () => {
     /^Error: origincloud: reading the OIDC token file: .*ENOENT/,
   );
   assert.equal(sts.forms.length, 2, "nothing is exchanged without a token");
+});
+
+test("a token given as it is is exchanged again at every renewal, until it expires", async () => {
+  const jobToken = unsignedJwt({ sub: "project_path:group/app", exp: Math.floor(Date.now() / 1000) + 3600 });
+  const sts = await stsServer(30);
+  const credentials = oidcToken(jobToken, { endpoint: sts.url });
+  assert.ok(credentials instanceof FederatedCredentials);
+  assert.equal(sts.forms.length, 0, "creating them sends no request");
+  assert.equal(await credentials.token(), "access-1");
+  assert.equal(await credentials.token(), "access-2");
+  assert.equal(await credentials.token(), "access-3");
+  assert.deepEqual(
+    sts.forms.map((f) => f.get("subject_token")),
+    [jobToken, jobToken, jobToken],
+  );
+
+  const expired = unsignedJwt({ sub: "project_path:group/app", exp: 1_700_000_000 });
+  const err = await oidcToken(expired, { endpoint: sts.url })
+    .token()
+    .then(() => assert.fail("resolved"), (e: unknown) => e as Error);
+  assert.equal(
+    err.message,
+    "origincloud: the CI job's OIDC token expired at 2023-11-14T22:13:20.000Z: a token given as it is " +
+      "can't be renewed: ask the CI provider for a longer-lived one, or use ORIGINCLOUD_OIDC_TOKEN_FILE",
+  );
+  assert.ok(!err.message.includes(expired));
+  assert.equal(sts.forms.length, 3, "an expired token isn't sent");
+
+  // A token whose expiry can't be read is the STS's to judge.
+  for (const opaque of ["not-a-jwt", "a.!!!.c", unsignedJwt({ sub: "no-exp" }), unsignedJwt({ exp: "soon" })]) {
+    const expected: string = `access-${sts.forms.length + 1}`;
+    assert.equal(await oidcToken(opaque, { endpoint: sts.url }).token(), expected);
+    assert.equal(sts.forms.at(-1)?.get("subject_token"), opaque);
+  }
 });
 
 test("any source of job tokens can be exchanged, with the fetch given", async () => {
@@ -737,6 +780,50 @@ test("in the default chain, the token file comes before GitHub Actions", async (
   assert.equal(await defaultCredentials().token(), "access-1");
   assert.equal(sts.forms[0]?.get("subject_token"), "file-token");
   assert.equal(github.requests.length, 0);
+});
+
+test("in the default chain, the token in ORIGINCLOUD_OIDC_TOKEN comes after the token file and before GitHub Actions", async () => {
+  const github = await githubServer();
+  const sts = await stsServer(900);
+  inGitHubActions(github.url);
+  process.env["ORIGINCLOUD_STS_ENDPOINT"] = sts.url;
+  process.env["ORIGINCLOUD_OIDC_AUDIENCE"] = "api://ignored";
+  const jobToken = unsignedJwt({ sub: "project_path:group/app", exp: Math.floor(Date.now() / 1000) + 3600 });
+  process.env["ORIGINCLOUD_OIDC_TOKEN"] = jobToken;
+
+  const credentials = defaultCredentials();
+  assert.ok(credentials instanceof FederatedCredentials);
+  assert.equal(credentials.endpoint, sts.url);
+  assert.equal(await credentials.token(), "access-1");
+  assert.equal(sts.forms[0]?.get("subject_token"), jobToken);
+  assert.equal(github.requests.length, 0);
+
+  process.env["ORIGINCLOUD_OIDC_TOKEN_FILE"] = writeTokenFile("file-token");
+  assert.equal(await defaultCredentials().token(), "access-2");
+  assert.equal(sts.forms[1]?.get("subject_token"), "file-token");
+  delete process.env["ORIGINCLOUD_OIDC_TOKEN_FILE"];
+
+  // The variable is read when the chain runs.
+  const found = defaultCredentials();
+  process.env["ORIGINCLOUD_OIDC_TOKEN"] = "changed-later";
+  assert.equal(await found.token(), "access-3");
+  assert.equal(sts.forms[2]?.get("subject_token"), jobToken);
+
+  const expired = unsignedJwt({ sub: "project_path:group/app", exp: Math.floor(Date.now() / 1000) - 60 });
+  process.env["ORIGINCLOUD_OIDC_TOKEN"] = expired;
+  const err = await defaultCredentials()
+    .token()
+    .then(() => assert.fail("resolved"), (e: unknown) => e as Error);
+  assert.match(
+    err.message,
+    /^origincloud: the CI job's OIDC token in ORIGINCLOUD_OIDC_TOKEN expired at \d{4}-\d{2}-\d{2}T[\d:.]+Z: a token given as it is can't be renewed: ask the CI provider for a longer-lived one, or use ORIGINCLOUD_OIDC_TOKEN_FILE$/,
+  );
+  assert.ok(!err.message.includes(expired));
+  assert.equal(sts.forms.length, 3, "an expired token isn't sent");
+  assert.equal(github.requests.length, 0);
+
+  process.env["ORIGINCLOUD_OIDC_DISABLED"] = "true";
+  assert.ok(defaultCredentials() instanceof InstanceMetadataCredentials);
 });
 
 test("a CI job's token that fails is the default chain's error, not a reason to look further", async () => {

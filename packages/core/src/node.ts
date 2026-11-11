@@ -29,6 +29,7 @@ export {
   federated,
   githubActions,
   instanceMetadata,
+  oidcToken,
   oidcTokenFile,
 } from "./node-credentials.js";
 
