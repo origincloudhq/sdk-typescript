@@ -91,7 +91,8 @@ export class FederatedCredentialClient {
    * the account yourself. Refused with `INVALID_ARGUMENT` when a condition
    * contains `*`, or when no condition names an identity that never
    * changes: `repository_id` or `repository_owner_id` for GitHub Actions'
-   * issuer, `sub` for any other.
+   * issuer, `projectId` or `namespace_id` for GitLab.com's, `sub` for any
+   * other.
    */
   async createFederatedCredential(request: CreateFederatedCredentialRequest, options?: CallOptions): Promise<FederatedCredential> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
