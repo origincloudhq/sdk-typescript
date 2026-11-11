@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -22,6 +23,12 @@ const ENV_CLIENT_ID = "ORIGINCLOUD_CLIENT_ID";
 const ENV_CLIENT_SECRET = "ORIGINCLOUD_CLIENT_SECRET";
 const ENV_METADATA_DISABLED = "ORIGINCLOUD_METADATA_DISABLED";
 const ENV_METADATA_ENDPOINT = "ORIGINCLOUD_METADATA_ENDPOINT";
+const ENV_OIDC_DISABLED = "ORIGINCLOUD_OIDC_DISABLED";
+const ENV_OIDC_TOKEN_FILE = "ORIGINCLOUD_OIDC_TOKEN_FILE";
+const ENV_OIDC_AUDIENCE = "ORIGINCLOUD_OIDC_AUDIENCE";
+const ENV_STS_ENDPOINT = "ORIGINCLOUD_STS_ENDPOINT";
+const ENV_GITHUB_REQUEST_URL = "ACTIONS_ID_TOKEN_REQUEST_URL";
+const ENV_GITHUB_REQUEST_TOKEN = "ACTIONS_ID_TOKEN_REQUEST_TOKEN";
 
 /** The OAuth client the CLI logs in as, which its refresh token belongs to. */
 const CLI_CLIENT_ID = "origin-cli";
@@ -35,7 +42,9 @@ export class NoCredentialsError extends Error {
   constructor(options?: ErrorOptions) {
     super(
       "origincloud: no credentials: set ORIGINCLOUD_CLIENT_ID and ORIGINCLOUD_CLIENT_SECRET, " +
-        "set ORIGINCLOUD_ACCESS_TOKEN, log in with `origin id login`, " +
+        "set ORIGINCLOUD_ACCESS_TOKEN, run in a CI job whose OIDC token the STS trusts " +
+        "(GitHub Actions with `permissions: id-token: write`, or ORIGINCLOUD_OIDC_TOKEN_FILE), " +
+        "log in with `origin id login`, " +
         "or run on an instance that runs as a service account",
       options,
     );
@@ -50,8 +59,17 @@ export class NoCredentialsError extends Error {
  * 2. `ORIGINCLOUD_CLIENT_ID` and `ORIGINCLOUD_CLIENT_SECRET`: a service
  *    account's credential, exchanged for access tokens as they expire. Only
  *    one of the two set is an error.
- * 3. The session the `origin` CLI stored at its last login (`origin id login`).
- * 4. The instance's metadata service ({@link instanceMetadata}), asked at the
+ * 3. A CI job's OIDC token, exchanged at the STS for a workload service
+ *    account's access tokens ({@link federated}): the file
+ *    `ORIGINCLOUD_OIDC_TOKEN_FILE` names, or else GitHub Actions' token when
+ *    `ACTIONS_ID_TOKEN_REQUEST_URL` and `ACTIONS_ID_TOKEN_REQUEST_TOKEN` are
+ *    set. `ORIGINCLOUD_STS_ENDPOINT` names another STS,
+ *    `ORIGINCLOUD_OIDC_AUDIENCE` another audience for GitHub's token;
+ *    `ORIGINCLOUD_OIDC_DISABLED=true` leaves this out. A job token found is
+ *    the credential: its errors are the first call's, not a reason to look
+ *    further.
+ * 4. The session the `origin` CLI stored at its last login (`origin id login`).
+ * 5. The instance's metadata service ({@link instanceMetadata}), asked at the
  *    first call: on an instance that runs as a service account, its tokens.
  *    `ORIGINCLOUD_METADATA_ENDPOINT` names another base URL;
  *    `ORIGINCLOUD_METADATA_DISABLED=true` leaves this out.
@@ -68,6 +86,8 @@ export function defaultCredentials(): Credentials {
   if (id || secret) {
     throw new Error(`origincloud: ${ENV_CLIENT_ID} and ${ENV_CLIENT_SECRET} must be set together`);
   }
+  const ciJob = ciJobCredentials();
+  if (ciJob) return ciJob;
   const session = cliSession();
   if (session) return session;
   if (process.env[ENV_METADATA_DISABLED]?.toLowerCase() === "true") throw new NoCredentialsError();
@@ -343,4 +363,221 @@ function notACredential(): Error {
  */
 export function instanceMetadata(options?: InstanceMetadataOptions): InstanceMetadataCredentials {
   return new InstanceMetadataCredentials(options);
+}
+
+/** Where the security token service (STS) exchanges a CI job's OIDC token for an access token. */
+export const STS_ENDPOINT = "https://sts.origincloudapis.eu";
+
+/** The audience a CI job's OIDC token is requested for. */
+export const OIDC_AUDIENCE = "https://sts.origincloudapis.eu";
+
+/** How long before its expiry an exchanged access token is replaced. */
+const FEDERATED_EXPIRY_MARGIN_MS = 60_000;
+
+/** How long to wait before exchanging again after the STS answered 503: twice, so three attempts in all. */
+const STS_RETRY_DELAYS_MS = [200, 400];
+
+/**
+ * A function returning a CI job's OIDC token. It is asked at every
+ * exchange, so it returns a fresh token each time.
+ */
+export type SubjectTokenSource = () => string | Promise<string>;
+
+/** How {@link FederatedCredentials} reach the STS. */
+export interface FederatedOptions {
+  /** The STS's base URL; {@link STS_ENDPOINT} by default. */
+  endpoint?: string;
+  /** The `fetch` its requests are sent with; the platform's by default. */
+  fetch?: FetchLike;
+}
+
+/** How {@link githubActions} requests the job's token, and reaches the STS. */
+export interface GitHubActionsOptions extends FederatedOptions {
+  /** The audience the job's token is requested for; {@link OIDC_AUDIENCE} by default. */
+  audience?: string;
+}
+
+/**
+ * Credentials that exchange a CI job's OIDC token at the STS (RFC 8693) for
+ * the access tokens of the workload service account a federated credential
+ * trusts it for. Each exchange asks for a fresh job token.
+ */
+export class FederatedCredentials implements Credentials {
+  /** The STS's base URL. */
+  endpoint: string;
+  /** The `fetch` its requests are sent with; the platform's when unset. */
+  fetch: FetchLike | undefined;
+  private readonly subjectToken: SubjectTokenSource;
+  private readonly cache = new TokenCache("", 0, FEDERATED_EXPIRY_MARGIN_MS);
+
+  constructor(subjectToken: SubjectTokenSource, options: FederatedOptions = {}) {
+    this.subjectToken = subjectToken;
+    this.endpoint = (options.endpoint ?? STS_ENDPOINT).replace(/\/+$/, "");
+    this.fetch = options.fetch;
+  }
+
+  /** The current access token, exchanging a fresh job token when it is about to expire. */
+  token(signal?: AbortSignal): Promise<string> {
+    return this.cache.get(async () => {
+      const subjectToken = await this.subjectToken();
+      if (!subjectToken) throw new Error("origincloud: the CI job's OIDC token is empty");
+      return this.exchange(subjectToken);
+    }, signal);
+  }
+
+  /** Exchanges `subjectToken`, again while the STS answers 503. */
+  private async exchange(subjectToken: string): Promise<{ token: string; expiry: number }> {
+    const init: RequestInit = {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
+      body: new URLSearchParams({
+        grant_type: "urn:ietf:params:oauth:grant-type:token-exchange",
+        subject_token: subjectToken,
+        subject_token_type: "urn:ietf:params:oauth:token-type:jwt",
+      }).toString(),
+    };
+    const url = this.endpoint + "/v1/token";
+    for (let attempt = 0; ; attempt++) {
+      let status: number;
+      let text: string;
+      try {
+        const response = await (this.fetch ?? globalThis.fetch).call(globalThis, url, init);
+        status = response.status;
+        text = (await readLimited(response, MAX_TOKEN_RESPONSE_BYTES)).text;
+      } catch (err) {
+        throw new Error(`origincloud: exchanging the CI job's OIDC token at ${this.endpoint}: ${String(err)}`, {
+          cause: err,
+        });
+      }
+      const delay = STS_RETRY_DELAYS_MS[attempt];
+      if (status === 503 && delay !== undefined) {
+        await sleep(delay);
+        continue;
+      }
+      return exchanged(status, text, subjectToken);
+    }
+  }
+}
+
+/** The credential in the STS's answer, or the error it means. */
+function exchanged(status: number, text: string, subjectToken: string): { token: string; expiry: number } {
+  let answer: Record<string, unknown>;
+  try {
+    answer = (JSON.parse(text) ?? {}) as Record<string, unknown>;
+  } catch {
+    answer = {};
+  }
+  if (status === 200) {
+    const token = answer["access_token"];
+    if (typeof token !== "string" || !token) {
+      throw new Error("origincloud: the STS's answer is not a credential");
+    }
+    return { token, expiry: Date.now() + (Number(answer["expires_in"]) || 0) * 1000 };
+  }
+  const error = typeof answer["error"] === "string" ? answer["error"] : "";
+  if (status === 503) {
+    throw new Error("origincloud: the STS is temporarily unavailable (HTTP 503): try again later");
+  }
+  if (error === "invalid_grant") {
+    throw new Error(
+      "origincloud: the STS refused the CI job's OIDC token (invalid_grant): check the federated " +
+        "credential's issuer, audience and conditions against the token's claims",
+    );
+  }
+  // The description is the STS's; it is not expected to quote the token, but it must never show it.
+  const description = String(answer["error_description"] ?? "").replaceAll(subjectToken, "[token]");
+  const reason = [error, description].filter(Boolean).join(": ");
+  throw new Error(`origincloud: the STS refused the token exchange (HTTP ${status})${reason ? ": " + reason : ""}`);
+}
+
+/**
+ * Credentials that exchange the CI job's OIDC token `subjectToken` returns
+ * at the STS. Creating them sends no request.
+ */
+export function federated(subjectToken: SubjectTokenSource, options?: FederatedOptions): FederatedCredentials {
+  return new FederatedCredentials(subjectToken, options);
+}
+
+/**
+ * Credentials that exchange the OIDC token in the file at `path`, such as
+ * a Kubernetes projected token or another CI provider's. The file is read
+ * at every exchange, so a rotated token is picked up.
+ */
+export function oidcTokenFile(path: string, options?: FederatedOptions): FederatedCredentials {
+  return new FederatedCredentials(async () => {
+    let data: string;
+    try {
+      data = await readFile(path, "utf8");
+    } catch (err) {
+      throw new Error(`origincloud: reading the OIDC token file: ${String(err)}`, { cause: err });
+    }
+    const token = data.trim();
+    if (!token) throw new Error(`origincloud: the OIDC token file ${path} is empty`);
+    return token;
+  }, options);
+}
+
+/**
+ * Credentials that exchange the GitHub Actions job's OIDC token, requested
+ * from GitHub at every exchange. GitHub sets `ACTIONS_ID_TOKEN_REQUEST_URL`
+ * and `ACTIONS_ID_TOKEN_REQUEST_TOKEN` only when the workflow grants
+ * `permissions: id-token: write`; without them this throws.
+ */
+export function githubActions(options: GitHubActionsOptions = {}): FederatedCredentials {
+  const requestUrl = process.env[ENV_GITHUB_REQUEST_URL] ?? "";
+  const requestToken = process.env[ENV_GITHUB_REQUEST_TOKEN] ?? "";
+  if (!requestUrl || !requestToken) {
+    throw new Error(
+      `origincloud: ${ENV_GITHUB_REQUEST_URL} and ${ENV_GITHUB_REQUEST_TOKEN} aren't set: ` +
+        "the workflow needs `permissions: id-token: write`",
+    );
+  }
+  const { audience = OIDC_AUDIENCE, ...sts } = options;
+  const url = requestUrl + (requestUrl.includes("?") ? "&" : "?") + "audience=" + encodeURIComponent(audience);
+  return new FederatedCredentials(async () => {
+    const failed = (reason: string, cause?: unknown) =>
+      new Error(
+        `origincloud: requesting the job's OIDC token from GitHub Actions: ${reason}: ` +
+          "does the workflow grant `permissions: id-token: write`?",
+        cause === undefined ? undefined : { cause },
+      );
+    let status: number;
+    let text: string;
+    let truncated: boolean;
+    try {
+      const response = await (sts.fetch ?? globalThis.fetch).call(globalThis, url, {
+        method: "GET",
+        headers: { Authorization: `bearer ${requestToken}`, Accept: "application/json" },
+      });
+      status = response.status;
+      ({ text, truncated } = await readLimited(response, MAX_TOKEN_RESPONSE_BYTES));
+    } catch (err) {
+      throw failed(String(err), err);
+    }
+    if (status !== 200) throw failed(`HTTP ${status}`);
+    let value: unknown;
+    try {
+      value = truncated ? undefined : (JSON.parse(text) as Record<string, unknown> | null)?.["value"];
+    } catch {
+      value = undefined;
+    }
+    if (typeof value !== "string" || !value) throw failed("the answer holds no token");
+    return value;
+  }, sts);
+}
+
+/**
+ * The CI job's credentials the environment names, unless
+ * `ORIGINCLOUD_OIDC_DISABLED=true`: a token file before GitHub Actions.
+ */
+function ciJobCredentials(): FederatedCredentials | undefined {
+  if (process.env[ENV_OIDC_DISABLED]?.toLowerCase() === "true") return undefined;
+  const endpoint = process.env[ENV_STS_ENDPOINT];
+  const options: GitHubActionsOptions = endpoint ? { endpoint } : {};
+  const file = process.env[ENV_OIDC_TOKEN_FILE];
+  if (file) return oidcTokenFile(file, options);
+  if (!process.env[ENV_GITHUB_REQUEST_URL] || !process.env[ENV_GITHUB_REQUEST_TOKEN]) return undefined;
+  const audience = process.env[ENV_OIDC_AUDIENCE];
+  if (audience) options.audience = audience;
+  return githubActions(options);
 }

@@ -79,9 +79,22 @@ default value may be absent from a response: `volume.sizeGib ?? 0`.
 2. `ORIGINCLOUD_CLIENT_ID` and `ORIGINCLOUD_CLIENT_SECRET`: a service account's
    credential, exchanged for access tokens as they expire. This is what
    automation should use. Setting only one of the two is an error.
-3. The session the `origin` CLI stored at its last login (`origin id login`),
+3. A CI job's OIDC token, exchanged at the security token service
+   (`https://sts.origincloudapis.eu`, or `ORIGINCLOUD_STS_ENDPOINT`) for the
+   access tokens of the workload service account whose federated credential
+   trusts it: no secret is stored. The token is read from the file
+   `ORIGINCLOUD_OIDC_TOKEN_FILE` names (any CI provider, or a Kubernetes
+   projected token), or else, in GitHub Actions, requested from GitHub, which
+   the workflow allows with `permissions: id-token: write`; its audience is
+   `https://sts.origincloudapis.eu`, or `ORIGINCLOUD_OIDC_AUDIENCE`. A fresh
+   job token is exchanged a minute before each access token expires. A job
+   token found is the credential: when its exchange fails, the call rejects
+   with why, and the steps below aren't tried. `ORIGINCLOUD_OIDC_DISABLED=true`
+   leaves this step out, such as on a self-hosted runner that should use its
+   instance's service account.
+4. The session the `origin` CLI stored at its last login (`origin id login`),
    renewed in memory when it expires; the CLI's file is never written.
-4. The instance's metadata service, at `http://169.254.169.254` or
+5. The instance's metadata service, at `http://169.254.169.254` or
    `ORIGINCLOUD_METADATA_ENDPOINT`: on an instance that runs as a service
    account, that account's access tokens, replaced a minute before they
    expire. Nothing is asked until the first call, which rejects with
@@ -98,6 +111,10 @@ import { Client, serviceAccount } from "@origincloud/core";
 
 const client = new Client({ credentials: serviceAccount(clientId, clientSecret) });
 ```
+
+`githubActions()`, `oidcTokenFile(path)` and `federated(getToken)` exchange a
+CI job's token the same way, from GitHub Actions, a file, or any function
+that returns a fresh one.
 
 ### Browser
 
