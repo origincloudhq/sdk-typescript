@@ -49,7 +49,7 @@ export class SecurityTokenClient {
 /** The request of `AssumeServiceAccount`. */
 export interface AssumeServiceAccountRequest {
   /** The OIDC token, a JWT its issuer signed, such as a CI job's. */
-  token?: string;
+  oidcToken?: string;
   /**
    * The service account to assume,
    * `organizations/{organization}/serviceAccounts/{service_account}`. Only
