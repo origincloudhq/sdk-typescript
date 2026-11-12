@@ -34,6 +34,12 @@ export interface Request {
    * retried.
    */
   idempotent?: boolean;
+  /**
+   * Whether to send the call without the client's credentials, to a method
+   * that authenticates no caller, such as the security token service's: it
+   * then works with none.
+   */
+  unauthenticated?: boolean;
 }
 
 /** A call that got no answer: the connection failed or broke off. */
@@ -86,11 +92,10 @@ export class Service {
     const query = request.query?.toString();
     if (query) url += "?" + query;
 
-    const token = await this.client.credentials.token(signal);
-    const headers: Record<string, string> = {
-      Authorization: "Bearer " + token,
-      Accept: "application/json",
-    };
+    const headers: Record<string, string> = { Accept: "application/json" };
+    if (!request.unauthenticated) {
+      headers["Authorization"] = "Bearer " + (await this.client.credentials.token(signal));
+    }
     if (this.client.userAgent) headers["User-Agent"] = this.client.userAgent;
     if (body !== undefined) headers["Content-Type"] = "application/json";
     const held = this.client.consistencyToken;

@@ -39,6 +39,7 @@ export class SecurityTokenClient {
         method: "POST",
         path: `/v1beta1:assumeServiceAccount`,
         body: request,
+        unauthenticated: true,
       },
       options,
     );

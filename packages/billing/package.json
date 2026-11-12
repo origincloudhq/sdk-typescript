@@ -1,6 +1,6 @@
 {
   "name": "@origincloud/billing",
-  "version": "0.25.1",
+  "version": "0.25.2",
   "description": "Origin Cloud's billing service: billing accounts and the projects they pay for, payment methods, cost and usage, spend limits and the price list.",
   "license": "Apache-2.0",
   "homepage": "https://github.com/origincloudhq/sdk-typescript#readme",
@@ -34,9 +34,9 @@
     "!dist/**/*.tsbuildinfo"
   ],
   "peerDependencies": {
-    "@origincloud/core": "^0.25.1"
+    "@origincloud/core": "^0.25.2"
   },
   "devDependencies": {
-    "@origincloud/core": "^0.25.1"
+    "@origincloud/core": "^0.25.2"
   }
 }

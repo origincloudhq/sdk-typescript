@@ -101,6 +101,24 @@ test("a request carries its credentials and agent", async () => {
   }
 });
 
+test("an unauthenticated call is sent without credentials", async () => {
+  let seen: Record<string, string | string[] | undefined> = {};
+  const server = await serve((req, res) => {
+    seen = req.headers;
+    json(res, {});
+  });
+  servers.push(server.close);
+  const none = () => {
+    throw new Error("no credentials");
+  };
+  const sts = new Client({ endpoint: server.url, credentials: none }).service("sts", false);
+
+  await sts.call({ method: "POST", path: "/v1beta1:assumeServiceAccount", body: {}, unauthenticated: true });
+  assert.equal(seen["authorization"], undefined);
+
+  await assert.rejects(sts.call({ method: "POST", path: "/v1beta1:assumeServiceAccount", body: {} }), /no credentials/);
+});
+
 test("a product is added to the agent", async () => {
   let agent: unknown;
   const server = await serve((req, res) => {
