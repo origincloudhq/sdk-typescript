@@ -1,6 +1,6 @@
 {
   "name": "@origincloud/sts",
-  "version": "0.25.2",
+  "version": "0.26.0",
   "description": "Origin Cloud's STS service: the security token service: it turns a token from an identity provider outside Origin Cloud, such as a CI job's OIDC token, into the access token of a WORKLOAD service account that trusts it through a federated credential.",
   "license": "Apache-2.0",
   "homepage": "https://github.com/origincloudhq/sdk-typescript#readme",
@@ -34,9 +34,9 @@
     "!dist/**/*.tsbuildinfo"
   ],
   "peerDependencies": {
-    "@origincloud/core": "^0.25.2"
+    "@origincloud/core": "^0.26.0"
   },
   "devDependencies": {
-    "@origincloud/core": "^0.25.2"
+    "@origincloud/core": "^0.26.0"
   }
 }
