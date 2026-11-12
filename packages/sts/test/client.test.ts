@@ -31,10 +31,10 @@ test("AssumeServiceAccount is sent without the client's credentials, which a mac
       throw new Error("no credentials");
     };
     const client = new SecurityTokenClient(new Client({ endpoint: server.url, credentials: none }));
-    const answer = await client.assumeServiceAccount({ token: "job-token", serviceAccount: "organizations/o/serviceAccounts/s" });
+    const answer = await client.assumeServiceAccount({ oidcToken: "job-token", serviceAccount: "organizations/o/serviceAccounts/s" });
     assert.equal(answer.accessToken, "issued");
     assert.equal(seen["authorization"], undefined);
-    assert.deepEqual(JSON.parse(body), { token: "job-token", serviceAccount: "organizations/o/serviceAccounts/s" });
+    assert.deepEqual(JSON.parse(body), { oidcToken: "job-token", serviceAccount: "organizations/o/serviceAccounts/s" });
   } finally {
     await server.close();
   }
