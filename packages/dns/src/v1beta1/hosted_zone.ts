@@ -18,21 +18,24 @@ import {
  *
  * A public zone holds its name only once it proves control of it: until
  * then it is `PENDING_VERIFICATION`, and any number of zones of any
- * project may be pending for the same name. It proves control with a TXT
- * record at `_origin-challenge.{dns_name}` holding the zone's token,
- * answered by the name's current DNS. The first zone of a name to verify
- * becomes `ACTIVE`, holds the name, and is answered from the platform's
- * name servers once the name is delegated to them; the others stay
- * pending. A zone that doesn't verify within its window is deleted with
+ * project may be pending for the same name. It proves control in either
+ * of two ways: the name's parent (its registry, for a registered domain)
+ * delegates it to the zone's own `nameServers`, which no other zone is
+ * given; or a TXT record at `_origin-challenge.{dns_name}` holding the
+ * zone's token answers at the name's current DNS. The first zone of a name
+ * to verify becomes `ACTIVE`, holds the name, and is answered from the
+ * platform's name servers once the name is delegated to them; the others
+ * stay pending. A zone that doesn't verify within its window is deleted with
  * its record sets. The platform checks pending zones on its own, more
  * rarely the longer they stay pending; `VerifyHostedZone` checks one now.
  *
  * An active public zone is checked again every day. It keeps its name
- * while the name is delegated to the platform's name servers, or while the
- * token still answers at the name's other name servers. After several
- * checks in a row find the name delegated elsewhere without the token, it
- * is `SUSPENDED`: no longer answered, its record sets kept, and its name
- * free for another zone to verify. Verifying it again while its name is
+ * while the name is delegated to its name servers, or while the token
+ * still answers at the name's other name servers. After several checks in
+ * a row find the name delegated elsewhere without the token, or to other
+ * platform name servers than the zone's, it is `SUSPENDED`: no longer
+ * answered, its record sets kept, and its name free for another zone to
+ * verify. Verifying it again while its name is
  * free makes it active again.
  *
  * A private zone is active from the start, and answers in the VPCs it is
@@ -150,10 +153,10 @@ export class HostedZoneClient {
   }
 
   /**
-   * Checks a public zone's challenge now, instead of waiting for the
+   * Checks a public zone's proof of control now, instead of waiting for the
    * platform's next check, and returns the zone as it is then, with the
-   * check's outcome in `challenge.lastCheck`. A pending zone whose token
-   * answers becomes `ACTIVE`, and so does a suspended one while its name is
+   * check's outcome in `challenge.lastCheck`. A pending zone that proves
+   * control becomes `ACTIVE`, and so does a suspended one while its name is
    * free; otherwise the zone stays as it was. A call within 30 seconds of
    * the zone's last check answers with that check's outcome and asks the
    * name's DNS nothing. Refused with `NOT_FOUND` once a pending zone's
@@ -161,7 +164,8 @@ export class HostedZoneClient {
    * retryable, when the name's DNS didn't answer in time or too many checks
    * are under way. A private zone has no challenge, and is refused with
    * `BAD_REQUEST`. Checking an active zone changes nothing, so a client may
-   * repeat the call.
+   * repeat the call; `NOT_FOUND` for one means its proof is lost, and the
+   * daily checks suspend it unless the proof comes back.
    */
   async verifyHostedZone(request: VerifyHostedZoneRequest, options?: CallOptions): Promise<HostedZone> {
     const p0 = pathValue("name", request.name, "projects/*/hostedZones/*");
@@ -185,7 +189,10 @@ export interface HostedZone {
   /**
    * The domain, such as `example.com`, without the final dot; answered in
    * lowercase. A public zone's has at least two labels and at most 235
-   * characters, so its challenge name fits. A private zone's may have one
+   * characters, so its challenge name fits, and isn't a special-use domain
+   * or below one, as none is delegated on the internet: `test`,
+   * `localhost`, `invalid`, `example`, `local`, `onion`, `alt`, `internal`
+   * and `home.arpa`. A private zone's may have one
    * label, but isn't `internal` or a name below it, which answer each
    * instance's own name. Neither is one of the platform's own domains or a
    * name below one.
@@ -197,8 +204,10 @@ export interface HostedZone {
   state?: HostedZone_State;
   /**
    * The name servers to delegate a public zone to at its registrar, as NS
-   * records of its name. Fixed when the zone is created. Empty for a
-   * private zone.
+   * records of its name. They are the zone's own: no other zone is given
+   * them, so a delegation to them proves control of the name and verifies
+   * the zone, as the challenge does. Fixed when the zone is created. Empty
+   * for a private zone.
    */
   nameServers?: string[];
   /**
@@ -255,8 +264,10 @@ export const HostedZone_State = {
 export type HostedZone_State = (typeof HostedZone_State)[keyof typeof HostedZone_State];
 
 /**
- * A public zone's proof of control of its name: a TXT record named
- * `dnsName` whose value is `token`, answered by the name's current DNS.
+ * How a public zone proves control of its name: a TXT record named
+ * `dnsName` whose value is `token`, answered by the name's current DNS,
+ * unless the name is delegated to the zone's `nameServers`, which proves
+ * it as well.
  */
 export interface OwnershipChallenge {
   /**
@@ -290,7 +301,7 @@ export const OwnershipChallenge_SuspensionReason = {
   SUSPENSION_REASON_UNSPECIFIED: "SUSPENSION_REASON_UNSPECIFIED",
   /**
    * Several daily checks in a row found the name delegated to other name
-   * servers, without the zone's token.
+   * servers than the zone's, without the zone's token.
    */
   CHALLENGE_LOST: "CHALLENGE_LOST",
 } as const;
@@ -298,22 +309,26 @@ export const OwnershipChallenge_SuspensionReason = {
 /** Why a zone was suspended. */
 export type OwnershipChallenge_SuspensionReason = (typeof OwnershipChallenge_SuspensionReason)[keyof typeof OwnershipChallenge_SuspensionReason];
 
-/** What a check of the challenge found. */
+/** What a check of the zone's proof of control found. */
 export const OwnershipChallenge_CheckOutcome = {
   /** Not set. */
   CHECK_OUTCOME_UNSPECIFIED: "CHECK_OUTCOME_UNSPECIFIED",
-  /** The token answers, and the zone holds its name: it is `ACTIVE`. */
+  /**
+   * The name is delegated to the zone's name servers or the token
+   * answers, and the zone holds its name: it is `ACTIVE`.
+   */
   OK: "OK",
   /**
-   * The token doesn't answer at the TXT record's name, or the name's DNS
-   * can't be asked.
+   * The name isn't delegated to the zone's name servers and the token
+   * doesn't answer at the TXT record's name, or the name's DNS can't be
+   * asked.
    */
   NOT_FOUND: "NOT_FOUND",
-  /** The token answers, but another zone holds the name. */
+  /** The zone proves control, but another zone holds the name. */
   NAME_HELD: "NAME_HELD",
 } as const;
 
-/** What a check of the challenge found. */
+/** What a check of the zone's proof of control found. */
 export type OwnershipChallenge_CheckOutcome = (typeof OwnershipChallenge_CheckOutcome)[keyof typeof OwnershipChallenge_CheckOutcome];
 
 /** The request for GetHostedZone. */

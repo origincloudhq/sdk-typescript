@@ -13,6 +13,7 @@
     { "path": "packages/support" },
     { "path": "packages/dns" },
     { "path": "packages/sts" },
+    { "path": "packages/kms" },
     { "path": "generator" },
     { "path": "tsconfig.test.json" }
   ]

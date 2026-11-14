@@ -18,6 +18,7 @@
     { "path": "packages/observability" },
     { "path": "packages/support" },
     { "path": "packages/dns" },
-    { "path": "packages/sts" }
+    { "path": "packages/sts" },
+    { "path": "packages/kms" }
   ]
 }
