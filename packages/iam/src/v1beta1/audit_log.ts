@@ -90,8 +90,9 @@ export interface AuditLogEntry {
    * Who made the change, as it was when the change was made:
    * `user:{email}` with the verified address the account had then,
    * `userId:{user}` when none was recorded, `serviceAccount:{service_account}`,
-   * or `platform` for a change the platform made itself. A later change of
-   * address doesn't change it.
+   * `serviceAgent:{service_agent}` for a platform service agent acting in
+   * the organization, or `platform` for a change the platform made itself.
+   * A later change of address doesn't change it.
    */
   actor?: string;
   /**
@@ -123,6 +124,12 @@ export const AuditLogEntry_Outcome = {
   SUCCEEDED: "SUCCEEDED",
   /** It was refused for lack of a permission. */
   DENIED: "DENIED",
+  /**
+   * It was attempted and refused for another reason, which `details`
+   * names in `reason`, such as a key asked to decrypt under the wrong
+   * encryption context.
+   */
+  FAILED: "FAILED",
 } as const;
 
 /** Whether the change was made. */
@@ -148,8 +155,8 @@ export interface ListAuditLogEntriesRequest {
   project?: string;
   /**
    * Only the entries of changes made by this member's account,
-   * `user:{email}` or `serviceAccount:{service_account}`. Every actor's
-   * when empty.
+   * `user:{email}`, `serviceAccount:{service_account}` or
+   * `serviceAgent:{service_agent}`. Every actor's when empty.
    */
   actor?: string;
   /**
