@@ -10,6 +10,7 @@ import {
   query,
 } from "@origincloud/core";
 import type { BillingAddress } from "./billing_account.js";
+import type { LegalDocumentVersionToAccept } from "./legal_document.js";
 
 /**
  * Calls LegalAcceptanceService.
@@ -196,17 +197,6 @@ export interface LegalRequirement {
    * resources charged to the account is refused.
    */
   blocking?: boolean;
-}
-
-/** A version to accept, with the text it was shown as. */
-export interface LegalDocumentVersionToAccept {
-  /** The version, `legalDocuments/{legal_document}/versions/{version}`. */
-  legalDocumentVersion?: string;
-  /**
-   * The version's `sha256`, as read with it: an acceptance is refused when
-   * the text shown isn't the version's.
-   */
-  sha256?: string;
 }
 
 /** The request for ListLegalAcceptances. */

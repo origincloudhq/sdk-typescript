@@ -260,6 +260,17 @@ export const LegalDocumentVersion_ChangeClass = {
 /** What a version changes, and so what publishing it asks of a customer. */
 export type LegalDocumentVersion_ChangeClass = (typeof LegalDocumentVersion_ChangeClass)[keyof typeof LegalDocumentVersion_ChangeClass];
 
+/** A version to accept, with the text it was shown as. */
+export interface LegalDocumentVersionToAccept {
+  /** The version, `legalDocuments/{legal_document}/versions/{version}`. */
+  legalDocumentVersion?: string;
+  /**
+   * The version's `sha256`, as read with it: an acceptance is refused when
+   * the text shown isn't the version's.
+   */
+  sha256?: string;
+}
+
 /** The request for ListLegalDocuments. */
 export interface ListLegalDocumentsRequest {
   /**
