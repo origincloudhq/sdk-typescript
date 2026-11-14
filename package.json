@@ -14,7 +14,8 @@
     "packages/observability",
     "packages/support",
     "packages/dns",
-    "packages/sts"
+    "packages/sts",
+    "packages/kms"
   ],
   "engines": {
     "node": ">=20"
