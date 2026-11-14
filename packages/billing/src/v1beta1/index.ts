@@ -2,5 +2,6 @@
 
 export * from "./billing_account.js";
 export * from "./cost.js";
+export * from "./legal_document.js";
 export * from "./price_list.js";
 export * from "./spend_limit.js";

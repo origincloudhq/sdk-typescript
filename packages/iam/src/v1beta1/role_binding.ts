@@ -26,6 +26,14 @@ import {
  *   account's current one.
  * - `serviceAccount:{service_account}`: a service account of the same
  *   organization, by its id.
+ * - `serviceAgent:{service_agent}`: a platform service agent, by its name,
+ *   such as `serviceAgent:compute`. A service agent is the identity one of
+ *   the platform's services acts as in an organization. Any organization
+ *   can bind one, but only to a role its service needs; nobody outside the
+ *   platform can act as one or get a credential for it. Every organization
+ *   is created with `serviceAgent:compute` bound to
+ *   `roles/kms.grant-delegate`; delete that binding and compute makes no
+ *   new grants on the organization's keys.
  *
  * and shown, never accepted, as:
  * - `userId:{user}`: a user by the id of their account, when no verified
@@ -102,7 +110,8 @@ export class RoleBindingClient {
    * verified email: nothing is held for an address until its account
    * exists. Refused with `CONFLICT` when the member already holds the role
    * at that scope, and with `BAD_REQUEST` when the member is a deleted
-   * service account.
+   * service account, names no service agent the platform has, or is a
+   * service agent and the role isn't one its service needs.
    */
   async createRoleBinding(request: CreateRoleBindingRequest, options?: CallOptions): Promise<RoleBinding> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
@@ -154,8 +163,8 @@ export interface RoleBinding {
    */
   urn?: string;
   /**
-   * Who holds the role: `user:{email}` or
-   * `serviceAccount:{service_account}`. A user is shown with their
+   * Who holds the role: `user:{email}`, `serviceAccount:{service_account}`
+   * or `serviceAgent:{service_agent}`. A user is shown with their
    * account's current verified address, as `userId:{user}` when it has
    * none, or as `deleted:user:{user}` once the account is gone.
    */
@@ -193,8 +202,9 @@ export interface ListRoleBindingsRequest {
    */
   parent?: string;
   /**
-   * Only the bindings of this member, `user:{email}` or
-   * `serviceAccount:{service_account}`. Every member's when empty.
+   * Only the bindings of this member, `user:{email}`,
+   * `serviceAccount:{service_account}` or `serviceAgent:{service_agent}`.
+   * Every member's when empty.
    */
   member?: string;
   /**
