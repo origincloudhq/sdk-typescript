@@ -104,7 +104,16 @@ function abortable<T>(promise: Promise<T>, signal: AbortSignal | undefined): Pro
  * was longer.
  */
 export async function readLimited(response: Response, limit: number): Promise<{ text: string; truncated: boolean }> {
-  if (!response.body) return { text: "", truncated: false };
+  const { bytes, truncated } = await readLimitedBytes(response, limit);
+  return { text: new TextDecoder().decode(bytes), truncated };
+}
+
+/**
+ * The bytes of `response`'s body, read up to `limit` of them, and whether it
+ * was longer.
+ */
+export async function readLimitedBytes(response: Response, limit: number): Promise<{ bytes: Uint8Array<ArrayBuffer>; truncated: boolean }> {
+  if (!response.body) return { bytes: new Uint8Array(0), truncated: false };
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let size = 0;
@@ -128,7 +137,7 @@ export async function readLimited(response: Response, limit: number): Promise<{ 
     bytes.set(chunk, offset);
     offset += chunk.byteLength;
   }
-  return { text: new TextDecoder().decode(bytes), truncated };
+  return { bytes, truncated };
 }
 
 /** A token endpoint's answer. */

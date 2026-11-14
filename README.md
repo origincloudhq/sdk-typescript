@@ -67,8 +67,9 @@ Messages are plain objects in their JSON form, as the API sends them:
 fields have their camelCase names, enums are their value names (such as
 `"AVAILABLE"`, also available as `Volume_State.AVAILABLE`), 64-bit
 integers, timestamps and durations are strings, and a field mask is a
-comma-separated list of camelCase paths (`"sizeGib,tags"`). A field at its
-default value may be absent from a response: `volume.sizeGib ?? 0`.
+comma-separated list of camelCase paths (`"sizeGib,tags"`). A date is a
+`CalendarDate`, `{ year, month, day }`. A field at its default value may be
+absent from a response: `volume.sizeGib ?? 0`.
 
 ## Credentials
 
@@ -199,6 +200,11 @@ That entry point has everything `@origincloud/core` has, and also
   reads and sets it, to hand it to another client.
 - **Pages.** Each list method has an `all...` counterpart, an async iterator
   over every page.
+- **Downloads.** A method that answers with a file rather than JSON, such as
+  `downloadLegalDocumentVersion`, resolves to an `HttpBody`: the file's bytes
+  (`data`, a `Uint8Array`) and its `contentType`, such as `application/pdf`.
+  `new Blob([file.data], { type: file.contentType })` makes it a `Blob`. It is
+  retried, and fails with an `OriginCloudError`, as any other call.
 - **Errors.** A refused call rejects with an `OriginCloudError`: branch on
   its `reason`, the platform's error code. `metadata` names what the error
   is about, by key, such as `serviceAccount` on a `CONFLICT`, and is empty

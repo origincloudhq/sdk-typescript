@@ -119,6 +119,74 @@ test("an unauthenticated call is sent without credentials", async () => {
   await assert.rejects(sts.call({ method: "POST", path: "/v1beta1:assumeServiceAccount", body: {} }), /no credentials/);
 });
 
+test("a download answers with the file's bytes and content type, never read as JSON", async () => {
+  // Not UTF-8, and a JSON document after it: both come back as they were sent.
+  const pdf = Buffer.concat([Buffer.from("%PDF-1.7\n"), Buffer.from([0x00, 0xff, 0xfe, 0x80]), Buffer.from('{"a":1}')]);
+  let seen: Record<string, string | string[] | undefined> = {};
+  let calls = 0;
+  const client = await testClient((req, res) => {
+    seen = req.headers;
+    calls++;
+    if (calls === 1) {
+      json(res, unavailable, 503);
+      return;
+    }
+    if (req.path === "/empty") {
+      res.writeHead(200).end();
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/pdf" }).end(pdf);
+  });
+  const service = client.service("billing", false);
+
+  const file = await service.download({ method: "GET", path: "/v1beta1/legalDocuments/terms/versions/2026-12:download", idempotent: true });
+  assert.equal(calls, 2, "a download is retried as a call is");
+  assert.equal(file.contentType, "application/pdf");
+  assert.ok(file.data instanceof Uint8Array);
+  assert.deepEqual(Buffer.from(file.data), pdf);
+  const blob = new Blob([file.data], { type: file.contentType });
+  assert.equal(blob.type, "application/pdf");
+  assert.deepEqual(Buffer.from(await blob.arrayBuffer()), pdf);
+  assert.equal(seen["accept"], "*/*");
+  assert.equal(seen["authorization"], "Bearer t");
+
+  const empty = await service.download({ method: "GET", path: "/empty" });
+  assert.equal(empty.contentType, "application/octet-stream");
+  assert.equal(empty.data.byteLength, 0);
+});
+
+test("a download that fails throws the API's error, as a call does", async () => {
+  const notFound = {
+    error: {
+      code: 404,
+      status: "NOT_FOUND",
+      message: "legalDocuments/terms/versions/1999-01 not found",
+      details: [{ "@type": "type.googleapis.com/google.rpc.ErrorInfo", reason: "NOT_FOUND", domain: "origincloudapis.eu" }],
+    },
+  };
+  let seen: Record<string, string | string[] | undefined> = {};
+  const server = await serve((req, res) => {
+    seen = req.headers;
+    json(res, notFound, 404);
+  });
+  servers.push(server.close);
+  const none = () => {
+    throw new Error("no credentials");
+  };
+  const service = new Client({ endpoint: server.url, credentials: none }).service("billing", false);
+  const path = "/v1beta1/legalDocuments/terms/versions/1999-01:download";
+  await assert.rejects(service.download({ method: "GET", path, idempotent: true, unauthenticated: true }), (err: unknown) => {
+    assert.ok(err instanceof OriginCloudError);
+    assert.equal(err.httpStatus, 404);
+    assert.equal(err.status, "NOT_FOUND");
+    assert.equal(err.reason, "NOT_FOUND");
+    assert.equal(err.message, "legalDocuments/terms/versions/1999-01 not found");
+    assert.equal(err.retryable, false);
+    return true;
+  });
+  assert.equal(seen["authorization"], undefined);
+});
+
 test("a product is added to the agent", async () => {
   let agent: unknown;
   const server = await serve((req, res) => {
