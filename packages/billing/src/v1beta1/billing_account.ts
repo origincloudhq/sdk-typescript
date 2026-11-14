@@ -10,6 +10,7 @@ import {
   pathValue,
   query,
 } from "@origincloud/core";
+import type { LegalDocumentVersionToAccept } from "./legal_document.js";
 
 /**
  * Calls BillingAccountService.
@@ -485,6 +486,18 @@ export interface CreateBillingAccountRequest {
    * request created instead of creating a second one.
    */
   requestId?: string;
+  /**
+   * The legal document versions the new billing account accepts, each with
+   * the `sha256` of the text shown. Required once a version of a document
+   * customers accept is in force: every such version must be accepted, or
+   * the request fails naming `acceptedLegalDocuments` and creates nothing.
+   */
+  acceptedLegalDocuments?: LegalDocumentVersionToAccept[];
+  /**
+   * That the caller acts as a business (§ 14 BGB) for the billing account's
+   * legal entity. Must be true when `acceptedLegalDocuments` is set.
+   */
+  actsAsBusiness?: boolean;
 }
 
 /** The request for UpdateBillingAccount. */
