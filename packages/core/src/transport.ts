@@ -1,5 +1,5 @@
 import type { ClientBase as Client } from "./client.js";
-import { readLimited } from "./credentials.js";
+import { readLimitedBytes } from "./credentials.js";
 import { OriginCloudError, errorFromResponse } from "./errors.js";
 
 /** The header that carries the consistency token, in responses and in requests. */
@@ -42,6 +42,23 @@ export interface Request {
   unauthenticated?: boolean;
 }
 
+/**
+ * A `google.api.HttpBody`: the answer of a method that answers with a file
+ * rather than JSON, such as a download, as the server sent it.
+ */
+export interface HttpBody {
+  /** The file's media type, the answer's Content-Type, such as `application/pdf`. */
+  contentType: string;
+  /** The file's bytes, which `new Blob([data], { type: contentType })` makes a `Blob` of. */
+  data: Uint8Array<ArrayBuffer>;
+}
+
+/** An answer of 200, before it is read as JSON or handed over as a file. */
+interface Answer {
+  contentType: string | null;
+  bytes: Uint8Array<ArrayBuffer>;
+}
+
 /** A call that got no answer: the connection failed or broke off. */
 class TransportError extends Error {
   constructor(cause: unknown) {
@@ -67,11 +84,36 @@ export class Service {
    * it, and returns the answer's JSON.
    */
   async call<T>(request: Request, options: CallOptions = {}): Promise<T> {
+    const text = new TextDecoder().decode((await this.retrying(request, "application/json", options)).bytes);
+    if (text.trim() === "") return {} as T;
+    try {
+      return JSON.parse(text) as T;
+    } catch (err) {
+      throw new Error(`origincloud: reading the response to ${request.method} ${request.path}: ${String(err)}`, {
+        cause: err,
+      });
+    }
+  }
+
+  /**
+   * Sends `request` to a method that answers with a file rather than JSON
+   * (a `google.api.HttpBody`), retrying it as {@link call} does, and returns
+   * the file: its bytes as they came, never read as JSON, and their content
+   * type. An error is still the API's JSON, thrown as an
+   * {@link OriginCloudError}.
+   */
+  async download(request: Request, options: CallOptions = {}): Promise<HttpBody> {
+    const answer = await this.retrying(request, "*/*", options);
+    return { contentType: answer.contentType ?? "application/octet-stream", data: answer.bytes };
+  }
+
+  /** Sends `request` until it is answered with a 200, it fails for good or retrying it isn't safe. */
+  private async retrying(request: Request, accept: string, options: CallOptions): Promise<Answer> {
     const body = request.body === undefined ? undefined : JSON.stringify(request.body);
     const { signal } = options;
     for (let attempt = 1; ; attempt++) {
       try {
-        return (await this.send(request, body, signal)) as T;
+        return await this.send(request, accept, body, signal);
       } catch (err) {
         if (signal?.aborted) throw signal.reason;
         if (!request.idempotent || attempt >= this.client.maxAttempts) throw err;
@@ -86,13 +128,18 @@ export class Service {
     }
   }
 
-  /** One attempt, answering with the JSON of a 200. */
-  private async send(request: Request, body: string | undefined, signal: AbortSignal | undefined): Promise<unknown> {
+  /** One attempt, answering with the body of a 200. */
+  private async send(
+    request: Request,
+    accept: string,
+    body: string | undefined,
+    signal: AbortSignal | undefined,
+  ): Promise<Answer> {
     let url = this.base + request.path;
     const query = request.query?.toString();
     if (query) url += "?" + query;
 
-    const headers: Record<string, string> = { Accept: "application/json" };
+    const headers: Record<string, string> = { Accept: accept };
     if (!request.unauthenticated) {
       headers["Authorization"] = "Bearer " + (await this.client.credentials.token(signal));
     }
@@ -106,7 +153,7 @@ export class Service {
     if (signal) init.signal = signal;
 
     let response: Response;
-    let answer: { text: string; truncated: boolean };
+    let answer: { bytes: Uint8Array<ArrayBuffer>; truncated: boolean };
     try {
       const fetchImpl = this.client.fetch;
       // Called on globalThis, so that an unbound `window.fetch` works too.
@@ -119,26 +166,19 @@ export class Service {
     const answered = response.headers.get(CONSISTENCY_TOKEN_HEADER);
     if (answered) this.client.consistencyToken = answered;
     try {
-      answer = await readLimited(response, MAX_RESPONSE_BYTES);
+      answer = await readLimitedBytes(response, MAX_RESPONSE_BYTES);
     } catch (err) {
       throw new TransportError(err);
     }
     if (response.status !== 200) {
-      throw errorFromResponse(response.status, answer.text);
+      throw errorFromResponse(response.status, new TextDecoder().decode(answer.bytes));
     }
     if (answer.truncated) {
       throw new Error(
         `origincloud: reading the response to ${request.method} ${request.path}: it is larger than ${MAX_RESPONSE_BYTES} bytes`,
       );
     }
-    if (answer.text.trim() === "") return {};
-    try {
-      return JSON.parse(answer.text);
-    } catch (err) {
-      throw new Error(`origincloud: reading the response to ${request.method} ${request.path}: ${String(err)}`, {
-        cause: err,
-      });
-    }
+    return { contentType: response.headers.get("Content-Type"), bytes: answer.bytes };
   }
 }
 

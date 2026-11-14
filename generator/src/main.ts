@@ -5,7 +5,9 @@
 // through @origincloud/core.
 //
 // A method answering with a long-running operation returns an Operation of
-// the result its operation_info names. A list method (AIP-158) also gets an
+// the result its operation_info names. A method answering with a
+// google.api.HttpBody, a download, returns the file: its bytes and content
+// type. A list method (AIP-158) also gets an
 // all... method iterating over every page. A method with a request_id gets
 // one filled in when it is empty, so that it is safe to retry.
 //
@@ -18,6 +20,7 @@
 // client bound to that service's host.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, posix } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import type {
   EnumDescriptor,
@@ -32,16 +35,20 @@ import type {
 
 /** The services that answer only at their regionless host. */
 const GLOBAL_SERVICES = new Set(["iam", "resourcemanager", "location", "billing", "support", "dns", "sts"]);
-// The services that authenticate no caller: their calls are sent without
-// the client's credentials, so that they work with none. The security token
-// service's request carries its own proof, the token it exchanges.
-const UNAUTHENTICATED_SERVICES = new Set(["sts"]);
+// The services that authenticate no caller, by their host's shortcode (all
+// of its services) or by the shortcode and the service's name: their calls
+// are sent without the client's credentials, so that they work with none.
+// The security token service's request carries its own proof, the token it
+// exchanges; the legal documents are public.
+const UNAUTHENTICATED_SERVICES = new Set(["sts", "billing.LegalDocumentService"]);
 
 /** Packages every service shares, generated into each service package that uses them. */
 const SHARED_PACKAGES = ["origincloud.longrunning."];
 
 const CORE = "@origincloud/core";
 const OPERATION_TYPE = "google.longrunning.Operation";
+/** The answer of a method that answers with a file rather than JSON. */
+const HTTP_BODY_TYPE = "google.api.HttpBody";
 
 // Descriptor paths (google.protobuf.SourceCodeInfo.Location.path).
 const FILE_MESSAGE = 4;
@@ -82,6 +89,7 @@ const MAPPED: Record<string, { type: string; core?: string }> = {
   "google.protobuf.Empty": { type: "Empty", core: "Empty" },
   "google.protobuf.Any": { type: "Any", core: "Any" },
   "google.rpc.Status": { type: "Status", core: "Status" },
+  "google.type.Date": { type: "CalendarDate", core: "CalendarDate" },
   [OPERATION_TYPE]: { type: "LongrunningOperation", core: "LongrunningOperation" },
 };
 
@@ -433,9 +441,10 @@ class FileGenerator {
       `    this.service = client.service(${JSON.stringify(shortcode)}, ${regional});`,
       "  }",
     );
+    const authenticated = !UNAUTHENTICATED_SERVICES.has(shortcode) && !UNAUTHENTICATED_SERVICES.has(`${shortcode}.${s.name}`);
     (s.method ?? []).forEach((m, i) => {
       try {
-        this.method(m, [...path, SERVICE_METHOD, i], !UNAUTHENTICATED_SERVICES.has(shortcode));
+        this.method(m, [...path, SERVICE_METHOD, i], authenticated);
       } catch (err) {
         if (err instanceof GenerateError) fail(`${s.name}.${m.name}: ${err.message}`);
         throw err;
@@ -461,8 +470,11 @@ class FileGenerator {
     // output message.
     let returns: string;
     let operation: { result: string; resultName: string; metadata: string } | undefined;
+    const download = m.outputType.replace(/^\./, "") === HTTP_BODY_TYPE;
     const info = m.options?.["[google.longrunning.operation_info]"];
-    if (m.outputType.replace(/^\./, "") === OPERATION_TYPE && info) {
+    if (download) {
+      returns = this.core("HttpBody");
+    } else if (m.outputType.replace(/^\./, "") === OPERATION_TYPE && info) {
       const resultName = this.resolve(info.responseType ?? "");
       const result = this.ref(resultName);
       const metadata = info.metadataType ? this.ref(this.resolve(info.metadataType)) : "unknown";
@@ -482,6 +494,7 @@ class FileGenerator {
           : `It answers with an operation to wait on, whose result is the ${operation.result}.`,
       );
     }
+    if (download) doc.push("", "It answers with the file itself: its bytes, as they came, and their content type.");
     this.emit("");
     this.doc(doc, "  ");
     this.emit(`  async ${name}(request: ${inputType}, options?: ${callOptions}): Promise<${returns}> {`);
@@ -539,6 +552,8 @@ class FileGenerator {
       this.emit(
         `    return new Operation<${operation.result}, ${operation.metadata}>(this.service, op, ${JSON.stringify(operation.resultName)});`,
       );
+    } else if (download) {
+      this.emit(`    return this.service.download(`, ...call);
     } else {
       this.emit(`    return this.service.call<${returns}>(`, ...call);
     }
@@ -668,4 +683,4 @@ function lowerFirst(s: string): string {
   return s.charAt(0).toLowerCase() + s.slice(1);
 }
 
-main();
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main();

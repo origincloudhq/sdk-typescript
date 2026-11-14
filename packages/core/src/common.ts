@@ -12,11 +12,13 @@ export {
   accessToken,
   serviceAccount,
 } from "./credentials.js";
+export { type CalendarDate } from "./date.js";
 export { type FieldViolation, OriginCloudError, reasonOf } from "./errors.js";
 export { type Any, type Empty, type LongrunningOperation, Operation, type Status } from "./operation.js";
 export {
   type CallOptions,
   CONSISTENCY_TOKEN_HEADER,
+  type HttpBody,
   type HttpMethod,
   type Request,
   Service,
