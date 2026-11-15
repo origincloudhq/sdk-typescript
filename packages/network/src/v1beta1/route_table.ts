@@ -158,11 +158,9 @@ export interface RouteTable {
   /** The route table's resource name. */
   name?: string;
   /**
-   * The route table's URN, the identifier access policies and the audit
-   * log use.
+   * The full name of the VPC the table routes for, in the same project and
+   * region.
    */
-  urn?: string;
-  /** The VPC the table routes for, in the same project and region. */
   vpc?: string;
   /**
    * Whether the platform created the table with the VPC, as its main route
@@ -179,8 +177,10 @@ export interface RouteTable {
   /** When the route table was created. */
   createTime?: string;
   /**
-   * The principal that created the route table, such as `user:<id>` or
-   * `service_account:<id>`; empty for one the platform created.
+   * The principal that created the route table, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform did.
    */
   creator?: string;
   /**
@@ -210,7 +210,7 @@ export interface ListRouteTablesRequest {
   pageSize?: number;
   /** A previous response's `nextPageToken`, for the page after it. */
   pageToken?: string;
-  /** Only the route tables of this VPC, when set. */
+  /** Only the route tables of this VPC, by its full name, when set. */
   vpc?: string;
 }
 

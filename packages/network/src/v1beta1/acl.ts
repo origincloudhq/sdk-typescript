@@ -163,9 +163,10 @@ export class AclClient {
 export interface Acl {
   /** The ACL's resource name. */
   name?: string;
-  /** The ACL's URN, the identifier access policies and the audit log use. */
-  urn?: string;
-  /** The VPC the ACL belongs to, in the same project and region. */
+  /**
+   * The full name of the VPC the ACL belongs to, in the same project and
+   * region.
+   */
   vpc?: string;
   /**
    * Whether the platform created the ACL with the VPC. Only the project's
@@ -176,8 +177,10 @@ export interface Acl {
   /** When the ACL was created. */
   createTime?: string;
   /**
-   * The principal that created the ACL, such as `user:<id>` or
-   * `service_account:<id>`; empty for one the platform created.
+   * The principal that created the ACL, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform did.
    */
   creator?: string;
   /**
@@ -204,7 +207,7 @@ export interface ListAclsRequest {
   pageSize?: number;
   /** A previous response's `nextPageToken`, for the page after it. */
   pageToken?: string;
-  /** Only the ACLs of this VPC, when set. */
+  /** Only the ACLs of this VPC, by its full name, when set. */
   vpc?: string;
 }
 

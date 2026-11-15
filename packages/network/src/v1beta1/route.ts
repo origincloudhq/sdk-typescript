@@ -147,10 +147,14 @@ export interface Route {
    * decides only where traffic to the internet goes.
    */
   destination?: string;
-  /** The internet gateway of the table's VPC to send the traffic to. */
+  /**
+   * The full name of the internet gateway of the table's VPC to send the
+   * traffic to.
+   */
   internetGateway?: string;
   /**
-   * The NAT gateway in the table's VPC to send the traffic to, for the
+   * The full name of the NAT gateway in the table's VPC to send the traffic
+   * to, for the
    * IPv4 default route only: a NAT gateway translates IPv4 only. Named in
    * the gateway's own zone; a name with another zone is refused with
    * `INVALID_ARGUMENT`.

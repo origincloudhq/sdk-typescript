@@ -141,7 +141,7 @@ export interface SecurityGroupAssociation {
    * group's id.
    */
   name?: string;
-  /** The security group, in the interface's VPC. */
+  /** The security group's full name, in the interface's VPC. */
   securityGroup?: string;
 }
 

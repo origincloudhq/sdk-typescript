@@ -165,18 +165,15 @@ export interface Subnet {
   /** The subnet's resource name. */
   name?: string;
   /**
-   * The subnet's URN, the identifier access policies and the audit log
-   * use.
-   */
-  urn?: string;
-  /**
-   * The VPC the subnet is part of, in the same project and in the zone's
+   * The full name of the VPC the subnet is part of, in the same project and
+   * in the zone's
    * region. For now a VPC lives in one zone of its region: a subnet in
    * another zone is refused with `FAILED_PRECONDITION`.
    */
   vpc?: string;
   /**
-   * The route table that decides where the subnet's traffic goes, as the
+   * The full name of the route table that decides where the subnet's
+   * traffic goes, as the
    * subnet's route table association (a `RouteTableAssociation`) sets it.
    * A subnet reaches, and is reached from, the internet for an address
    * family only if its own route table has that family's default route (a
@@ -186,7 +183,8 @@ export interface Subnet {
    */
   routeTable?: string;
   /**
-   * The ACL that filters traffic in and out of the subnet, as the subnet's
+   * The full name of the ACL that filters traffic in and out of the subnet,
+   * as the subnet's
    * ACL association (an `AclAssociation`) sets it. Empty while it has
    * none: nothing is filtered at the subnet's edge, and its interfaces'
    * security groups still apply.
@@ -220,8 +218,10 @@ export interface Subnet {
   /** When the subnet was created. */
   createTime?: string;
   /**
-   * The principal that created the subnet, such as `user:<id>` or
-   * `service_account:<id>`; empty for one the platform created.
+   * The principal that created the subnet, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform did.
    */
   creator?: string;
   /**
@@ -248,7 +248,7 @@ export interface ListSubnetsRequest {
   pageSize?: number;
   /** A previous response's `nextPageToken`, for the page after it. */
   pageToken?: string;
-  /** Only the subnets of this VPC, when set. */
+  /** Only the subnets of this VPC, by its full name, when set. */
   vpc?: string;
 }
 

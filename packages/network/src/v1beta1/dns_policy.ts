@@ -189,11 +189,6 @@ export interface DnsPolicy {
   /** The policy's resource name. */
   name?: string;
   /**
-   * The policy's URN, the identifier access policies and the audit log
-   * use.
-   */
-  urn?: string;
-  /**
    * Whether this is the project's default policy in its region, which a
    * VPC without a DNS policy association relays through. Change it with
    * `SetDefaultDnsPolicy`.
@@ -212,8 +207,10 @@ export interface DnsPolicy {
   /** When the DNS policy was created. */
   createTime?: string;
   /**
-   * The principal that created the DNS policy, such as `user:<id>` or
-   * `service_account:<id>`; empty for one the platform created.
+   * The principal that created the DNS policy, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform did.
    */
   creator?: string;
   /**

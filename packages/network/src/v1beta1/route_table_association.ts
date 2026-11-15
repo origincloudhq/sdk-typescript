@@ -143,7 +143,7 @@ export interface RouteTableAssociation {
    * table's id.
    */
   name?: string;
-  /** The route table the subnet uses, in the subnet's VPC. */
+  /** The full name of the route table the subnet uses, in the subnet's VPC. */
   routeTable?: string;
 }
 

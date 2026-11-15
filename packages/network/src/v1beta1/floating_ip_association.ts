@@ -143,7 +143,8 @@ export interface FloatingIpAssociation {
    */
   name?: string;
   /**
-   * The network interface the address reaches, in the floating IP's project
+   * The full name of the network interface the address reaches, in the
+   * floating IP's project
    * and zone.
    */
   networkInterface?: string;

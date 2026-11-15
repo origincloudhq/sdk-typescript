@@ -163,15 +163,11 @@ export class FloatingIpClient {
 export interface FloatingIp {
   /** The floating IP's resource name. */
   name?: string;
-  /**
-   * The floating IP's URN, the identifier access policies and the audit
-   * log use.
-   */
-  urn?: string;
   /** The public address. */
   address?: string;
   /**
-   * The network interface the address reaches, as the floating IP's
+   * The full name of the network interface the address reaches, as the
+   * floating IP's
    * association (a `FloatingIpAssociation`) sets it; empty while it has
    * none.
    */
@@ -192,8 +188,10 @@ export interface FloatingIp {
   /** When the floating IP was created. */
   createTime?: string;
   /**
-   * The principal that created the floating IP, such as `user:<id>` or
-   * `service_account:<id>`; empty for one the platform created.
+   * The principal that created the floating IP, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform did.
    */
   creator?: string;
   /**

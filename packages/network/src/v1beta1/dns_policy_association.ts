@@ -140,7 +140,10 @@ export interface DnsPolicyAssociation {
    * id.
    */
   name?: string;
-  /** The DNS policy the VPC relays through, in the VPC's project and region. */
+  /**
+   * The full name of the DNS policy the VPC relays through, in the VPC's
+   * project and region.
+   */
   dnsPolicy?: string;
 }
 

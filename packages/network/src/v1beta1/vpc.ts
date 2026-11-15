@@ -161,8 +161,6 @@ export class VpcClient {
 export interface Vpc {
   /** The VPC's resource name. */
   name?: string;
-  /** The VPC's URN, the identifier access policies and the audit log use. */
-  urn?: string;
   /**
    * The private IPv4 range (RFC 1918), from `/16` to `/28`. A free `/16`
    * of the `172.16` private block when left empty. Subnets are carved from
@@ -179,13 +177,14 @@ export interface Vpc {
   /** How many more subnets the VPC's address space holds. */
   availableSubnetCount?: number;
   /**
-   * The DNS policy the VPC's resolver relays through, as the VPC's DNS
+   * The full name of the DNS policy the VPC's resolver relays through, as
+   * the VPC's DNS
    * policy association (a `DnsPolicyAssociation`) sets it. Empty while it
    * has none: the VPC then relays through the project's default DNS policy
    * in its region.
    */
   dnsPolicy?: string;
-  /** The VPC's internet gateway; empty while it has none. */
+  /** The full name of the VPC's internet gateway; empty while it has none. */
   internetGateway?: string;
   /**
    * Whether this is the project's default VPC. Unlike a VPC you create, the
@@ -197,8 +196,10 @@ export interface Vpc {
   /** When the VPC was created. */
   createTime?: string;
   /**
-   * The principal that created the VPC, such as `user:<id>` or
-   * `service_account:<id>`; empty for one the platform created.
+   * The principal that created the VPC, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform did.
    */
   creator?: string;
   /**

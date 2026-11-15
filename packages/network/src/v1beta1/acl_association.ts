@@ -136,7 +136,10 @@ export class AclAssociationClient {
 export interface AclAssociation {
   /** The association's resource name. Its last segment is the ACL's id. */
   name?: string;
-  /** The ACL that filters the subnet's traffic, in the subnet's VPC. */
+  /**
+   * The full name of the ACL that filters the subnet's traffic, in the
+   * subnet's VPC.
+   */
   acl?: string;
 }
 

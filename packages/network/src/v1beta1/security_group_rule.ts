@@ -165,7 +165,8 @@ export interface SecurityGroupRule {
    */
   cidrBlock?: string;
   /**
-   * The peer as another security group of the same VPC: its members'
+   * The peer as another security group of the same VPC, by its full name:
+   * its members'
    * addresses. The rule's own group is refused here with
    * `INVALID_ARGUMENT`: it is `sameGroup`.
    */

@@ -161,24 +161,25 @@ export interface NatGateway {
   /** The gateway's resource name. */
   name?: string;
   /**
-   * The gateway's URN, the identifier access policies and the audit log
-   * use.
+   * The full name of the public subnet the gateway lives in, in the same
+   * project and zone.
    */
-  urn?: string;
-  /** The public subnet the gateway lives in, in the same project and zone. */
   subnet?: string;
   /**
-   * The floating IP instances behind the gateway appear as, in the same
+   * The full name of the floating IP instances behind the gateway appear
+   * as, in the same
    * project and zone. It stays allocated when the gateway is deleted.
    */
   floatingIp?: string;
-  /** The subnet's VPC. */
+  /** The full name of the subnet's VPC. */
   vpc?: string;
   /** When the NAT gateway was created. */
   createTime?: string;
   /**
-   * The principal that created the NAT gateway, such as `user:<id>` or
-   * `service_account:<id>`; empty for one the platform created.
+   * The principal that created the NAT gateway, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform did.
    */
   creator?: string;
   /**

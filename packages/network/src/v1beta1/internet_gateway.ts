@@ -160,17 +160,17 @@ export interface InternetGateway {
   /** The gateway's resource name. */
   name?: string;
   /**
-   * The gateway's URN, the identifier access policies and the audit log
-   * use.
+   * The full name of the VPC the gateway connects, in the same project and
+   * region.
    */
-  urn?: string;
-  /** The VPC the gateway connects, in the same project and region. */
   vpc?: string;
   /** When the internet gateway was created. */
   createTime?: string;
   /**
-   * The principal that created the internet gateway, such as `user:<id>`
-   * or `service_account:<id>`; empty for one the platform created.
+   * The principal that created the internet gateway, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform did.
    */
   creator?: string;
   /**
@@ -200,7 +200,7 @@ export interface ListInternetGatewaysRequest {
   pageSize?: number;
   /** A previous response's `nextPageToken`, for the page after it. */
   pageToken?: string;
-  /** Only the gateway of this VPC, when set. */
+  /** Only the gateway of this VPC, by its full name, when set. */
   vpc?: string;
 }
 
