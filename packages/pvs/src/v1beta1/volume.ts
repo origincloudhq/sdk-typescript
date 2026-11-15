@@ -184,24 +184,20 @@ export interface Volume {
   /** The volume's resource name. */
   name?: string;
   /**
-   * The volume's URN, the identifier access policies and the audit log
-   * use.
-   */
-  urn?: string;
-  /**
    * The size in GiB, at least 1. Growing it resizes the volume; it never
    * shrinks.
    */
   sizeGib?: number;
   /**
-   * The storage class, `storageClasses/{storage_class}`. The default class
-   * when left empty.
+   * The storage class by its full name,
+   * `//pvs.origincloudapis.eu/storageClasses/{storage_class}`. The default
+   * class when left empty.
    */
   storageClass?: string;
   /**
-   * The snapshot the volume was created from, in the same project and
-   * zone; empty for an empty volume. The volume is at least the snapshot's
-   * size.
+   * The full name of the snapshot the volume was created from, in the same
+   * project and zone; empty for an empty volume. The volume is at least the
+   * snapshot's size.
    */
   sourceSnapshot?: string;
   /** Where the volume is in its lifecycle. */
@@ -236,8 +232,11 @@ export interface Volume {
    */
   throughputMibps?: number;
   /**
-   * The principal that created the volume, such as `user:<id>` or
-   * `service_account:<id>`.
+   * The principal that created the volume, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform
+   * created it.
    */
   creator?: string;
   /**
