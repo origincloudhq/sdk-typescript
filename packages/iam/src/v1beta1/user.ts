@@ -6,9 +6,11 @@ import { type CallOptions, type Client, type Service, pathValue, query } from "@
 /**
  * Calls UserService.
  *
- * The signed-in user. Each user can read only their own profile, by the
- * name `users/me` or by their own id; the role bindings they hold are
- * listed by ListRoleBindings with the parent `organizations/-`.
+ * Users. Each user can read only their own profile, by the name `users/me`
+ * or by their own id; the role bindings they hold are listed by
+ * ListRoleBindings with the parent `organizations/-`. Anyone who may grant
+ * roles in an organization can look a user up by email address, to name
+ * them in a role binding.
  */
 export class UserClient {
   /**
@@ -36,6 +38,28 @@ export class UserClient {
         method: "GET",
         path: `/v1beta1/${p0}`,
         query: query(request, ["name"]),
+        idempotent: true,
+      },
+      options,
+    );
+  }
+
+  /**
+   * Looks up the user whose account has verified an email address, and
+   * answers them with their `name`: their full name is
+   * `//iam.origincloudapis.eu/` followed by it, which is how a role
+   * binding names them as a member. Needs `iam.role.assign` on
+   * `organization`, the permission a binding of the user needs anyway.
+   * Refused with `NOT_FOUND` when no enabled account has verified the
+   * address, and with `CONFLICT` when more than one has. The answer leaves
+   * `givenName` and `familyName` empty: only the user reads those.
+   */
+  async lookupUser(request: LookupUserRequest, options?: CallOptions): Promise<User> {
+    return this.service.call<User>(
+      {
+        method: "GET",
+        path: `/v1beta1/users:lookup`,
+        query: query(request, []),
         idempotent: true,
       },
       options,
@@ -69,4 +93,18 @@ export interface User {
 export interface GetUserRequest {
   /** The user to return: `users/me`, or the caller's own `users/{user}`. */
   name?: string;
+}
+
+/** The request for LookupUser. */
+export interface LookupUserRequest {
+  /**
+   * The email address the user's account has verified, matched exactly,
+   * case aside.
+   */
+  email?: string;
+  /**
+   * The organization the caller looks the user up for, where it needs
+   * `iam.role.assign`: `organizations/{organization}`, or its full name.
+   */
+  organization?: string;
 }
