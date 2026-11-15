@@ -95,7 +95,10 @@ export interface Region {
   name?: string;
   /** The name the console shows, such as `EU Central 1`. */
   displayName?: string;
-  /** The region's zones, `zones/{zone}`, in catalog order. */
+  /**
+   * The full names of the region's zones,
+   * `//location.origincloudapis.eu/zones/{zone}`, in catalog order.
+   */
   zones?: string[];
 }
 
@@ -112,7 +115,10 @@ export interface Zone {
   name?: string;
   /** The name the console shows, such as `EU Central 1, zone 1`. */
   displayName?: string;
-  /** The region the zone is in, `regions/{region}`. */
+  /**
+   * The full name of the region the zone is in,
+   * `//location.origincloudapis.eu/regions/{region}`.
+   */
   region?: string;
   /**
    * The services whose zonal resources the zone holds, by the name of their

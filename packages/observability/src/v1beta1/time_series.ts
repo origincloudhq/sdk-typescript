@@ -65,11 +65,13 @@ export interface QueryTimeSeriesRequest {
   /** The project the resource is in, `projects/{project}`. */
   parent?: string;
   /**
-   * The resource whose metrics to return, in `parent`: an instance,
-   * `projects/{project}/zones/{zone}/instances/{instance}`, a volume,
-   * `projects/{project}/zones/{zone}/volumes/{volume}`, or a network
-   * interface,
-   * `projects/{project}/zones/{zone}/networkInterfaces/{network_interface}`.
+   * The full name of the resource whose metrics to return, in `parent`: an
+   * instance,
+   * `//compute.origincloudapis.eu/projects/{project}/zones/{zone}/instances/{instance}`,
+   * a volume,
+   * `//pvs.origincloudapis.eu/projects/{project}/zones/{zone}/volumes/{volume}`,
+   * or a network interface,
+   * `//network.origincloudapis.eu/projects/{project}/zones/{zone}/networkInterfaces/{network_interface}`.
    */
   resource?: string;
   /**
@@ -119,7 +121,7 @@ export interface QueryTimeSeriesResponse {
 export interface TimeSeries {
   /** The metric, as asked. */
   metric?: string;
-  /** The resource, as asked. */
+  /** The resource's full name, as asked. */
   resource?: string;
   /**
    * The unit of the counter, such as `seconds` or `bytes`: a `RATE` of a

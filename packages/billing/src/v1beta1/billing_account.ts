@@ -329,11 +329,6 @@ export interface BillingAccount {
   /** The billing account's resource name. */
   name?: string;
   /**
-   * The billing account's URN, the identifier access policies and the audit
-   * log use.
-   */
-  urn?: string;
-  /**
    * The name the console and spend-limit alerts show. Not empty. An
    * organization's default account is called `default` until it is
    * renamed.
@@ -371,8 +366,10 @@ export interface BillingAccount {
   /** When the billing account was created. */
   createTime?: string;
   /**
-   * The principal that created the billing account, such as `user:<id>` or
-   * `service_account:<id>`.
+   * The principal that created the billing account, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform did.
    */
   creator?: string;
 }
@@ -439,8 +436,9 @@ export interface ProjectBillingInfo {
   /** The billing info's resource name, `projects/{project}/billingInfo`. */
   name?: string;
   /**
-   * The billing account that pays for the project's usage, one of its
-   * organization's.
+   * The full name of the billing account that pays for the project's usage,
+   * one of its organization's:
+   * `//billing.origincloudapis.eu/organizations/{organization}/billingAccounts/{billing_account}`.
    */
   billingAccount?: string;
 }

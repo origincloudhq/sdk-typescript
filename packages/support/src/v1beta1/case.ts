@@ -142,11 +142,10 @@ export class CaseClient {
 export interface Case {
   /** The case's resource name, `organizations/{organization}/cases/{case}`. */
   name?: string;
-  /** The case's URN, the identifier access policies and the audit log use. */
-  urn?: string;
   /**
-   * The project the case is about, `projects/{project}`, one of the
-   * organization's. Empty for a case about the organization as a whole.
+   * The full name of the project the case is about, one of the
+   * organization's: `//resourcemanager.origincloudapis.eu/projects/{project}`.
+   * Empty for a case about the organization as a whole.
    */
   project?: string;
   /** A one-line summary. Not empty. */
@@ -165,8 +164,10 @@ export interface Case {
    */
   state?: Case_State;
   /**
-   * The principal that opened the case, such as `user:<id>` or
-   * `service_account:<id>`.
+   * The principal that opened the case, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform did.
    */
   creator?: string;
   /** When the case was opened. */

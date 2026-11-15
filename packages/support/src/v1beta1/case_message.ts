@@ -114,8 +114,10 @@ export interface CaseMessage {
   /** The message's text. Not empty. */
   body?: string;
   /**
-   * The principal that wrote the message, such as `user:<id>` or
-   * `service_account:<id>`.
+   * The principal that wrote the message, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform did.
    */
   author?: string;
   /** When the message was added. */

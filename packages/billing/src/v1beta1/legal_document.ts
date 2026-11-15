@@ -184,13 +184,14 @@ export interface LegalDocument {
    */
   acceptanceRequired?: boolean;
   /**
-   * The version in force today, by its resource name. Empty while the first
-   * version has not taken effect yet.
+   * The full name of the version in force today,
+   * `//billing.origincloudapis.eu/legalDocuments/{legal_document}/versions/{version}`.
+   * Empty while the first version has not taken effect yet.
    */
   currentVersion?: string;
   /**
-   * The latest version published, by its resource name: `currentVersion`,
-   * or a version announced to take effect later.
+   * The full name of the latest version published: `currentVersion`, or a
+   * version announced to take effect later.
    */
   latestVersion?: string;
 }
@@ -270,7 +271,10 @@ export type LegalDocumentVersion_ChangeClass = (typeof LegalDocumentVersion_Chan
 
 /** A version to accept, with the text it was shown as. */
 export interface LegalDocumentVersionToAccept {
-  /** The version, `legalDocuments/{legal_document}/versions/{version}`. */
+  /**
+   * The version's full name,
+   * `//billing.origincloudapis.eu/legalDocuments/{legal_document}/versions/{version}`.
+   */
   legalDocumentVersion?: string;
   /**
    * The version's `sha256`, as read with it: an acceptance is refused when
