@@ -136,12 +136,7 @@ export class VpcAttachmentClient {
 export interface VpcAttachment {
   /** The attachment's resource name. Its last segment is the VPC's id. */
   name?: string;
-  /**
-   * The attachment's URN, the identifier access policies and the audit log
-   * use.
-   */
-  urn?: string;
-  /** The VPC the zone answers in, in the zone's project. */
+  /** The full name of the VPC the zone answers in, in the zone's project. */
   vpc?: string;
   /** When the zone was attached. */
   createTime?: string;
@@ -168,7 +163,10 @@ export interface ListVpcAttachmentsRequest {
   pageSize?: number;
   /** A previous response's `nextPageToken`, for the page after it. */
   pageToken?: string;
-  /** Only the attachments to this VPC; every VPC's when left empty. */
+  /**
+   * Only the attachments to this VPC, by its full name; every VPC's when
+   * left empty.
+   */
   vpc?: string;
 }
 
