@@ -13,6 +13,7 @@ export interface FileDescriptor {
   messageType?: MessageDescriptor[];
   enumType?: EnumDescriptor[];
   service?: ServiceDescriptor[];
+  options?: { "[google.api.resource_definition]"?: { type?: string }[] };
   sourceCodeInfo?: { location?: Location[] };
 }
 

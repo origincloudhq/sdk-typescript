@@ -17,7 +17,11 @@
 // JSON and writes <out>/<service>/src/... for each service under
 // origincloud/<service>/. The shared origincloud.longrunning package is
 // generated into each service package that uses it, its OperationService
-// client bound to that service's host.
+// client bound to that service's host. A path variable's field goes through
+// the service's pathValue, which also takes a full resource name of the
+// client's own service and sends its relative name. It also writes
+// <out>/core/src/generated/resource-services.ts, core's list of the
+// services that have resources, from the resource types the API declares.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, posix } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -168,7 +172,58 @@ export function generate(set: FileDescriptorSet): Map<string, string> {
       output.set(`${service}/src/${dir}/index.ts`, lines.join("\n"));
     }
   }
+  const resources = resourceServices(set);
+  if (resources.length > 0) output.set("core/src/generated/resource-services.ts", resourceServicesModule(resources));
   return output;
+}
+
+/**
+ * The short codes of the services that have resources, in order: the
+ * domains of the resource types the API declares (google.api.resource on a
+ * message, google.api.resource_definition on a file), such as
+ * pvs.origincloudapis.eu/Volume's pvs. A full resource name's host is one of
+ * theirs, so core's list is generated, and a new service's names parse
+ * without anyone keeping it.
+ */
+export function resourceServices(set: FileDescriptorSet): string[] {
+  const types: [string, string][] = [];
+  const collect = (on: string, m: MessageDescriptor): void => {
+    const resource = m.options?.["[google.api.resource]"];
+    if (resource) types.push([`${on}.${m.name}`, resource.type ?? ""]);
+    for (const nested of m.nestedType ?? []) collect(`${on}.${m.name}`, nested);
+  };
+  for (const file of set.file) {
+    if (!file.name.startsWith("origincloud/")) continue;
+    for (const definition of file.options?.["[google.api.resource_definition]"] ?? []) {
+      types.push([file.name, definition.type ?? ""]);
+    }
+    for (const m of file.messageType ?? []) collect(file.package ?? "", m);
+  }
+  const services = new Set<string>();
+  for (const [on, type] of types) {
+    const match = /^([a-z0-9]+)\.origincloudapis\.eu\/[A-Z][A-Za-z0-9]*$/.exec(type);
+    if (!match) fail(`${on}: the resource type ${JSON.stringify(type)} isn't {service}.origincloudapis.eu/{Kind}`);
+    services.add(match[1]!);
+  }
+  return [...services].sort();
+}
+
+function resourceServicesModule(services: string[]): string {
+  return [
+    HEADER,
+    "",
+    "/**",
+    " * The services that have resources, by their short code, in order: the",
+    " * domains of the resource types the API declares",
+    " * (`pvs.origincloudapis.eu/Volume`), and so the hosts a full resource name",
+    " * may start with, `{service}.origincloudapis.eu`. A service without",
+    " * resources of its own, such as `sts`, names nothing.",
+    " */",
+    "export const RESOURCE_SERVICES: readonly string[] = Object.freeze([",
+    ...services.map((s) => `  ${JSON.stringify(s)},`),
+    "]);",
+    "",
+  ].join("\n");
 }
 
 function collectMessage(
@@ -523,7 +578,7 @@ class FileGenerator {
       bound.push(jsonPath);
       const v = `p${variable++}`;
       this.emit(
-        `    const ${v} = ${this.core("pathValue", false)}(${JSON.stringify(jsonPath)}, ${access}, ${JSON.stringify(segment.pattern)});`,
+        `    const ${v} = this.service.pathValue(${JSON.stringify(jsonPath)}, ${access}, ${JSON.stringify(segment.pattern)});`,
       );
       pathExpression += "${" + v + "}";
     }

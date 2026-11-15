@@ -27,7 +27,10 @@ at the commit `API_REVISION` names: buf builds the definitions into a
 descriptor set, and this repository's generator, `generator/`, writes one
 module per proto file from it, with an interface per message in its JSON form
 and a client class per service, its methods sent as their `google.api.http`
-bindings. `packages/core` is written by hand. So a change to what a service
+bindings. The generator also writes `packages/core/src/generated/`, the
+services that have resources, drawn from the resource types the API
+declares: the hosts a full resource name may name. The rest of
+`packages/core` is written by hand. So a change to what a service
 offers starts in the API, which is why it is requested by opening an issue
 rather than by editing a generated package; a change to how every client
 behaves is a change to the generator or `core`.

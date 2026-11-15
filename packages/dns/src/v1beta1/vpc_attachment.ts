@@ -7,7 +7,6 @@ import {
   type Empty,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 
@@ -37,7 +36,7 @@ export class VpcAttachmentClient {
 
   /** Returns a VPC attachment. */
   async getVpcAttachment(request: GetVpcAttachmentRequest, options?: CallOptions): Promise<VpcAttachment> {
-    const p0 = pathValue("name", request.name, "projects/*/hostedZones/*/vpcAttachments/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/hostedZones/*/vpcAttachments/*");
     return this.service.call<VpcAttachment>(
       {
         method: "GET",
@@ -55,7 +54,7 @@ export class VpcAttachmentClient {
    * zones attached to a VPC.
    */
   async listVpcAttachments(request: ListVpcAttachmentsRequest, options?: CallOptions): Promise<ListVpcAttachmentsResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/hostedZones/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/hostedZones/*");
     return this.service.call<ListVpcAttachmentsResponse>(
       {
         method: "GET",
@@ -92,7 +91,7 @@ export class VpcAttachmentClient {
    */
   async createVpcAttachment(request: CreateVpcAttachmentRequest, options?: CallOptions): Promise<VpcAttachment> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/hostedZones/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/hostedZones/*");
     return this.service.call<VpcAttachment>(
       {
         method: "POST",
@@ -111,7 +110,7 @@ export class VpcAttachmentClient {
    */
   async deleteVpcAttachment(request: DeleteVpcAttachmentRequest, options?: CallOptions): Promise<Empty> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/hostedZones/*/vpcAttachments/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/hostedZones/*/vpcAttachments/*");
     return this.service.call<Empty>(
       {
         method: "DELETE",

@@ -9,7 +9,6 @@ import {
   Operation,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
@@ -41,7 +40,7 @@ export class RouteTableAssociationClient {
 
   /** Returns a route table association. */
   async getRouteTableAssociation(request: GetRouteTableAssociationRequest, options?: CallOptions): Promise<RouteTableAssociation> {
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/subnets/*/routeTableAssociations/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/subnets/*/routeTableAssociations/*");
     return this.service.call<RouteTableAssociation>(
       {
         method: "GET",
@@ -55,7 +54,7 @@ export class RouteTableAssociationClient {
 
   /** Lists a subnet's route table associations: none or one. */
   async listRouteTableAssociations(request: ListRouteTableAssociationsRequest, options?: CallOptions): Promise<ListRouteTableAssociationsResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*/subnets/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*/subnets/*");
     return this.service.call<ListRouteTableAssociationsResponse>(
       {
         method: "GET",
@@ -90,7 +89,7 @@ export class RouteTableAssociationClient {
    */
   async createRouteTableAssociation(request: CreateRouteTableAssociationRequest, options?: CallOptions): Promise<Operation<RouteTableAssociation, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*/subnets/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*/subnets/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -114,7 +113,7 @@ export class RouteTableAssociationClient {
    */
   async deleteRouteTableAssociation(request: DeleteRouteTableAssociationRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/subnets/*/routeTableAssociations/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/subnets/*/routeTableAssociations/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

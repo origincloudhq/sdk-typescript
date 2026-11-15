@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import type { FileDescriptor, FileDescriptorSet } from "./descriptors.js";
-import { generate } from "./main.js";
+import { generate, resourceServices } from "./main.js";
 
 const httpBody: FileDescriptor = {
   name: "google/api/httpbody.proto",
@@ -119,4 +119,49 @@ test("a service named as unauthenticated sends its calls without credentials, an
     assert.match(methodOf(source, "LegalDocumentClient", method), /unauthenticated: true/);
   }
   assert.doesNotMatch(methodOf(source, "PriceListClient", "getLegalDocumentVersion"), /unauthenticated/);
+});
+
+test("core's list of services is the domains of the resource types the API declares", () => {
+  const set: FileDescriptorSet = {
+    file: [
+      {
+        name: "origincloud/kms/v1beta1/key.proto",
+        package: "origincloud.kms.v1beta1",
+        options: { "[google.api.resource_definition]": [{ type: "kms.origincloudapis.eu/KeyVersion" }] },
+        messageType: [
+          {
+            name: "Volume",
+            options: { "[google.api.resource]": { type: "pvs.origincloudapis.eu/Volume" } },
+            nestedType: [{ name: "Image", options: { "[google.api.resource]": { type: "compute.origincloudapis.eu/Image" } } }],
+          },
+          { name: "Snapshot", options: { "[google.api.resource]": { type: "pvs.origincloudapis.eu/Snapshot" } } },
+          { name: "Plain" },
+        ],
+      },
+      // Only the API's own files count.
+      {
+        name: "google/cloud/thing.proto",
+        package: "google.cloud",
+        messageType: [{ name: "Thing", options: { "[google.api.resource]": { type: "example.googleapis.com/Thing" } } }],
+      },
+    ],
+  };
+  assert.deepEqual(resourceServices(set), ["compute", "kms", "pvs"]);
+  const module = generate(set).get("core/src/generated/resource-services.ts");
+  assert.ok(module?.includes('Object.freeze([\n  "compute",\n  "kms",\n  "pvs",\n]);'), module);
+
+  for (const bad of [
+    "pvs.example.com/Volume",
+    "origincloudapis.eu/Volume",
+    "pvs.eu-central1.origincloudapis.eu/Volume",
+    "pvs.origincloudapis.eu/volume",
+    "pvs.origincloudapis.eu",
+  ]) {
+    const file: FileDescriptor = {
+      name: "origincloud/pvs/v1beta1/volume.proto",
+      package: "origincloud.pvs.v1beta1",
+      messageType: [{ name: "Volume", options: { "[google.api.resource]": { type: bad } } }],
+    };
+    assert.throws(() => resourceServices({ file: [file] }), /isn't \{service\}\.origincloudapis\.eu\/\{Kind\}/, bad);
+  }
 });

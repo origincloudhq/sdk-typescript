@@ -184,6 +184,15 @@ That entry point has everything `@origincloud/core` has, and also
   `ORIGINCLOUD_REGION` in Node, picks a region's front door instead,
   `{service}.{region}.origincloudapis.eu`, for the services that have one.
   `endpoint` sends every call to one base URL, such as a test server's.
+- **Names.** A resource's `name` is its relative name; its full resource
+  name, `//{service}.origincloudapis.eu/{name}`, is what references carry.
+  `FullName.parse` parses one (refusing a URN, a relative name, a regional
+  or zonal host, a version), `FullName.fromRelative` builds one, and a
+  `FullName` gives its `service`, `host`, `relative` name and `url()`;
+  principals and roles are iam names (`principal()`, `role()`). A
+  request's `name` or `parent` takes either form: a full name of the
+  client's own service is sent as its relative name, and one of another
+  service is refused, with a `FullNameError`, before anything is sent.
 - **Operations.** A create, update or delete returns an `Operation`; its
   `wait()` resolves to the resource once the change is complete, or rejects
   with the error the change failed with. `name`, `done` and `metadata`

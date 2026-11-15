@@ -1,6 +1,7 @@
 import type { ClientBase as Client } from "./client.js";
 import { readLimitedBytes } from "./credentials.js";
 import { OriginCloudError, errorFromResponse } from "./errors.js";
+import { pathName } from "./names.js";
 
 /** The header that carries the consistency token, in responses and in requests. */
 export const CONSISTENCY_TOKEN_HEADER = "Origin-Consistency-Token";
@@ -73,10 +74,32 @@ export class Service {
   readonly client: Client;
   /** The base URL, without a trailing slash. */
   readonly base: string;
+  /**
+   * The service's shortcode, such as `pvs`: its host's first label, and the
+   * service a full resource name in a path field must name.
+   */
+  readonly shortcode: string;
 
-  constructor(client: Client, base: string) {
+  constructor(client: Client, base: string, shortcode: string) {
     this.client = client;
     this.base = base.replace(/\/+$/, "");
+    this.shortcode = shortcode;
+  }
+
+  /**
+   * `value`, the path field `field` of a call to this service, as the path
+   * segments of the request, checked against `pattern` as the function
+   * {@link pathValue} checks it. Generated clients call it.
+   *
+   * A full resource name of this service, such as
+   * `//pvs.origincloudapis.eu/projects/p/zones/z/volumes/vol-1` given to a
+   * PVS client, is sent as its relative name, the path every call takes. A
+   * full name of another service, one with a regional or zonal host or an
+   * API version, a URN, a URL or a malformed full name is refused before
+   * anything is sent, with a `FullNameError`.
+   */
+  pathValue(field: string, value: string | undefined, pattern: string): string {
+    return pathValue(field, pathName(this.shortcode, field, value ?? ""), pattern);
   }
 
   /**
@@ -259,9 +282,11 @@ function queryScalar(path: string, value: unknown): string {
 }
 
 /**
- * `value` as the path segments of a request, checking it has the form
- * `pattern` gives it: the same segments, where a `*` in the pattern
- * stands for any one non-empty segment. `field` names it in the error.
+ * `value`, a relative resource name, as the path segments of a request,
+ * checking it has the form `pattern` gives it: the same segments, where a
+ * `*` in the pattern stands for any one non-empty segment. `field` names it
+ * in the error. {@link Service.pathValue} also takes a full resource name
+ * of its service.
  */
 export function pathValue(field: string, value: string | undefined, pattern: string): string {
   const got = (value ?? "").split("/");

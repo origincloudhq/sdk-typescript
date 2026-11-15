@@ -9,7 +9,6 @@ import {
   Operation,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
@@ -38,7 +37,7 @@ export class DnsPolicyAssociationClient {
 
   /** Returns a DNS policy association. */
   async getDnsPolicyAssociation(request: GetDnsPolicyAssociationRequest, options?: CallOptions): Promise<DnsPolicyAssociation> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/vpcs/*/dnsPolicyAssociations/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/vpcs/*/dnsPolicyAssociations/*");
     return this.service.call<DnsPolicyAssociation>(
       {
         method: "GET",
@@ -52,7 +51,7 @@ export class DnsPolicyAssociationClient {
 
   /** Lists a VPC's DNS policy associations: none or one. */
   async listDnsPolicyAssociations(request: ListDnsPolicyAssociationsRequest, options?: CallOptions): Promise<ListDnsPolicyAssociationsResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*/vpcs/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/regions/*/vpcs/*");
     return this.service.call<ListDnsPolicyAssociationsResponse>(
       {
         method: "GET",
@@ -87,7 +86,7 @@ export class DnsPolicyAssociationClient {
    */
   async createDnsPolicyAssociation(request: CreateDnsPolicyAssociationRequest, options?: CallOptions): Promise<Operation<DnsPolicyAssociation, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*/vpcs/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/regions/*/vpcs/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -111,7 +110,7 @@ export class DnsPolicyAssociationClient {
    */
   async deleteDnsPolicyAssociation(request: DeleteDnsPolicyAssociationRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/vpcs/*/dnsPolicyAssociations/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/vpcs/*/dnsPolicyAssociations/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

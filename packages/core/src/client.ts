@@ -2,7 +2,7 @@ import { type Credentials, type FetchLike, type TokenSource, toCredentials } fro
 import { Service } from "./transport.js";
 
 /** This SDK's version, sent in the User-Agent header from Node. */
-export const VERSION = "0.30.0";
+export const VERSION = "0.31.0";
 
 const DEFAULT_MAX_ATTEMPTS = 5;
 
@@ -114,9 +114,9 @@ export class ClientBase {
    * Generated clients call it.
    */
   service(shortcode: string, regional = !GLOBAL_SERVICES.has(shortcode)): Service {
-    if (this.endpoint) return new Service(this, this.endpoint);
+    if (this.endpoint) return new Service(this, this.endpoint, shortcode);
     const host =
       regional && this.region ? `${shortcode}.${this.region}.origincloudapis.eu` : `${shortcode}.origincloudapis.eu`;
-    return new Service(this, `https://${host}`);
+    return new Service(this, `https://${host}`, shortcode);
   }
 }

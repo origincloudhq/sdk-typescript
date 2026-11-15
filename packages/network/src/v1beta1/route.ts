@@ -9,7 +9,6 @@ import {
   Operation,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
@@ -38,7 +37,7 @@ export class RouteClient {
 
   /** Returns a route. */
   async getRoute(request: GetRouteRequest, options?: CallOptions): Promise<Route> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/routeTables/*/routes/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/routeTables/*/routes/*");
     return this.service.call<Route>(
       {
         method: "GET",
@@ -55,7 +54,7 @@ export class RouteClient {
    * listed: they are the table's `localRoutes`.
    */
   async listRoutes(request: ListRoutesRequest, options?: CallOptions): Promise<ListRoutesResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*/routeTables/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/regions/*/routeTables/*");
     return this.service.call<ListRoutesResponse>(
       {
         method: "GET",
@@ -90,7 +89,7 @@ export class RouteClient {
    */
   async createRoute(request: CreateRouteRequest, options?: CallOptions): Promise<Operation<Route, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*/routeTables/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/regions/*/routeTables/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -112,7 +111,7 @@ export class RouteClient {
    */
   async deleteRoute(request: DeleteRouteRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/routeTables/*/routes/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/routeTables/*/routes/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

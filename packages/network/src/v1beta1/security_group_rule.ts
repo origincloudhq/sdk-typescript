@@ -9,7 +9,6 @@ import {
   Operation,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
@@ -37,7 +36,7 @@ export class SecurityGroupRuleClient {
 
   /** Returns a security group rule. */
   async getSecurityGroupRule(request: GetSecurityGroupRuleRequest, options?: CallOptions): Promise<SecurityGroupRule> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/securityGroups/*/rules/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/securityGroups/*/rules/*");
     return this.service.call<SecurityGroupRule>(
       {
         method: "GET",
@@ -51,7 +50,7 @@ export class SecurityGroupRuleClient {
 
   /** Lists a security group's rules of both directions, oldest first. */
   async listSecurityGroupRules(request: ListSecurityGroupRulesRequest, options?: CallOptions): Promise<ListSecurityGroupRulesResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*/securityGroups/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/regions/*/securityGroups/*");
     return this.service.call<ListSecurityGroupRulesResponse>(
       {
         method: "GET",
@@ -88,7 +87,7 @@ export class SecurityGroupRuleClient {
    */
   async createSecurityGroupRule(request: CreateSecurityGroupRuleRequest, options?: CallOptions): Promise<Operation<SecurityGroupRule, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*/securityGroups/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/regions/*/securityGroups/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -110,7 +109,7 @@ export class SecurityGroupRuleClient {
    */
   async deleteSecurityGroupRule(request: DeleteSecurityGroupRuleRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/securityGroups/*/rules/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/securityGroups/*/rules/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

@@ -9,7 +9,6 @@ import {
   Operation,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
@@ -38,7 +37,7 @@ export class AclAssociationClient {
 
   /** Returns an ACL association. */
   async getAclAssociation(request: GetAclAssociationRequest, options?: CallOptions): Promise<AclAssociation> {
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/subnets/*/aclAssociations/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/subnets/*/aclAssociations/*");
     return this.service.call<AclAssociation>(
       {
         method: "GET",
@@ -52,7 +51,7 @@ export class AclAssociationClient {
 
   /** Lists a subnet's ACL associations: none or one. */
   async listAclAssociations(request: ListAclAssociationsRequest, options?: CallOptions): Promise<ListAclAssociationsResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*/subnets/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*/subnets/*");
     return this.service.call<ListAclAssociationsResponse>(
       {
         method: "GET",
@@ -87,7 +86,7 @@ export class AclAssociationClient {
    */
   async createAclAssociation(request: CreateAclAssociationRequest, options?: CallOptions): Promise<Operation<AclAssociation, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*/subnets/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*/subnets/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -110,7 +109,7 @@ export class AclAssociationClient {
    */
   async deleteAclAssociation(request: DeleteAclAssociationRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/subnets/*/aclAssociations/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/subnets/*/aclAssociations/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

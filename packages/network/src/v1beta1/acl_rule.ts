@@ -9,7 +9,6 @@ import {
   Operation,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
@@ -38,7 +37,7 @@ export class AclRuleClient {
 
   /** Returns an ACL rule. */
   async getAclRule(request: GetAclRuleRequest, options?: CallOptions): Promise<AclRule> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/acls/*/rules/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/acls/*/rules/*");
     return this.service.call<AclRule>(
       {
         method: "GET",
@@ -52,7 +51,7 @@ export class AclRuleClient {
 
   /** Lists an ACL's rules of both directions, oldest first. */
   async listAclRules(request: ListAclRulesRequest, options?: CallOptions): Promise<ListAclRulesResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*/acls/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/regions/*/acls/*");
     return this.service.call<ListAclRulesResponse>(
       {
         method: "GET",
@@ -89,7 +88,7 @@ export class AclRuleClient {
    */
   async createAclRule(request: CreateAclRuleRequest, options?: CallOptions): Promise<Operation<AclRule, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*/acls/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/regions/*/acls/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -111,7 +110,7 @@ export class AclRuleClient {
    */
   async deleteAclRule(request: DeleteAclRuleRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/acls/*/rules/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/acls/*/rules/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

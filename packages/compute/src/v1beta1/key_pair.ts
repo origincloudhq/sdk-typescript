@@ -7,7 +7,6 @@ import {
   type Empty,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 
@@ -33,7 +32,7 @@ export class KeyPairClient {
 
   /** Returns a key pair, its public key only. */
   async getKeyPair(request: GetKeyPairRequest, options?: CallOptions): Promise<KeyPair> {
-    const p0 = pathValue("name", request.name, "projects/*/keyPairs/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/keyPairs/*");
     return this.service.call<KeyPair>(
       {
         method: "GET",
@@ -47,7 +46,7 @@ export class KeyPairClient {
 
   /** Lists a project's key pairs, oldest first. */
   async listKeyPairs(request: ListKeyPairsRequest, options?: CallOptions): Promise<ListKeyPairsResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*");
     return this.service.call<ListKeyPairsResponse>(
       {
         method: "GET",
@@ -83,7 +82,7 @@ export class KeyPairClient {
    */
   async createKeyPair(request: CreateKeyPairRequest, options?: CallOptions): Promise<KeyPair> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*");
     return this.service.call<KeyPair>(
       {
         method: "POST",
@@ -98,7 +97,7 @@ export class KeyPairClient {
 
   /** Changes a key pair's tags. */
   async updateKeyPair(request: UpdateKeyPairRequest, options?: CallOptions): Promise<KeyPair> {
-    const p0 = pathValue("keyPair.name", request.keyPair?.name, "projects/*/keyPairs/*");
+    const p0 = this.service.pathValue("keyPair.name", request.keyPair?.name, "projects/*/keyPairs/*");
     return this.service.call<KeyPair>(
       {
         method: "PATCH",
@@ -112,7 +111,7 @@ export class KeyPairClient {
 
   /** Deletes a key pair. Instances launched with it keep the key installed. */
   async deleteKeyPair(request: DeleteKeyPairRequest, options?: CallOptions): Promise<Empty> {
-    const p0 = pathValue("name", request.name, "projects/*/keyPairs/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/keyPairs/*");
     return this.service.call<Empty>(
       {
         method: "DELETE",

@@ -7,7 +7,6 @@ import {
   type Empty,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 
@@ -38,7 +37,7 @@ export class RecordSetClient {
 
   /** Returns a record set. */
   async getRecordSet(request: GetRecordSetRequest, options?: CallOptions): Promise<RecordSet> {
-    const p0 = pathValue("name", request.name, "projects/*/hostedZones/*/recordSets/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/hostedZones/*/recordSets/*");
     return this.service.call<RecordSet>(
       {
         method: "GET",
@@ -52,7 +51,7 @@ export class RecordSetClient {
 
   /** Lists a zone's record sets by `dnsName`, then by `type`. */
   async listRecordSets(request: ListRecordSetsRequest, options?: CallOptions): Promise<ListRecordSetsResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/hostedZones/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/hostedZones/*");
     return this.service.call<ListRecordSetsResponse>(
       {
         method: "GET",
@@ -89,7 +88,7 @@ export class RecordSetClient {
    */
   async createRecordSet(request: CreateRecordSetRequest, options?: CallOptions): Promise<RecordSet> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/hostedZones/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/hostedZones/*");
     return this.service.call<RecordSet>(
       {
         method: "POST",
@@ -111,7 +110,7 @@ export class RecordSetClient {
    */
   async updateRecordSet(request: UpdateRecordSetRequest, options?: CallOptions): Promise<RecordSet> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("recordSet.name", request.recordSet?.name, "projects/*/hostedZones/*/recordSets/*");
+    const p0 = this.service.pathValue("recordSet.name", request.recordSet?.name, "projects/*/hostedZones/*/recordSets/*");
     return this.service.call<RecordSet>(
       {
         method: "PATCH",
@@ -127,7 +126,7 @@ export class RecordSetClient {
   /** Deletes a record set. */
   async deleteRecordSet(request: DeleteRecordSetRequest, options?: CallOptions): Promise<Empty> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/hostedZones/*/recordSets/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/hostedZones/*/recordSets/*");
     return this.service.call<Empty>(
       {
         method: "DELETE",
@@ -150,7 +149,7 @@ export class RecordSetClient {
    */
   async batchChangeRecordSets(request: BatchChangeRecordSetsRequest, options?: CallOptions): Promise<BatchChangeRecordSetsResponse> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/hostedZones/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/hostedZones/*");
     return this.service.call<BatchChangeRecordSetsResponse>(
       {
         method: "POST",

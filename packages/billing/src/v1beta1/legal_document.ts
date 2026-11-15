@@ -7,7 +7,6 @@ import {
   type Client,
   type HttpBody,
   type Service,
-  pathValue,
   query,
 } from "@origincloud/core";
 
@@ -73,7 +72,7 @@ export class LegalDocumentClient {
    * version.
    */
   async getLegalDocument(request: GetLegalDocumentRequest, options?: CallOptions): Promise<LegalDocument> {
-    const p0 = pathValue("name", request.name, "legalDocuments/*");
+    const p0 = this.service.pathValue("name", request.name, "legalDocuments/*");
     return this.service.call<LegalDocument>(
       {
         method: "GET",
@@ -88,7 +87,7 @@ export class LegalDocumentClient {
 
   /** Lists a legal document's published versions, the latest first. */
   async listLegalDocumentVersions(request: ListLegalDocumentVersionsRequest, options?: CallOptions): Promise<ListLegalDocumentVersionsResponse> {
-    const p0 = pathValue("parent", request.parent, "legalDocuments/*");
+    const p0 = this.service.pathValue("parent", request.parent, "legalDocuments/*");
     return this.service.call<ListLegalDocumentVersionsResponse>(
       {
         method: "GET",
@@ -117,7 +116,7 @@ export class LegalDocumentClient {
 
   /** Returns one published version of a legal document, its text included. */
   async getLegalDocumentVersion(request: GetLegalDocumentVersionRequest, options?: CallOptions): Promise<LegalDocumentVersion> {
-    const p0 = pathValue("name", request.name, "legalDocuments/*/versions/*");
+    const p0 = this.service.pathValue("name", request.name, "legalDocuments/*/versions/*");
     return this.service.call<LegalDocumentVersion>(
       {
         method: "GET",
@@ -138,7 +137,7 @@ export class LegalDocumentClient {
    * It answers with the file itself: its bytes, as they came, and their content type.
    */
   async downloadLegalDocumentVersion(request: DownloadLegalDocumentVersionRequest, options?: CallOptions): Promise<HttpBody> {
-    const p0 = pathValue("name", request.name, "legalDocuments/*/versions/*");
+    const p0 = this.service.pathValue("name", request.name, "legalDocuments/*/versions/*");
     return this.service.download(
       {
         method: "GET",

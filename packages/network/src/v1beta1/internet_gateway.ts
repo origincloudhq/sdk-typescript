@@ -9,7 +9,6 @@ import {
   Operation,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
@@ -37,7 +36,7 @@ export class InternetGatewayClient {
 
   /** Returns an internet gateway. */
   async getInternetGateway(request: GetInternetGatewayRequest, options?: CallOptions): Promise<InternetGateway> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/internetGateways/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/internetGateways/*");
     return this.service.call<InternetGateway>(
       {
         method: "GET",
@@ -51,7 +50,7 @@ export class InternetGatewayClient {
 
   /** Lists the internet gateways in a region, oldest first. */
   async listInternetGateways(request: ListInternetGatewaysRequest, options?: CallOptions): Promise<ListInternetGatewaysResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/regions/*");
     return this.service.call<ListInternetGatewaysResponse>(
       {
         method: "GET",
@@ -86,7 +85,7 @@ export class InternetGatewayClient {
    */
   async createInternetGateway(request: CreateInternetGatewayRequest, options?: CallOptions): Promise<Operation<InternetGateway, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/regions/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -108,7 +107,7 @@ export class InternetGatewayClient {
    */
   async updateInternetGateway(request: UpdateInternetGatewayRequest, options?: CallOptions): Promise<Operation<InternetGateway, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("internetGateway.name", request.internetGateway?.name, "projects/*/regions/*/internetGateways/*");
+    const p0 = this.service.pathValue("internetGateway.name", request.internetGateway?.name, "projects/*/regions/*/internetGateways/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "PATCH",
@@ -131,7 +130,7 @@ export class InternetGatewayClient {
    */
   async deleteInternetGateway(request: DeleteInternetGatewayRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/internetGateways/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/internetGateways/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

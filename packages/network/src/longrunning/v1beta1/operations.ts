@@ -6,7 +6,6 @@ import {
   type Client,
   type LongrunningOperation,
   type Service,
-  pathValue,
   query,
 } from "@origincloud/core";
 
@@ -39,7 +38,7 @@ export class OperationClient {
 
   /** Returns an operation as it is now. */
   async getOperation(request: GetOperationRequest, options?: CallOptions): Promise<LongrunningOperation> {
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/operations/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/operations/*");
     return this.service.call<LongrunningOperation>(
       {
         method: "GET",
@@ -57,7 +56,7 @@ export class OperationClient {
    * may repeat it after a transport error.
    */
   async waitOperation(request: WaitOperationRequest, options?: CallOptions): Promise<LongrunningOperation> {
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/operations/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/operations/*");
     return this.service.call<LongrunningOperation>(
       {
         method: "POST",

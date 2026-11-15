@@ -7,7 +7,6 @@ import {
   type Empty,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 
@@ -32,7 +31,7 @@ export class ImageClient {
 
   /** Returns one of the project's own images. */
   async getImage(request: GetImageRequest, options?: CallOptions): Promise<Image> {
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/images/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/images/*");
     return this.service.call<Image>(
       {
         method: "GET",
@@ -49,7 +48,7 @@ export class ImageClient {
    * images are listed by `ListPublicImages`.
    */
   async listImages(request: ListImagesRequest, options?: CallOptions): Promise<ListImagesResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*");
     return this.service.call<ListImagesResponse>(
       {
         method: "GET",
@@ -81,7 +80,7 @@ export class ImageClient {
    */
   async createImage(request: CreateImageRequest, options?: CallOptions): Promise<Image> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*");
     return this.service.call<Image>(
       {
         method: "POST",
@@ -96,7 +95,7 @@ export class ImageClient {
 
   /** Changes an image's description or tags. */
   async updateImage(request: UpdateImageRequest, options?: CallOptions): Promise<Image> {
-    const p0 = pathValue("image.name", request.image?.name, "projects/*/zones/*/images/*");
+    const p0 = this.service.pathValue("image.name", request.image?.name, "projects/*/zones/*/images/*");
     return this.service.call<Image>(
       {
         method: "PATCH",
@@ -110,7 +109,7 @@ export class ImageClient {
 
   /** Deletes an image. Instances launched from it are unaffected. */
   async deleteImage(request: DeleteImageRequest, options?: CallOptions): Promise<Empty> {
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/images/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/images/*");
     return this.service.call<Empty>(
       {
         method: "DELETE",

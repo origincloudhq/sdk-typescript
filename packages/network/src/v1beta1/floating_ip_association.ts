@@ -9,7 +9,6 @@ import {
   Operation,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
@@ -38,7 +37,7 @@ export class FloatingIpAssociationClient {
 
   /** Returns a floating IP association. */
   async getFloatingIpAssociation(request: GetFloatingIpAssociationRequest, options?: CallOptions): Promise<FloatingIpAssociation> {
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/floatingIps/*/associations/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/floatingIps/*/associations/*");
     return this.service.call<FloatingIpAssociation>(
       {
         method: "GET",
@@ -52,7 +51,7 @@ export class FloatingIpAssociationClient {
 
   /** Lists a floating IP's associations: none or one. */
   async listFloatingIpAssociations(request: ListFloatingIpAssociationsRequest, options?: CallOptions): Promise<ListFloatingIpAssociationsResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*/floatingIps/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*/floatingIps/*");
     return this.service.call<ListFloatingIpAssociationsResponse>(
       {
         method: "GET",
@@ -88,7 +87,7 @@ export class FloatingIpAssociationClient {
    */
   async createFloatingIpAssociation(request: CreateFloatingIpAssociationRequest, options?: CallOptions): Promise<Operation<FloatingIpAssociation, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*/floatingIps/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*/floatingIps/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -113,7 +112,7 @@ export class FloatingIpAssociationClient {
    */
   async deleteFloatingIpAssociation(request: DeleteFloatingIpAssociationRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/floatingIps/*/associations/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/floatingIps/*/associations/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

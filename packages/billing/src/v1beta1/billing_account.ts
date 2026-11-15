@@ -7,7 +7,6 @@ import {
   type Empty,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 import type { LegalDocumentVersionToAccept } from "./legal_document.js";
@@ -34,7 +33,7 @@ export class BillingAccountClient {
    * organization.
    */
   async getBillingAccount(request: GetBillingAccountRequest, options?: CallOptions): Promise<BillingAccount> {
-    const p0 = pathValue("name", request.name, "organizations/*/billingAccounts/*");
+    const p0 = this.service.pathValue("name", request.name, "organizations/*/billingAccounts/*");
     return this.service.call<BillingAccount>(
       {
         method: "GET",
@@ -51,7 +50,7 @@ export class BillingAccountClient {
    * `admin.billing_account.list` on the organization.
    */
   async listBillingAccounts(request: ListBillingAccountsRequest, options?: CallOptions): Promise<ListBillingAccountsResponse> {
-    const p0 = pathValue("parent", request.parent, "organizations/*");
+    const p0 = this.service.pathValue("parent", request.parent, "organizations/*");
     return this.service.call<ListBillingAccountsResponse>(
       {
         method: "GET",
@@ -88,7 +87,7 @@ export class BillingAccountClient {
    */
   async createBillingAccount(request: CreateBillingAccountRequest, options?: CallOptions): Promise<BillingAccount> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "organizations/*");
+    const p0 = this.service.pathValue("parent", request.parent, "organizations/*");
     return this.service.call<BillingAccount>(
       {
         method: "POST",
@@ -110,7 +109,7 @@ export class BillingAccountClient {
    * `admin.billing_account.update` on the organization.
    */
   async updateBillingAccount(request: UpdateBillingAccountRequest, options?: CallOptions): Promise<BillingAccount> {
-    const p0 = pathValue("billingAccount.name", request.billingAccount?.name, "organizations/*/billingAccounts/*");
+    const p0 = this.service.pathValue("billingAccount.name", request.billingAccount?.name, "organizations/*/billingAccounts/*");
     return this.service.call<BillingAccount>(
       {
         method: "PATCH",
@@ -130,7 +129,7 @@ export class BillingAccountClient {
    * `admin.billing_account.delete` on the organization.
    */
   async deleteBillingAccount(request: DeleteBillingAccountRequest, options?: CallOptions): Promise<Empty> {
-    const p0 = pathValue("name", request.name, "organizations/*/billingAccounts/*");
+    const p0 = this.service.pathValue("name", request.name, "organizations/*/billingAccounts/*");
     return this.service.call<Empty>(
       {
         method: "DELETE",
@@ -151,7 +150,7 @@ export class BillingAccountClient {
    * `admin.billing_account.update` on the organization.
    */
   async startPaymentMethodSetup(request: StartPaymentMethodSetupRequest, options?: CallOptions): Promise<StartPaymentMethodSetupResponse> {
-    const p0 = pathValue("name", request.name, "organizations/*/billingAccounts/*");
+    const p0 = this.service.pathValue("name", request.name, "organizations/*/billingAccounts/*");
     return this.service.call<StartPaymentMethodSetupResponse>(
       {
         method: "POST",
@@ -175,7 +174,7 @@ export class BillingAccountClient {
    * organization.
    */
   async confirmPaymentMethodSetup(request: ConfirmPaymentMethodSetupRequest, options?: CallOptions): Promise<BillingAccount> {
-    const p0 = pathValue("name", request.name, "organizations/*/billingAccounts/*");
+    const p0 = this.service.pathValue("name", request.name, "organizations/*/billingAccounts/*");
     return this.service.call<BillingAccount>(
       {
         method: "POST",
@@ -191,7 +190,7 @@ export class BillingAccountClient {
    * `admin.project.get` on the project.
    */
   async getProjectBillingInfo(request: GetProjectBillingInfoRequest, options?: CallOptions): Promise<ProjectBillingInfo> {
-    const p0 = pathValue("name", request.name, "projects/*/billingInfo");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/billingInfo");
     return this.service.call<ProjectBillingInfo>(
       {
         method: "GET",
@@ -211,7 +210,7 @@ export class BillingAccountClient {
    * on the project, which is separate from access to billing accounts.
    */
   async updateProjectBillingInfo(request: UpdateProjectBillingInfoRequest, options?: CallOptions): Promise<ProjectBillingInfo> {
-    const p0 = pathValue("projectBillingInfo.name", request.projectBillingInfo?.name, "projects/*/billingInfo");
+    const p0 = this.service.pathValue("projectBillingInfo.name", request.projectBillingInfo?.name, "projects/*/billingInfo");
     return this.service.call<ProjectBillingInfo>(
       {
         method: "PATCH",
@@ -228,7 +227,7 @@ export class BillingAccountClient {
    * `admin.billing_account.get` on the organization.
    */
   async listProjectBillingInfo(request: ListProjectBillingInfoRequest, options?: CallOptions): Promise<ListProjectBillingInfoResponse> {
-    const p0 = pathValue("name", request.name, "organizations/*/billingAccounts/*");
+    const p0 = this.service.pathValue("name", request.name, "organizations/*/billingAccounts/*");
     return this.service.call<ListProjectBillingInfoResponse>(
       {
         method: "GET",
@@ -256,7 +255,7 @@ export class BillingAccountClient {
 
   /** Returns a country a billing address may be in. */
   async getBillingCountry(request: GetBillingCountryRequest, options?: CallOptions): Promise<BillingCountry> {
-    const p0 = pathValue("name", request.name, "billingCountries/*");
+    const p0 = this.service.pathValue("name", request.name, "billingCountries/*");
     return this.service.call<BillingCountry>(
       {
         method: "GET",

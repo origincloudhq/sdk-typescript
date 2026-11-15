@@ -9,7 +9,6 @@ import {
   Operation,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
@@ -34,7 +33,7 @@ export class VolumeClient {
 
   /** Returns a volume. */
   async getVolume(request: GetVolumeRequest, options?: CallOptions): Promise<Volume> {
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/volumes/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/volumes/*");
     return this.service.call<Volume>(
       {
         method: "GET",
@@ -53,7 +52,7 @@ export class VolumeClient {
    * each zone's volumes.
    */
   async listVolumes(request: ListVolumesRequest, options?: CallOptions): Promise<ListVolumesResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*");
     return this.service.call<ListVolumesResponse>(
       {
         method: "GET",
@@ -87,7 +86,7 @@ export class VolumeClient {
    */
   async createVolume(request: CreateVolumeRequest, options?: CallOptions): Promise<Operation<Volume, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -109,7 +108,7 @@ export class VolumeClient {
    */
   async importVolume(request: ImportVolumeRequest, options?: CallOptions): Promise<Operation<Volume, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -131,7 +130,7 @@ export class VolumeClient {
    */
   async updateVolume(request: UpdateVolumeRequest, options?: CallOptions): Promise<Operation<Volume, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("volume.name", request.volume?.name, "projects/*/zones/*/volumes/*");
+    const p0 = this.service.pathValue("volume.name", request.volume?.name, "projects/*/zones/*/volumes/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "PATCH",
@@ -153,7 +152,7 @@ export class VolumeClient {
    */
   async deleteVolume(request: DeleteVolumeRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/volumes/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/volumes/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

@@ -9,7 +9,6 @@ import {
   Operation,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
@@ -38,7 +37,7 @@ export class SecurityGroupClient {
 
   /** Returns a security group. */
   async getSecurityGroup(request: GetSecurityGroupRequest, options?: CallOptions): Promise<SecurityGroup> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/securityGroups/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/securityGroups/*");
     return this.service.call<SecurityGroup>(
       {
         method: "GET",
@@ -52,7 +51,7 @@ export class SecurityGroupClient {
 
   /** Lists the security groups in a region, oldest first. */
   async listSecurityGroups(request: ListSecurityGroupsRequest, options?: CallOptions): Promise<ListSecurityGroupsResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/regions/*");
     return this.service.call<ListSecurityGroupsResponse>(
       {
         method: "GET",
@@ -87,7 +86,7 @@ export class SecurityGroupClient {
    */
   async createSecurityGroup(request: CreateSecurityGroupRequest, options?: CallOptions): Promise<Operation<SecurityGroup, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/regions/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -109,7 +108,7 @@ export class SecurityGroupClient {
    */
   async updateSecurityGroup(request: UpdateSecurityGroupRequest, options?: CallOptions): Promise<Operation<SecurityGroup, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("securityGroup.name", request.securityGroup?.name, "projects/*/regions/*/securityGroups/*");
+    const p0 = this.service.pathValue("securityGroup.name", request.securityGroup?.name, "projects/*/regions/*/securityGroups/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "PATCH",
@@ -133,7 +132,7 @@ export class SecurityGroupClient {
    */
   async deleteSecurityGroup(request: DeleteSecurityGroupRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/securityGroups/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/securityGroups/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

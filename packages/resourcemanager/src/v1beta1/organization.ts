@@ -7,7 +7,6 @@ import {
   type Empty,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 import type { OrganizationQuota } from "./quota.js";
@@ -33,7 +32,7 @@ export class OrganizationClient {
 
   /** Returns an organization. */
   async getOrganization(request: GetOrganizationRequest, options?: CallOptions): Promise<Organization> {
-    const p0 = pathValue("name", request.name, "organizations/*");
+    const p0 = this.service.pathValue("name", request.name, "organizations/*");
     return this.service.call<Organization>(
       {
         method: "GET",
@@ -96,7 +95,7 @@ export class OrganizationClient {
 
   /** Renames an organization. */
   async updateOrganization(request: UpdateOrganizationRequest, options?: CallOptions): Promise<Organization> {
-    const p0 = pathValue("organization.name", request.organization?.name, "organizations/*");
+    const p0 = this.service.pathValue("organization.name", request.organization?.name, "organizations/*");
     return this.service.call<Organization>(
       {
         method: "PATCH",
@@ -117,7 +116,7 @@ export class OrganizationClient {
    * still be invoiced.
    */
   async deleteOrganization(request: DeleteOrganizationRequest, options?: CallOptions): Promise<Empty> {
-    const p0 = pathValue("name", request.name, "organizations/*");
+    const p0 = this.service.pathValue("name", request.name, "organizations/*");
     return this.service.call<Empty>(
       {
         method: "DELETE",
@@ -134,7 +133,7 @@ export class OrganizationClient {
    * set by the platform; ask support to raise one.
    */
   async getOrganizationQuota(request: GetOrganizationQuotaRequest, options?: CallOptions): Promise<OrganizationQuota> {
-    const p0 = pathValue("name", request.name, "organizations/*/quota");
+    const p0 = this.service.pathValue("name", request.name, "organizations/*/quota");
     return this.service.call<OrganizationQuota>(
       {
         method: "GET",

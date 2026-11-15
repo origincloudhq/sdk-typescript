@@ -7,7 +7,6 @@ import {
   type Empty,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 import type { ProjectQuota } from "./quota.js";
@@ -33,7 +32,7 @@ export class ProjectClient {
 
   /** Returns a project. */
   async getProject(request: GetProjectRequest, options?: CallOptions): Promise<Project> {
-    const p0 = pathValue("name", request.name, "projects/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*");
     return this.service.call<Project>(
       {
         method: "GET",
@@ -94,7 +93,7 @@ export class ProjectClient {
 
   /** Renames a project. */
   async updateProject(request: UpdateProjectRequest, options?: CallOptions): Promise<Project> {
-    const p0 = pathValue("project.name", request.project?.name, "projects/*");
+    const p0 = this.service.pathValue("project.name", request.project?.name, "projects/*");
     return this.service.call<Project>(
       {
         method: "PATCH",
@@ -117,7 +116,7 @@ export class ProjectClient {
    * organization stay.
    */
   async deleteProject(request: DeleteProjectRequest, options?: CallOptions): Promise<Empty> {
-    const p0 = pathValue("name", request.name, "projects/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*");
     return this.service.call<Empty>(
       {
         method: "DELETE",
@@ -133,7 +132,7 @@ export class ProjectClient {
    * project may hold, if one is set, and how much of it the project uses.
    */
   async getProjectQuota(request: GetProjectQuotaRequest, options?: CallOptions): Promise<ProjectQuota> {
-    const p0 = pathValue("name", request.name, "projects/*/quota");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/quota");
     return this.service.call<ProjectQuota>(
       {
         method: "GET",
@@ -150,7 +149,7 @@ export class ProjectClient {
    * is set to the value given, or removed when the value is left out.
    */
   async updateProjectQuota(request: UpdateProjectQuotaRequest, options?: CallOptions): Promise<ProjectQuota> {
-    const p0 = pathValue("projectQuota.name", request.projectQuota?.name, "projects/*/quota");
+    const p0 = this.service.pathValue("projectQuota.name", request.projectQuota?.name, "projects/*/quota");
     return this.service.call<ProjectQuota>(
       {
         method: "PATCH",

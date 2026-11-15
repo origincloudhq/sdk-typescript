@@ -7,7 +7,6 @@ import {
   type Empty,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 
@@ -41,7 +40,7 @@ export class GrantClient {
    * the project.
    */
   async getGrant(request: GetGrantRequest, options?: CallOptions): Promise<Grant> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/keys/*/grants/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/keys/*/grants/*");
     return this.service.call<Grant>(
       {
         method: "GET",
@@ -59,7 +58,7 @@ export class GrantClient {
    * zone's change arrives. Needs `kms.grant.list` on the project.
    */
   async listGrants(request: ListGrantsRequest, options?: CallOptions): Promise<ListGrantsResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*/keys/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/regions/*/keys/*");
     return this.service.call<ListGrantsResponse>(
       {
         method: "GET",
@@ -94,7 +93,7 @@ export class GrantClient {
    */
   async createGrant(request: CreateGrantRequest, options?: CallOptions): Promise<Grant> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*/keys/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/regions/*/keys/*");
     return this.service.call<Grant>(
       {
         method: "POST",
@@ -113,7 +112,7 @@ export class GrantClient {
    * `kms.grant.update` on the project.
    */
   async renewGrant(request: RenewGrantRequest, options?: CallOptions): Promise<Grant> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/keys/*/grants/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/keys/*/grants/*");
     return this.service.call<Grant>(
       {
         method: "POST",
@@ -129,7 +128,7 @@ export class GrantClient {
    * `kms.grant.delete` on the project.
    */
   async deleteGrant(request: DeleteGrantRequest, options?: CallOptions): Promise<Empty> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/keys/*/grants/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/keys/*/grants/*");
     return this.service.call<Empty>(
       {
         method: "DELETE",

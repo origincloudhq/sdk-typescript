@@ -9,7 +9,6 @@ import {
   Operation,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
@@ -38,7 +37,7 @@ export class InstanceClient {
    * day after it was terminated.
    */
   async getInstance(request: GetInstanceRequest, options?: CallOptions): Promise<Instance> {
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/instances/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/instances/*");
     return this.service.call<Instance>(
       {
         method: "GET",
@@ -58,7 +57,7 @@ export class InstanceClient {
    * instances.
    */
   async listInstances(request: ListInstancesRequest, options?: CallOptions): Promise<ListInstancesResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*");
     return this.service.call<ListInstancesResponse>(
       {
         method: "GET",
@@ -94,7 +93,7 @@ export class InstanceClient {
    */
   async createInstance(request: CreateInstanceRequest, options?: CallOptions): Promise<Operation<Instance, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -120,7 +119,7 @@ export class InstanceClient {
    */
   async updateInstance(request: UpdateInstanceRequest, options?: CallOptions): Promise<Operation<Instance, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("instance.name", request.instance?.name, "projects/*/zones/*/instances/*");
+    const p0 = this.service.pathValue("instance.name", request.instance?.name, "projects/*/zones/*/instances/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "PATCH",
@@ -147,7 +146,7 @@ export class InstanceClient {
    */
   async deleteInstance(request: DeleteInstanceRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/instances/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/instances/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",
@@ -172,7 +171,7 @@ export class InstanceClient {
    */
   async startInstance(request: StartInstanceRequest, options?: CallOptions): Promise<Operation<Instance, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/instances/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/instances/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -195,7 +194,7 @@ export class InstanceClient {
    */
   async stopInstance(request: StopInstanceRequest, options?: CallOptions): Promise<Operation<Instance, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/instances/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/instances/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",

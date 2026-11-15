@@ -9,7 +9,6 @@ import {
   Operation,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
@@ -36,7 +35,7 @@ export class DnsPolicyClient {
 
   /** Returns a DNS policy. */
   async getDnsPolicy(request: GetDnsPolicyRequest, options?: CallOptions): Promise<DnsPolicy> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/dnsPolicies/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/dnsPolicies/*");
     return this.service.call<DnsPolicy>(
       {
         method: "GET",
@@ -53,7 +52,7 @@ export class DnsPolicyClient {
    * default included.
    */
   async listDnsPolicies(request: ListDnsPoliciesRequest, options?: CallOptions): Promise<ListDnsPoliciesResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/regions/*");
     return this.service.call<ListDnsPoliciesResponse>(
       {
         method: "GET",
@@ -88,7 +87,7 @@ export class DnsPolicyClient {
    */
   async createDnsPolicy(request: CreateDnsPolicyRequest, options?: CallOptions): Promise<Operation<DnsPolicy, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/regions/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -111,7 +110,7 @@ export class DnsPolicyClient {
    */
   async updateDnsPolicy(request: UpdateDnsPolicyRequest, options?: CallOptions): Promise<Operation<DnsPolicy, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("dnsPolicy.name", request.dnsPolicy?.name, "projects/*/regions/*/dnsPolicies/*");
+    const p0 = this.service.pathValue("dnsPolicy.name", request.dnsPolicy?.name, "projects/*/regions/*/dnsPolicies/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "PATCH",
@@ -134,7 +133,7 @@ export class DnsPolicyClient {
    */
   async deleteDnsPolicy(request: DeleteDnsPolicyRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/dnsPolicies/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/dnsPolicies/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",
@@ -158,7 +157,7 @@ export class DnsPolicyClient {
    */
   async setDefaultDnsPolicy(request: SetDefaultDnsPolicyRequest, options?: CallOptions): Promise<Operation<DnsPolicy, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/dnsPolicies/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/dnsPolicies/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",

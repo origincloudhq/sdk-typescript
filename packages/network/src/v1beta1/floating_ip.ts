@@ -9,7 +9,6 @@ import {
   Operation,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
@@ -38,7 +37,7 @@ export class FloatingIpClient {
 
   /** Returns a floating IP. */
   async getFloatingIp(request: GetFloatingIpRequest, options?: CallOptions): Promise<FloatingIp> {
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/floatingIps/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/floatingIps/*");
     return this.service.call<FloatingIp>(
       {
         method: "GET",
@@ -55,7 +54,7 @@ export class FloatingIpClient {
    * assigned at launch included.
    */
   async listFloatingIps(request: ListFloatingIpsRequest, options?: CallOptions): Promise<ListFloatingIpsResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*");
     return this.service.call<ListFloatingIpsResponse>(
       {
         method: "GET",
@@ -90,7 +89,7 @@ export class FloatingIpClient {
    */
   async createFloatingIp(request: CreateFloatingIpRequest, options?: CallOptions): Promise<Operation<FloatingIp, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -112,7 +111,7 @@ export class FloatingIpClient {
    */
   async updateFloatingIp(request: UpdateFloatingIpRequest, options?: CallOptions): Promise<Operation<FloatingIp, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("floatingIp.name", request.floatingIp?.name, "projects/*/zones/*/floatingIps/*");
+    const p0 = this.service.pathValue("floatingIp.name", request.floatingIp?.name, "projects/*/zones/*/floatingIps/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "PATCH",
@@ -135,7 +134,7 @@ export class FloatingIpClient {
    */
   async deleteFloatingIp(request: DeleteFloatingIpRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/floatingIps/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/floatingIps/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

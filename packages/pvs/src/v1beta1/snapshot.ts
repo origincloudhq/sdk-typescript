@@ -9,7 +9,6 @@ import {
   Operation,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
@@ -34,7 +33,7 @@ export class SnapshotClient {
 
   /** Returns a snapshot. */
   async getSnapshot(request: GetSnapshotRequest, options?: CallOptions): Promise<Snapshot> {
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/snapshots/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/snapshots/*");
     return this.service.call<Snapshot>(
       {
         method: "GET",
@@ -53,7 +52,7 @@ export class SnapshotClient {
    * each zone's snapshots.
    */
   async listSnapshots(request: ListSnapshotsRequest, options?: CallOptions): Promise<ListSnapshotsResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*");
     return this.service.call<ListSnapshotsResponse>(
       {
         method: "GET",
@@ -87,7 +86,7 @@ export class SnapshotClient {
    */
   async createSnapshot(request: CreateSnapshotRequest, options?: CallOptions): Promise<Operation<Snapshot, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -103,7 +102,7 @@ export class SnapshotClient {
 
   /** Changes a snapshot's tags. */
   async updateSnapshot(request: UpdateSnapshotRequest, options?: CallOptions): Promise<Snapshot> {
-    const p0 = pathValue("snapshot.name", request.snapshot?.name, "projects/*/zones/*/snapshots/*");
+    const p0 = this.service.pathValue("snapshot.name", request.snapshot?.name, "projects/*/zones/*/snapshots/*");
     return this.service.call<Snapshot>(
       {
         method: "PATCH",
@@ -123,7 +122,7 @@ export class SnapshotClient {
    */
   async deleteSnapshot(request: DeleteSnapshotRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/snapshots/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/snapshots/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",
@@ -144,7 +143,7 @@ export class SnapshotClient {
    */
   async protectSnapshot(request: ProtectSnapshotRequest, options?: CallOptions): Promise<Operation<Snapshot, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/snapshots/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/snapshots/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -167,7 +166,7 @@ export class SnapshotClient {
    */
   async unprotectSnapshot(request: UnprotectSnapshotRequest, options?: CallOptions): Promise<Operation<Snapshot, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/snapshots/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/snapshots/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",

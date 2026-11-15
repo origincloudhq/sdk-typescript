@@ -9,7 +9,6 @@ import {
   Operation,
   type Service,
   newRequestId,
-  pathValue,
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
@@ -35,7 +34,7 @@ export class SubnetClient {
 
   /** Returns a subnet. */
   async getSubnet(request: GetSubnetRequest, options?: CallOptions): Promise<Subnet> {
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/subnets/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/subnets/*");
     return this.service.call<Subnet>(
       {
         method: "GET",
@@ -53,7 +52,7 @@ export class SubnetClient {
    * service (`location.origincloudapis.eu`), then each zone's subnets.
    */
   async listSubnets(request: ListSubnetsRequest, options?: CallOptions): Promise<ListSubnetsResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*");
     return this.service.call<ListSubnetsResponse>(
       {
         method: "GET",
@@ -89,7 +88,7 @@ export class SubnetClient {
    */
   async createSubnet(request: CreateSubnetRequest, options?: CallOptions): Promise<Operation<Subnet, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*");
+    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -112,7 +111,7 @@ export class SubnetClient {
    */
   async updateSubnet(request: UpdateSubnetRequest, options?: CallOptions): Promise<Operation<Subnet, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("subnet.name", request.subnet?.name, "projects/*/zones/*/subnets/*");
+    const p0 = this.service.pathValue("subnet.name", request.subnet?.name, "projects/*/zones/*/subnets/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "PATCH",
@@ -136,7 +135,7 @@ export class SubnetClient {
    */
   async deleteSubnet(request: DeleteSubnetRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/subnets/*");
+    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/subnets/*");
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

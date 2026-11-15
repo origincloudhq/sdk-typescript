@@ -11,7 +11,9 @@
 #
 # The API's origincloud/<service> is the package @origincloud/<service> in
 # packages/<service>, whose src/ is generated whole; the shared
-# origincloud/longrunning is generated into each package that uses it.
+# origincloud/longrunning is generated into each package that uses it. Of
+# packages/core, only src/generated/ is generated: the services that have
+# resources, drawn from the resource types the API declares.
 # A new service gets its package scaffolded by --write
 # (generator/src/scaffold.ts): package.json, tsconfig.json, README.md, LICENSE
 # and a test of its client, as packages/location has them, its place in the
@@ -66,16 +68,21 @@ for dir in "${tmp}/gen"/*/; do
 done
 
 # The generated sources, relative to the repository: every service
-# package's src/.
+# package's src/, and core's src/generated/ (the services that have
+# resources, which full resource names may name).
 generated() {
-  (cd "$1" && find . -path './packages/*/src/*' -type f -not -path './packages/core/*' | LC_ALL=C sort)
+  (cd "$1" && find . -path './packages/*/src/*' -type f \( -not -path './packages/core/*' -o -path './packages/core/src/generated/*' \) | LC_ALL=C sort)
 }
 mkdir -p "${tmp}/out/packages"
 cp -R "${tmp}/gen/." "${tmp}/out/packages/"
 
 if [[ "${1:-}" == "--write" ]]; then
   for dir in "${ROOT}"/packages/*/; do
-    [[ "$(basename "${dir}")" == "core" ]] || rm -rf "${dir}src"
+    if [[ "$(basename "${dir}")" == "core" ]]; then
+      rm -rf "${dir}src/generated"
+    else
+      rm -rf "${dir}src"
+    fi
   done
   cp -R "${tmp}/out/packages/." "${ROOT}/packages/"
   echo "wrote $(generated "${ROOT}" | wc -l) files from origincloudhq/api@${revision:0:12}"
