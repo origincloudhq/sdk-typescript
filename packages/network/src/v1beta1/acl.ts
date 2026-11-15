@@ -9,6 +9,7 @@ import {
   Operation,
   type Service,
   newRequestId,
+  pathValue,
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
@@ -37,7 +38,9 @@ export class AclClient {
 
   /** Returns an ACL. */
   async getAcl(request: GetAclRequest, options?: CallOptions): Promise<Acl> {
-    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/acls/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/acls/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Acl>(
       {
         method: "GET",
@@ -51,7 +54,9 @@ export class AclClient {
 
   /** Lists the ACLs in a region, oldest first. */
   async listAcls(request: ListAclsRequest, options?: CallOptions): Promise<ListAclsResponse> {
-    const p0 = this.service.pathValue("parent", request.parent, "projects/*/regions/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/regions/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListAclsResponse>(
       {
         method: "GET",
@@ -85,7 +90,9 @@ export class AclClient {
    */
   async createAcl(request: CreateAclRequest, options?: CallOptions): Promise<Operation<Acl, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("parent", request.parent, "projects/*/regions/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/regions/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -107,7 +114,9 @@ export class AclClient {
    */
   async updateAcl(request: UpdateAclRequest, options?: CallOptions): Promise<Operation<Acl, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("acl.name", request.acl?.name, "projects/*/regions/*/acls/*");
+    const n0 = this.service.relativeName("acl.name", request.acl?.name, ["network"]);
+    const p0 = pathValue("acl.name", n0, "projects/*/regions/*/acls/*");
+    if (n0 !== (request.acl?.name ?? "")) request = { ...request, acl: { ...request.acl, name: n0 } };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "PATCH",
@@ -131,7 +140,9 @@ export class AclClient {
    */
   async deleteAcl(request: DeleteAclRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/acls/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/acls/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

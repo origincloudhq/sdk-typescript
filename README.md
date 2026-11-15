@@ -190,9 +190,13 @@ That entry point has everything `@origincloud/core` has, and also
   or zonal host, a version), `FullName.fromRelative` builds one, and a
   `FullName` gives its `service`, `host`, `relative` name and `url()`;
   principals and roles are iam names (`principal()`, `role()`). A
-  request's `name` or `parent` takes either form: a full name of the
-  client's own service is sent as its relative name, and one of another
-  service is refused, with a `FullNameError`, before anything is sent.
+  request's `name` or `parent` takes either form. A full name is checked
+  against the type the field refers to: the client's own service for its
+  own resources, the referenced type's service otherwise (a billing
+  account's `parent` takes `//resourcemanager.origincloudapis.eu/organizations/o`).
+  It is sent as its relative name, in the path and the body alike, and a
+  full name on any other host is refused, with a `FullNameError`, before
+  anything is sent.
 - **Operations.** A create, update or delete returns an `Operation`; its
   `wait()` resolves to the resource once the change is complete, or rejects
   with the error the change failed with. `name`, `done` and `metadata`

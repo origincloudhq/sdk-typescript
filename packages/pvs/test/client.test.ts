@@ -170,6 +170,24 @@ test("a full name of the service is sent as its relative name", async () => {
   assert.deepEqual(sent, [...once, ...once]);
 });
 
+// A full name in a path field that the body also carries, as an update's
+// resource does, is sent as the relative name in both, and the caller's
+// request is left as it was.
+test("a full name in the body's resource is sent as its relative name", async () => {
+  const [volumes, calls] = await recordingClient();
+  const relative = `${zone}/volumes/vol-1`;
+  for (const prefix of ["", "//pvs.origincloudapis.eu/"]) {
+    const update = { volume: { name: prefix + relative, sizeGib: 2 }, requestId: "given" };
+    await volumes.updateVolume(update);
+    assert.equal(update.volume.name, prefix + relative);
+    await volumes.importVolume({ parent: prefix + zone, requestId: "given" });
+  }
+  const sent = calls.map((c) => [c.method, c.path, c.query.toString(), c.body]);
+  assert.deepEqual(sent.slice(2), sent.slice(0, 2));
+  assert.deepEqual(JSON.parse(calls[2]!.body), { name: relative, sizeGib: 2 });
+  assert.equal(JSON.parse(calls[3]!.body).parent, zone);
+});
+
 // A full name of another service, or one that isn't a valid full name, is
 // refused before anything is sent, naming the field and the host the
 // client calls.
@@ -178,7 +196,7 @@ test("a name of another service is refused before sending", async () => {
   for (const [name, says, reason] of [
     [
       "//compute.origincloudapis.eu/projects/p/zones/z/volumes/vol-1",
-      "name must be a name on pvs.origincloudapis.eu, the host this client calls",
+      "name must be a name on pvs.origincloudapis.eu, got",
       "otherService",
     ],
     [

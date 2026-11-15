@@ -9,6 +9,7 @@ import {
   Operation,
   type Service,
   newRequestId,
+  pathValue,
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
@@ -35,7 +36,9 @@ export class VpcClient {
 
   /** Returns a VPC. */
   async getVpc(request: GetVpcRequest, options?: CallOptions): Promise<Vpc> {
-    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/vpcs/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/vpcs/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Vpc>(
       {
         method: "GET",
@@ -49,7 +52,9 @@ export class VpcClient {
 
   /** Lists the VPCs in a region, oldest first. */
   async listVpcs(request: ListVpcsRequest, options?: CallOptions): Promise<ListVpcsResponse> {
-    const p0 = this.service.pathValue("parent", request.parent, "projects/*/regions/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/regions/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListVpcsResponse>(
       {
         method: "GET",
@@ -85,7 +90,9 @@ export class VpcClient {
    */
   async createVpc(request: CreateVpcRequest, options?: CallOptions): Promise<Operation<Vpc, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("parent", request.parent, "projects/*/regions/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/regions/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -107,7 +114,9 @@ export class VpcClient {
    */
   async updateVpc(request: UpdateVpcRequest, options?: CallOptions): Promise<Operation<Vpc, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("vpc.name", request.vpc?.name, "projects/*/regions/*/vpcs/*");
+    const n0 = this.service.relativeName("vpc.name", request.vpc?.name, ["network"]);
+    const p0 = pathValue("vpc.name", n0, "projects/*/regions/*/vpcs/*");
+    if (n0 !== (request.vpc?.name ?? "")) request = { ...request, vpc: { ...request.vpc, name: n0 } };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "PATCH",
@@ -132,7 +141,9 @@ export class VpcClient {
    */
   async deleteVpc(request: DeleteVpcRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("name", request.name, "projects/*/regions/*/vpcs/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/vpcs/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

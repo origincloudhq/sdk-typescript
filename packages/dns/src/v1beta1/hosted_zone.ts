@@ -7,6 +7,7 @@ import {
   type Empty,
   type Service,
   newRequestId,
+  pathValue,
   query,
 } from "@origincloud/core";
 
@@ -54,7 +55,9 @@ export class HostedZoneClient {
 
   /** Returns a hosted zone. */
   async getHostedZone(request: GetHostedZoneRequest, options?: CallOptions): Promise<HostedZone> {
-    const p0 = this.service.pathValue("name", request.name, "projects/*/hostedZones/*");
+    const n0 = this.service.relativeName("name", request.name, ["dns"]);
+    const p0 = pathValue("name", n0, "projects/*/hostedZones/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<HostedZone>(
       {
         method: "GET",
@@ -68,7 +71,9 @@ export class HostedZoneClient {
 
   /** Lists a project's hosted zones, oldest first. */
   async listHostedZones(request: ListHostedZonesRequest, options?: CallOptions): Promise<ListHostedZonesResponse> {
-    const p0 = this.service.pathValue("parent", request.parent, "projects/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["resourcemanager"]);
+    const p0 = pathValue("parent", n0, "projects/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListHostedZonesResponse>(
       {
         method: "GET",
@@ -104,7 +109,9 @@ export class HostedZoneClient {
    */
   async createHostedZone(request: CreateHostedZoneRequest, options?: CallOptions): Promise<HostedZone> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("parent", request.parent, "projects/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["resourcemanager"]);
+    const p0 = pathValue("parent", n0, "projects/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<HostedZone>(
       {
         method: "POST",
@@ -120,7 +127,9 @@ export class HostedZoneClient {
   /** Changes a hosted zone's tags. */
   async updateHostedZone(request: UpdateHostedZoneRequest, options?: CallOptions): Promise<HostedZone> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("hostedZone.name", request.hostedZone?.name, "projects/*/hostedZones/*");
+    const n0 = this.service.relativeName("hostedZone.name", request.hostedZone?.name, ["dns"]);
+    const p0 = pathValue("hostedZone.name", n0, "projects/*/hostedZones/*");
+    if (n0 !== (request.hostedZone?.name ?? "")) request = { ...request, hostedZone: { ...request.hostedZone, name: n0 } };
     return this.service.call<HostedZone>(
       {
         method: "PATCH",
@@ -139,7 +148,9 @@ export class HostedZoneClient {
    */
   async deleteHostedZone(request: DeleteHostedZoneRequest, options?: CallOptions): Promise<Empty> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("name", request.name, "projects/*/hostedZones/*");
+    const n0 = this.service.relativeName("name", request.name, ["dns"]);
+    const p0 = pathValue("name", n0, "projects/*/hostedZones/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Empty>(
       {
         method: "DELETE",
@@ -167,7 +178,9 @@ export class HostedZoneClient {
    * daily checks suspend it unless the proof comes back.
    */
   async verifyHostedZone(request: VerifyHostedZoneRequest, options?: CallOptions): Promise<HostedZone> {
-    const p0 = this.service.pathValue("name", request.name, "projects/*/hostedZones/*");
+    const n0 = this.service.relativeName("name", request.name, ["dns"]);
+    const p0 = pathValue("name", n0, "projects/*/hostedZones/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<HostedZone>(
       {
         method: "POST",

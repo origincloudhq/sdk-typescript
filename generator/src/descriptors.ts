@@ -59,6 +59,7 @@ export interface FieldDescriptor {
   label?: "LABEL_OPTIONAL" | "LABEL_REQUIRED" | "LABEL_REPEATED";
   type: FieldType;
   typeName?: string;
+  options?: { "[google.api.resource_reference]"?: { type?: string; childType?: string } };
 }
 
 export interface EnumDescriptor {

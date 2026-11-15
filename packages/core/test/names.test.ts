@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  ANY_SERVICE,
   Client,
   FullName,
   FullNameError,
@@ -247,7 +248,7 @@ test("a path field refuses another host's full name, or no valid full name", () 
     [
       "//compute.origincloudapis.eu/projects/p/zones/z/volumes/v",
       "otherService",
-      "name must be a name on pvs.origincloudapis.eu, the host this client calls",
+      "name must be a name on pvs.origincloudapis.eu, got",
     ],
     ["//resourcemanager.origincloudapis.eu/projects/p", "otherService", "a name on resourcemanager.origincloudapis.eu"],
     [
@@ -273,4 +274,35 @@ test("a path field refuses another host's full name, or no valid full name", () 
     () => client.service("observability").pathValue("parent", "//observability.origincloudapis.eu/projects/p", "projects/*"),
     FullNameError,
   );
+});
+
+// A path field referring to another service's type takes that service's
+// full names, and no other's.
+test("a path field is checked against the type it refers to", () => {
+  const project = "//resourcemanager.origincloudapis.eu/projects/p";
+  for (const own of ["billing", "observability"]) {
+    const service = client.service(own);
+    for (const value of [project, "projects/p"]) {
+      assert.equal(service.pathValue("parent", value, "projects/*", ["resourcemanager"]), "projects/p", `${own} ${value}`);
+    }
+    const message = refused(
+      () => service.relativeName("parent", "//pvs.origincloudapis.eu/projects/p", ["resourcemanager"]),
+      "otherService",
+      own,
+    );
+    assert.ok(message.includes("parent must be a name on resourcemanager.origincloudapis.eu, got"), message);
+    // The client's own host isn't one the field takes.
+    assert.throws(
+      () => service.relativeName("parent", `//${own}.origincloudapis.eu/projects/p`, ["resourcemanager"]),
+      /^FullNameError: origincloud: parent must be a name on resourcemanager\.origincloudapis\.eu/,
+    );
+  }
+  assert.throws(
+    () => client.service("iam").relativeName("parent", "//pvs.origincloudapis.eu/zones/z", ["compute", "location"]),
+    /must be a name on one of compute\.origincloudapis\.eu, location\.origincloudapis\.eu/,
+  );
+  for (const value of [VOLUME, project]) {
+    assert.ok(client.service("iam").relativeName("resource", value, [ANY_SERVICE]), value);
+  }
+  refused(() => client.service("iam").relativeName("resource", "//sts.origincloudapis.eu/x/y", [ANY_SERVICE]), "unknownService", "sts");
 });

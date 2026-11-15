@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import type { FileDescriptor, FileDescriptorSet } from "./descriptors.js";
-import { generate, resourceServices } from "./main.js";
+import type { FieldDescriptor, FileDescriptor, FileDescriptorSet, MessageDescriptor } from "./descriptors.js";
+import { ANY_SERVICE, Resources, generate } from "./main.js";
 
 const httpBody: FileDescriptor = {
   name: "google/api/httpbody.proto",
@@ -146,7 +146,7 @@ test("core's list of services is the domains of the resource types the API decla
       },
     ],
   };
-  assert.deepEqual(resourceServices(set), ["compute", "kms", "pvs"]);
+  assert.deepEqual(new Resources(set).services(), ["compute", "kms", "pvs"]);
   const module = generate(set).get("core/src/generated/resource-services.ts");
   assert.ok(module?.includes('Object.freeze([\n  "compute",\n  "kms",\n  "pvs",\n]);'), module);
 
@@ -162,6 +162,65 @@ test("core's list of services is the domains of the resource types the API decla
       package: "origincloud.pvs.v1beta1",
       messageType: [{ name: "Volume", options: { "[google.api.resource]": { type: bad } } }],
     };
-    assert.throws(() => resourceServices({ file: [file] }), /isn't \{service\}\.origincloudapis\.eu\/\{Kind\}/, bad);
+    assert.throws(() => new Resources({ file: [file] }), /isn't \{service\}\.origincloudapis\.eu\/\{Kind\}/, bad);
   }
+});
+
+// A path field takes the full names of the service of the type it refers to.
+test("a path field takes the names of the type it refers to", () => {
+  const resource = (name: string, type: string, pattern: string, field: FieldDescriptor[] = []): MessageDescriptor => ({
+    name,
+    field,
+    options: { "[google.api.resource]": { type, pattern: [pattern] } },
+  });
+  const ref = (name: string, reference?: { type?: string; childType?: string }): FieldDescriptor => ({
+    name,
+    type: "TYPE_STRING",
+    ...(reference ? { options: { "[google.api.resource_reference]": reference } } : {}),
+  });
+  const nameField: FieldDescriptor = { name: "name", type: "TYPE_STRING" };
+  const project = resource("Project", "resourcemanager.origincloudapis.eu/Project", "projects/{project}", [nameField]);
+  const volume = resource("Volume", "pvs.origincloudapis.eu/Volume", "projects/{project}/zones/{zone}/volumes/{volume}", [nameField]);
+  const request: MessageDescriptor = {
+    name: "Request",
+    field: [
+      ref("own", { type: "pvs.origincloudapis.eu/Volume" }),
+      ref("other", { type: "resourcemanager.origincloudapis.eu/Project" }),
+      ref("any", { type: "*" }),
+      ref("costs", { childType: "billing.origincloudapis.eu/Cost" }),
+      ref("images", { childType: "compute.origincloudapis.eu/PublicImage" }),
+      ref("volumes", { childType: "pvs.origincloudapis.eu/Volume" }),
+      ref("plain"),
+    ],
+  };
+  const resources = new Resources({
+    file: [
+      {
+        name: "origincloud/scratch/v1/scratch.proto",
+        package: "origincloud.scratch.v1",
+        messageType: [
+          project,
+          resource("Zone", "location.origincloudapis.eu/Zone", "zones/{zone}"),
+          volume,
+          resource("Cost", "billing.origincloudapis.eu/Cost", "projects/{project}/costs/{cost}"),
+          resource("PublicImage", "compute.origincloudapis.eu/PublicImage", "zones/{zone}/images/{image}"),
+          request,
+        ],
+      },
+    ],
+  });
+  const of = (name: string) => resources.pathServices(request, request.field!.find((f) => f.name === name)!);
+  assert.deepEqual(of("own"), ["pvs"]);
+  assert.deepEqual(of("other"), ["resourcemanager"]);
+  assert.deepEqual(of("any"), [ANY_SERVICE]);
+  // A child's parent is the declared type with its parent pattern.
+  assert.deepEqual(of("costs"), ["resourcemanager"]);
+  assert.deepEqual(of("images"), ["location"]);
+  // projects/{project}/zones/{zone} is no declared type: the child's own service.
+  assert.deepEqual(of("volumes"), ["pvs"]);
+  // A resource's own name.
+  assert.deepEqual(resources.pathServices(volume, nameField), ["pvs"]);
+  assert.deepEqual(resources.pathServices(project, nameField), ["resourcemanager"]);
+  // Nothing to go by: the client's own service.
+  assert.deepEqual(of("plain"), []);
 });

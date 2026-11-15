@@ -6,6 +6,7 @@ import {
   type Client,
   type Service,
   newRequestId,
+  pathValue,
   query,
 } from "@origincloud/core";
 
@@ -32,7 +33,9 @@ export class CaseMessageClient {
    * organization.
    */
   async getCaseMessage(request: GetCaseMessageRequest, options?: CallOptions): Promise<CaseMessage> {
-    const p0 = this.service.pathValue("name", request.name, "organizations/*/cases/*/messages/*");
+    const n0 = this.service.relativeName("name", request.name, ["support"]);
+    const p0 = pathValue("name", n0, "organizations/*/cases/*/messages/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<CaseMessage>(
       {
         method: "GET",
@@ -49,7 +52,9 @@ export class CaseMessageClient {
    * on the organization.
    */
   async listCaseMessages(request: ListCaseMessagesRequest, options?: CallOptions): Promise<ListCaseMessagesResponse> {
-    const p0 = this.service.pathValue("parent", request.parent, "organizations/*/cases/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["support"]);
+    const p0 = pathValue("parent", n0, "organizations/*/cases/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListCaseMessagesResponse>(
       {
         method: "GET",
@@ -83,7 +88,9 @@ export class CaseMessageClient {
    */
   async createCaseMessage(request: CreateCaseMessageRequest, options?: CallOptions): Promise<CaseMessage> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("parent", request.parent, "organizations/*/cases/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["support"]);
+    const p0 = pathValue("parent", n0, "organizations/*/cases/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<CaseMessage>(
       {
         method: "POST",

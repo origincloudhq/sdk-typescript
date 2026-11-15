@@ -87,19 +87,32 @@ export class Service {
   }
 
   /**
-   * `value`, the path field `field` of a call to this service, as the path
-   * segments of the request, checked against `pattern` as the function
-   * {@link pathValue} checks it. Generated clients call it.
+   * The relative name `value`, the path field `field` of a call to this
+   * service, stands for: `value` itself, or the relative name of a full
+   * resource name it is. Generated clients call it, and send the relative
+   * name in the path and in the body alike.
    *
-   * A full resource name of this service, such as
-   * `//pvs.origincloudapis.eu/projects/p/zones/z/volumes/vol-1` given to a
-   * PVS client, is sent as its relative name, the path every call takes. A
-   * full name of another service, one with a regional or zonal host or an
-   * API version, a URN, a URL or a malformed full name is refused before
-   * anything is sent, with a `FullNameError`.
+   * `services` are the short codes of the services whose full names the
+   * field takes: the service of the type the field refers to, such as
+   * `resourcemanager` for a billing account's `parent` (`organizations/*`),
+   * `"*"` for a field referring to any type, or none for this service's own.
+   * A full name of one of them, such as
+   * `//resourcemanager.origincloudapis.eu/organizations/o`, stands for its
+   * relative name. A full name of another service, one with a regional or
+   * zonal host or an API version, a URN, a URL or a malformed full name is
+   * refused with a `FullNameError` naming the hosts the field takes.
    */
-  pathValue(field: string, value: string | undefined, pattern: string): string {
-    return pathValue(field, pathName(this.shortcode, field, value ?? ""), pattern);
+  relativeName(field: string, value: string | undefined, services: readonly string[] = []): string {
+    return pathName(this.shortcode, services, field, value ?? "");
+  }
+
+  /**
+   * `value`, the path field `field` of a call to this service, as the path
+   * segments of the request: its {@link relativeName}, checked against
+   * `pattern` and escaped as the function {@link pathValue} does.
+   */
+  pathValue(field: string, value: string | undefined, pattern: string, services: readonly string[] = []): string {
+    return pathValue(field, this.relativeName(field, value, services), pattern);
   }
 
   /**

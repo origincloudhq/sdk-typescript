@@ -9,6 +9,7 @@ import {
   Operation,
   type Service,
   newRequestId,
+  pathValue,
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
@@ -35,7 +36,9 @@ export class NatGatewayClient {
 
   /** Returns a NAT gateway. */
   async getNatGateway(request: GetNatGatewayRequest, options?: CallOptions): Promise<NatGateway> {
-    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/natGateways/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/zones/*/natGateways/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<NatGateway>(
       {
         method: "GET",
@@ -49,7 +52,9 @@ export class NatGatewayClient {
 
   /** Lists the NAT gateways in a zone, oldest first. */
   async listNatGateways(request: ListNatGatewaysRequest, options?: CallOptions): Promise<ListNatGatewaysResponse> {
-    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/zones/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListNatGatewaysResponse>(
       {
         method: "GET",
@@ -86,7 +91,9 @@ export class NatGatewayClient {
    */
   async createNatGateway(request: CreateNatGatewayRequest, options?: CallOptions): Promise<Operation<NatGateway, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/zones/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -108,7 +115,9 @@ export class NatGatewayClient {
    */
   async updateNatGateway(request: UpdateNatGatewayRequest, options?: CallOptions): Promise<Operation<NatGateway, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("natGateway.name", request.natGateway?.name, "projects/*/zones/*/natGateways/*");
+    const n0 = this.service.relativeName("natGateway.name", request.natGateway?.name, ["network"]);
+    const p0 = pathValue("natGateway.name", n0, "projects/*/zones/*/natGateways/*");
+    if (n0 !== (request.natGateway?.name ?? "")) request = { ...request, natGateway: { ...request.natGateway, name: n0 } };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "PATCH",
@@ -131,7 +140,9 @@ export class NatGatewayClient {
    */
   async deleteNatGateway(request: DeleteNatGatewayRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/natGateways/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/zones/*/natGateways/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

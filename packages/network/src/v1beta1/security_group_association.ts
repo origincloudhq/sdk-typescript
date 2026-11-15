@@ -9,6 +9,7 @@ import {
   Operation,
   type Service,
   newRequestId,
+  pathValue,
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
@@ -37,7 +38,9 @@ export class SecurityGroupAssociationClient {
 
   /** Returns a security group association. */
   async getSecurityGroupAssociation(request: GetSecurityGroupAssociationRequest, options?: CallOptions): Promise<SecurityGroupAssociation> {
-    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/networkInterfaces/*/securityGroupAssociations/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/zones/*/networkInterfaces/*/securityGroupAssociations/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<SecurityGroupAssociation>(
       {
         method: "GET",
@@ -51,7 +54,9 @@ export class SecurityGroupAssociationClient {
 
   /** Lists a network interface's security group associations, oldest first. */
   async listSecurityGroupAssociations(request: ListSecurityGroupAssociationsRequest, options?: CallOptions): Promise<ListSecurityGroupAssociationsResponse> {
-    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*/networkInterfaces/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/zones/*/networkInterfaces/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListSecurityGroupAssociationsResponse>(
       {
         method: "GET",
@@ -87,7 +92,9 @@ export class SecurityGroupAssociationClient {
    */
   async createSecurityGroupAssociation(request: CreateSecurityGroupAssociationRequest, options?: CallOptions): Promise<Operation<SecurityGroupAssociation, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*/networkInterfaces/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/zones/*/networkInterfaces/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -111,7 +118,9 @@ export class SecurityGroupAssociationClient {
    */
   async deleteSecurityGroupAssociation(request: DeleteSecurityGroupAssociationRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/networkInterfaces/*/securityGroupAssociations/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/zones/*/networkInterfaces/*/securityGroupAssociations/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

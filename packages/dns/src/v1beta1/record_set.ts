@@ -7,6 +7,7 @@ import {
   type Empty,
   type Service,
   newRequestId,
+  pathValue,
   query,
 } from "@origincloud/core";
 
@@ -37,7 +38,9 @@ export class RecordSetClient {
 
   /** Returns a record set. */
   async getRecordSet(request: GetRecordSetRequest, options?: CallOptions): Promise<RecordSet> {
-    const p0 = this.service.pathValue("name", request.name, "projects/*/hostedZones/*/recordSets/*");
+    const n0 = this.service.relativeName("name", request.name, ["dns"]);
+    const p0 = pathValue("name", n0, "projects/*/hostedZones/*/recordSets/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<RecordSet>(
       {
         method: "GET",
@@ -51,7 +54,9 @@ export class RecordSetClient {
 
   /** Lists a zone's record sets by `dnsName`, then by `type`. */
   async listRecordSets(request: ListRecordSetsRequest, options?: CallOptions): Promise<ListRecordSetsResponse> {
-    const p0 = this.service.pathValue("parent", request.parent, "projects/*/hostedZones/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["dns"]);
+    const p0 = pathValue("parent", n0, "projects/*/hostedZones/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListRecordSetsResponse>(
       {
         method: "GET",
@@ -88,7 +93,9 @@ export class RecordSetClient {
    */
   async createRecordSet(request: CreateRecordSetRequest, options?: CallOptions): Promise<RecordSet> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("parent", request.parent, "projects/*/hostedZones/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["dns"]);
+    const p0 = pathValue("parent", n0, "projects/*/hostedZones/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<RecordSet>(
       {
         method: "POST",
@@ -110,7 +117,9 @@ export class RecordSetClient {
    */
   async updateRecordSet(request: UpdateRecordSetRequest, options?: CallOptions): Promise<RecordSet> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("recordSet.name", request.recordSet?.name, "projects/*/hostedZones/*/recordSets/*");
+    const n0 = this.service.relativeName("recordSet.name", request.recordSet?.name, ["dns"]);
+    const p0 = pathValue("recordSet.name", n0, "projects/*/hostedZones/*/recordSets/*");
+    if (n0 !== (request.recordSet?.name ?? "")) request = { ...request, recordSet: { ...request.recordSet, name: n0 } };
     return this.service.call<RecordSet>(
       {
         method: "PATCH",
@@ -126,7 +135,9 @@ export class RecordSetClient {
   /** Deletes a record set. */
   async deleteRecordSet(request: DeleteRecordSetRequest, options?: CallOptions): Promise<Empty> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("name", request.name, "projects/*/hostedZones/*/recordSets/*");
+    const n0 = this.service.relativeName("name", request.name, ["dns"]);
+    const p0 = pathValue("name", n0, "projects/*/hostedZones/*/recordSets/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Empty>(
       {
         method: "DELETE",
@@ -149,7 +160,9 @@ export class RecordSetClient {
    */
   async batchChangeRecordSets(request: BatchChangeRecordSetsRequest, options?: CallOptions): Promise<BatchChangeRecordSetsResponse> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("parent", request.parent, "projects/*/hostedZones/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["dns"]);
+    const p0 = pathValue("parent", n0, "projects/*/hostedZones/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<BatchChangeRecordSetsResponse>(
       {
         method: "POST",

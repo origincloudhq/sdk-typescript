@@ -18,8 +18,9 @@
 // origincloud/<service>/. The shared origincloud.longrunning package is
 // generated into each service package that uses it, its OperationService
 // client bound to that service's host. A path variable's field goes through
-// the service's pathValue, which also takes a full resource name of the
-// client's own service and sends its relative name. It also writes
+// the service's relativeName, which also takes a full resource name of the
+// service of the type the field refers to (Resources.pathServices): the
+// request then carries the relative name, in its path and in its body alike. It also writes
 // <out>/core/src/generated/resource-services.ts, core's list of the
 // services that have resources, from the resource types the API declares.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -142,6 +143,7 @@ export function generate(set: FileDescriptorSet): Map<string, string> {
     if (match?.[1] && !SHARED_PACKAGES.some((p) => file.package?.startsWith(p))) services.add(match[1]);
   }
 
+  const resources = new Resources(set);
   const output = new Map<string, string>();
   for (const service of [...services].sort()) {
     const own = set.file.filter((f) => f.package?.startsWith(`origincloud.${service}.`));
@@ -160,7 +162,7 @@ export function generate(set: FileDescriptorSet): Map<string, string> {
         pending.push(d);
       }
     }
-    const ctx: PackageContext = { service, types, jsonNames, modules: included };
+    const ctx: PackageContext = { service, types, jsonNames, modules: included, resources };
     const directories = new Map<string, string[]>();
     for (const [protoFile, module] of [...included].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
       output.set(`${service}/src/${module}`, new FileGenerator(ctx, files.get(protoFile)!, module).generate());
@@ -172,40 +174,99 @@ export function generate(set: FileDescriptorSet): Map<string, string> {
       output.set(`${service}/src/${dir}/index.ts`, lines.join("\n"));
     }
   }
-  const resources = resourceServices(set);
-  if (resources.length > 0) output.set("core/src/generated/resource-services.ts", resourceServicesModule(resources));
+  const resourceServices = resources.services();
+  if (resourceServices.length > 0) {
+    output.set("core/src/generated/resource-services.ts", resourceServicesModule(resourceServices));
+  }
   return output;
 }
 
+/** A path field of every resource service: `type: "*"`. */
+export const ANY_SERVICE = "*";
+
+/** The short code of the service owning `type`, `{service}.origincloudapis.eu/{Kind}`; fails otherwise. */
+function serviceOf(type: string, on: string): string {
+  const match = /^([a-z0-9]+)\.origincloudapis\.eu\/[A-Z][A-Za-z0-9]*$/.exec(type);
+  if (!match) fail(`${on}: the resource type ${JSON.stringify(type)} isn't {service}.origincloudapis.eu/{Kind}`);
+  return match[1]!;
+}
+
 /**
- * The short codes of the services that have resources, in order: the
- * domains of the resource types the API declares (google.api.resource on a
- * message, google.api.resource_definition on a file), such as
- * pvs.origincloudapis.eu/Volume's pvs. A full resource name's host is one of
- * theirs, so core's list is generated, and a new service's names parse
- * without anyone keeping it.
+ * The resource types the API declares in its files (origincloud/), with
+ * google.api.resource on a message or google.api.resource_definition on a
+ * file: each type's patterns, by type.
  */
-export function resourceServices(set: FileDescriptorSet): string[] {
-  const types: [string, string][] = [];
-  const collect = (on: string, m: MessageDescriptor): void => {
-    const resource = m.options?.["[google.api.resource]"];
-    if (resource) types.push([`${on}.${m.name}`, resource.type ?? ""]);
-    for (const nested of m.nestedType ?? []) collect(`${on}.${m.name}`, nested);
-  };
-  for (const file of set.file) {
-    if (!file.name.startsWith("origincloud/")) continue;
-    for (const definition of file.options?.["[google.api.resource_definition]"] ?? []) {
-      types.push([file.name, definition.type ?? ""]);
+export class Resources {
+  private readonly patterns = new Map<string, string[]>();
+
+  constructor(set: FileDescriptorSet) {
+    const add = (on: string, resource: { type?: string; pattern?: string[] }): void => {
+      const type = resource.type ?? "";
+      serviceOf(type, on);
+      this.patterns.set(type, [...(this.patterns.get(type) ?? []), ...(resource.pattern ?? [])]);
+    };
+    const collect = (on: string, m: MessageDescriptor): void => {
+      const resource = m.options?.["[google.api.resource]"];
+      if (resource) add(`${on}.${m.name}`, resource);
+      for (const nested of m.nestedType ?? []) collect(`${on}.${m.name}`, nested);
+    };
+    for (const file of set.file) {
+      if (!file.name.startsWith("origincloud/")) continue;
+      for (const definition of file.options?.["[google.api.resource_definition]"] ?? []) add(file.name, definition);
+      for (const m of file.messageType ?? []) collect(file.package ?? "", m);
     }
-    for (const m of file.messageType ?? []) collect(file.package ?? "", m);
   }
-  const services = new Set<string>();
-  for (const [on, type] of types) {
-    const match = /^([a-z0-9]+)\.origincloudapis\.eu\/[A-Z][A-Za-z0-9]*$/.exec(type);
-    if (!match) fail(`${on}: the resource type ${JSON.stringify(type)} isn't {service}.origincloudapis.eu/{Kind}`);
-    services.add(match[1]!);
+
+  /**
+   * The short codes of the services that have resources, in order: the
+   * domains of the declared types, such as pvs.origincloudapis.eu/Volume's
+   * pvs. A full resource name's host is one of theirs, so core's list is
+   * generated, and a new service's names parse without anyone keeping it.
+   */
+  services(): string[] {
+    return [...new Set([...this.patterns.keys()].map((t) => serviceOf(t, t)))].sort();
   }
-  return [...services].sort();
+
+  /**
+   * The short codes of the services whose full names the path field
+   * `field` of `message` (the last of a path variable's fields) takes, in
+   * order: the service of the type the field refers to.
+   *
+   * - google.api.resource_reference with `type: "*"`: every resource
+   *   service, {@link ANY_SERVICE}.
+   * - With a `type`: that type's service.
+   * - With a `child_type`: the services of the declared types whose pattern
+   *   is a pattern of the child's without its last collection and id, its
+   *   parent (`organizations/{organization}`, resourcemanager's
+   *   Organization). A parent no declared type has, such as
+   *   `projects/{project}/zones/{zone}`, is the child's service's.
+   * - The `name` of a resource, a message with google.api.resource (an
+   *   update's resource): that resource's service.
+   * - Otherwise: none, which the client reads as its own service.
+   */
+  pathServices(message: MessageDescriptor, field: FieldDescriptor): string[] {
+    const on = `${message.name}.${field.name}`;
+    const reference = field.options?.["[google.api.resource_reference]"];
+    if (reference?.type === ANY_SERVICE) return [ANY_SERVICE];
+    if (reference?.type) return [serviceOf(reference.type, on)];
+    if (reference?.childType) {
+      const child = serviceOf(reference.childType, on);
+      const parents = new Set(
+        (this.patterns.get(reference.childType) ?? [])
+          .map((p) => p.split("/"))
+          .filter((s) => s.length > 2)
+          .map((s) => s.slice(0, -2).join("/")),
+      );
+      const services = new Set<string>();
+      for (const [type, patterns] of this.patterns) {
+        if (patterns.some((p) => parents.has(p))) services.add(serviceOf(type, type));
+      }
+      return services.size > 0 ? [...services].sort() : [child];
+    }
+    const resource = message.options?.["[google.api.resource]"];
+    if (field.name === "name" && resource) return [serviceOf(resource.type ?? "", message.name)];
+    return [];
+  }
 }
 
 function resourceServicesModule(services: string[]): string {
@@ -247,6 +308,16 @@ function collectMessage(
   }
 }
 
+/** `object` with the field path `path` set to `value`, as an expression of spreads. */
+function withField(object: string, path: string[], value: string): string {
+  const [first, ...rest] = path;
+  const inner = rest.length === 0 ? value : withField(`${object}.${first}`, rest, value);
+  // The request itself is set; a message within it may not be.
+  const [root, ...within] = object.split(".");
+  const spread = [root, within.join("?.")].filter((p) => p !== "").join(".");
+  return `{ ...${spread}, ${first}: ${inner} }`;
+}
+
 function jsonName(f: FieldDescriptor): string {
   return f.jsonName ?? f.name.replace(/_([a-z0-9])/g, (_, c: string) => c.toUpperCase());
 }
@@ -260,6 +331,8 @@ interface PackageContext {
   jsonNames: Map<string, string>;
   /** The proto files generated into the package, and their module paths under src/. */
   modules: Map<string, string>;
+  /** The API's resource types, for the services a path field takes. */
+  resources: Resources;
 }
 
 /** One generated module: the TypeScript of one proto file. */
@@ -576,9 +649,19 @@ class FileGenerator {
       const jsonPath = segment.fields.map(jsonName).join(".");
       const access = "request." + segment.fields.map(jsonName).join("?.");
       bound.push(jsonPath);
+      const owner =
+        segment.fields.length === 1
+          ? inputMessage
+          : this.typeInfo(segment.fields[segment.fields.length - 2]!.typeName!).message!;
+      const services = this.ctx.resources.pathServices(owner, segment.fields[segment.fields.length - 1]!);
+      const n = `n${variable}`;
       const v = `p${variable++}`;
       this.emit(
-        `    const ${v} = this.service.pathValue(${JSON.stringify(jsonPath)}, ${access}, ${JSON.stringify(segment.pattern)});`,
+        `    const ${n} = this.service.relativeName(${JSON.stringify(jsonPath)}, ${access}, ${JSON.stringify(services).replace(/,/g, ", ")});`,
+        `    const ${v} = ${this.core("pathValue", false)}(${JSON.stringify(jsonPath)}, ${n}, ${JSON.stringify(segment.pattern)});`,
+        // A full name is set to its relative name, on a copy, so that the
+        // body carries what the path does.
+        `    if (${n} !== (${access} ?? "")) request = ${withField("request", segment.fields.map(jsonName), n)};`,
       );
       pathExpression += "${" + v + "}";
     }

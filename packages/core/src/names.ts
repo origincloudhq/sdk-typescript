@@ -292,32 +292,45 @@ function isVersion(segment: string): boolean {
   return /^v[1-9][0-9]*((alpha|beta)[0-9]*)?$/.test(segment);
 }
 
+/** Among the services a path field takes, every resource service: a field referring to any type. */
+export const ANY_SERVICE = "*";
+
+/** The hosts of `services`, for an error. */
+function hostsOf(services: readonly string[]): string {
+  if (services.includes(ANY_SERVICE)) return "the host of one of the platform's APIs";
+  const hosts = services.map((s) => `${s}.${DOMAIN}`);
+  return hosts.length === 1 ? hosts[0]! : `one of ${hosts.join(", ")}`;
+}
+
 /**
  * The relative name to send in a request's path for `value`, the path
- * field `field` of a call to the service `own` (a short code): `value` as
- * it is when it isn't a full name, its relative name when it is one of
- * `own`'s; throws when it is another service's, a URN, a URL or no valid
- * full name.
+ * field `field` of a call to the service `own` (a short code), which takes
+ * full names of `services`: the services of the type it refers to,
+ * {@link ANY_SERVICE} for any, or none for `own`. `value` is sent as it is
+ * when it isn't a full name, and as its relative name when it is one of
+ * those services'; throws, naming the hosts the field takes, when it is
+ * another service's, a URN, a URL or no valid full name.
  */
-export function pathName(own: string, field: string, value: string): string {
-  const inField = (err: FullNameError) =>
-    new FullNameError(err.reason, err.value, `${field}: ${err.message.replace(/^origincloud: /, "")}`);
+export function pathName(own: string, services: readonly string[], field: string, value: string): string {
+  const accepted = services.length === 0 ? [own] : services;
+  const refused = (err: FullNameError) =>
+    new FullNameError(err.reason, err.value, `${field} must be a name on ${hostsOf(accepted)}: ${err.message.replace(/^origincloud: /, "")}`);
   if (!value.startsWith("//")) {
     const err = notFull(value);
-    if (err.reason === "urn" || err.reason === "scheme") throw inField(err);
+    if (err.reason === "urn" || err.reason === "scheme") throw refused(err);
     return value;
   }
   let name: FullName;
   try {
     name = FullName.parse(value);
   } catch (err) {
-    throw err instanceof FullNameError ? inField(err) : err;
+    throw err instanceof FullNameError ? refused(err) : err;
   }
-  if (name.service !== own) {
+  if (!accepted.includes(ANY_SERVICE) && !accepted.includes(name.service)) {
     throw new FullNameError(
       "otherService",
       value,
-      `${field} must be a name on ${own}.${DOMAIN}, the host this client calls, got ${json(value)}, a name on ${name.host}`,
+      `${field} must be a name on ${hostsOf(accepted)}, got ${json(value)}, a name on ${name.host}`,
     );
   }
   return name.relative;

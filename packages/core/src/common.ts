@@ -15,6 +15,7 @@ export {
 export { type CalendarDate } from "./date.js";
 export { type FieldViolation, OriginCloudError, reasonOf } from "./errors.js";
 export {
+  ANY_SERVICE,
   DOMAIN,
   FullName,
   FullNameError,

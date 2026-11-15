@@ -6,6 +6,7 @@ import {
   type Client,
   type Service,
   newRequestId,
+  pathValue,
   query,
 } from "@origincloud/core";
 
@@ -29,7 +30,9 @@ export class CaseClient {
 
   /** Returns a case. Needs `admin.support_case.get` on the organization. */
   async getCase(request: GetCaseRequest, options?: CallOptions): Promise<Case> {
-    const p0 = this.service.pathValue("name", request.name, "organizations/*/cases/*");
+    const n0 = this.service.relativeName("name", request.name, ["support"]);
+    const p0 = pathValue("name", n0, "organizations/*/cases/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Case>(
       {
         method: "GET",
@@ -46,7 +49,9 @@ export class CaseClient {
    * `admin.support_case.list` on the organization.
    */
   async listCases(request: ListCasesRequest, options?: CallOptions): Promise<ListCasesResponse> {
-    const p0 = this.service.pathValue("parent", request.parent, "organizations/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["resourcemanager"]);
+    const p0 = pathValue("parent", n0, "organizations/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListCasesResponse>(
       {
         method: "GET",
@@ -78,7 +83,9 @@ export class CaseClient {
    */
   async createCase(request: CreateCaseRequest, options?: CallOptions): Promise<Case> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("parent", request.parent, "organizations/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["resourcemanager"]);
+    const p0 = pathValue("parent", n0, "organizations/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<Case>(
       {
         method: "POST",
@@ -97,7 +104,9 @@ export class CaseClient {
    * `admin.support_case.update` on the organization.
    */
   async closeCase(request: CloseCaseRequest, options?: CallOptions): Promise<Case> {
-    const p0 = this.service.pathValue("name", request.name, "organizations/*/cases/*");
+    const n0 = this.service.relativeName("name", request.name, ["support"]);
+    const p0 = pathValue("name", n0, "organizations/*/cases/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Case>(
       {
         method: "POST",
@@ -115,7 +124,9 @@ export class CaseClient {
    * `admin.support_case.update` on the organization.
    */
   async reopenCase(request: ReopenCaseRequest, options?: CallOptions): Promise<Case> {
-    const p0 = this.service.pathValue("name", request.name, "organizations/*/cases/*");
+    const n0 = this.service.relativeName("name", request.name, ["support"]);
+    const p0 = pathValue("name", n0, "organizations/*/cases/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Case>(
       {
         method: "POST",

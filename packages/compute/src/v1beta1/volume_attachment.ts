@@ -9,6 +9,7 @@ import {
   Operation,
   type Service,
   newRequestId,
+  pathValue,
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
@@ -34,7 +35,9 @@ export class VolumeAttachmentClient {
 
   /** Returns a volume attachment. A detached attachment isn't found. */
   async getVolumeAttachment(request: GetVolumeAttachmentRequest, options?: CallOptions): Promise<VolumeAttachment> {
-    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/instances/*/volumeAttachments/*");
+    const n0 = this.service.relativeName("name", request.name, ["compute"]);
+    const p0 = pathValue("name", n0, "projects/*/zones/*/instances/*/volumeAttachments/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<VolumeAttachment>(
       {
         method: "GET",
@@ -53,7 +56,9 @@ export class VolumeAttachmentClient {
    * Detached attachments aren't listed.
    */
   async listVolumeAttachments(request: ListVolumeAttachmentsRequest, options?: CallOptions): Promise<ListVolumeAttachmentsResponse> {
-    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*/instances/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["compute"]);
+    const p0 = pathValue("parent", n0, "projects/*/zones/*/instances/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListVolumeAttachmentsResponse>(
       {
         method: "GET",
@@ -90,7 +95,9 @@ export class VolumeAttachmentClient {
    */
   async createVolumeAttachment(request: CreateVolumeAttachmentRequest, options?: CallOptions): Promise<Operation<VolumeAttachment, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("parent", request.parent, "projects/*/zones/*/instances/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["compute"]);
+    const p0 = pathValue("parent", n0, "projects/*/zones/*/instances/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -114,7 +121,9 @@ export class VolumeAttachmentClient {
    */
   async deleteVolumeAttachment(request: DeleteVolumeAttachmentRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = this.service.pathValue("name", request.name, "projects/*/zones/*/instances/*/volumeAttachments/*");
+    const n0 = this.service.relativeName("name", request.name, ["compute"]);
+    const p0 = pathValue("name", n0, "projects/*/zones/*/instances/*/volumeAttachments/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",
