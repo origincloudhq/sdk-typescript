@@ -202,7 +202,10 @@ export interface OrganizationCostReport {
 
 /** One project's cost in an organization's report, over every service. */
 export interface ProjectCost {
-  /** The project, `projects/{project}`. */
+  /**
+   * The project's full name,
+   * `//resourcemanager.origincloudapis.eu/projects/{project}`.
+   */
   project?: string;
   /** The project's total. */
   total?: string;
@@ -233,8 +236,8 @@ export interface UsageRecord {
   /** When the interval ends. */
   endTime?: string;
   /**
-   * The billing account the usage was charged to, the one the project was
-   * linked to when it was recorded; empty if it had none.
+   * The full name of the billing account the usage was charged to, the one
+   * the project was linked to when it was recorded; empty if it had none.
    */
   billingAccount?: string;
 }

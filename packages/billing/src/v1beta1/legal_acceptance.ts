@@ -136,15 +136,17 @@ export interface LegalAcceptance {
   /** The acceptance's resource name. */
   name?: string;
   /**
-   * The version accepted,
-   * `legalDocuments/{legal_document}/versions/{version}`.
+   * The full name of the version accepted,
+   * `//billing.origincloudapis.eu/legalDocuments/{legal_document}/versions/{version}`.
    */
   legalDocumentVersion?: string;
   /** The SHA-256 of the text accepted: the version's `sha256`. */
   sha256?: string;
   /**
-   * Who accepted: `user:{id}`, or `service_account:{id}` for a service
-   * account.
+   * Who accepted, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform did.
    */
   accepter?: string;
   /** When the version was accepted. */
@@ -190,7 +192,10 @@ export type LegalAcceptance_Method = (typeof LegalAcceptance_Method)[keyof typeo
 
 /** A legal document version a billing account has yet to accept. */
 export interface LegalRequirement {
-  /** The version, `legalDocuments/{legal_document}/versions/{version}`. */
+  /**
+   * The version's full name,
+   * `//billing.origincloudapis.eu/legalDocuments/{legal_document}/versions/{version}`.
+   */
   legalDocumentVersion?: string;
   /** The version's title, such as `Terms of Service`. */
   displayName?: string;

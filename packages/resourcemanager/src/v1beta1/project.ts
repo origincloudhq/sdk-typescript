@@ -182,19 +182,19 @@ export interface Project {
    */
   name?: string;
   /**
-   * The project's URN, the identifier access policies and the audit log
-   * use.
+   * The full name of the organization the project belongs to,
+   * `//resourcemanager.origincloudapis.eu/organizations/{organization}`.
    */
-  urn?: string;
-  /** The organization the project belongs to, `organizations/{organization}`. */
   organization?: string;
   /** The name the console shows. Not empty. */
   displayName?: string;
   /** When the project was created. */
   createTime?: string;
   /**
-   * The principal that created the project, such as `user:<id>` or
-   * `service_account:<id>`.
+   * The principal that created the project, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform did.
    */
   creator?: string;
 }
@@ -207,7 +207,10 @@ export interface GetProjectRequest {
 
 /** The request for ListProjects. */
 export interface ListProjectsRequest {
-  /** The organization whose projects to list, `organizations/{organization}`. */
+  /**
+   * The full name of the organization whose projects to list,
+   * `//resourcemanager.origincloudapis.eu/organizations/{organization}`.
+   */
   organization?: string;
   /**
    * The most projects to return; the server clamps it, and 0 means its

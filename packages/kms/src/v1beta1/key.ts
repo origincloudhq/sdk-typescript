@@ -324,7 +324,7 @@ export interface Key {
    * to `ENABLED` or `DISABLED`, and DeleteKey makes it `DELETED`.
    */
   state?: Key_State;
-  /** The version new ciphertexts and signatures use. */
+  /** The full name of the version new ciphertexts and signatures use. */
   primaryVersion?: string;
   /** Every version, oldest first. RotateKey adds one. */
   versions?: Key_Version[];
@@ -390,8 +390,8 @@ export type Key_State = (typeof Key_State)[keyof typeof Key_State];
 /** A version of the key: one generation of its material. */
 export interface Key_Version {
   /**
-   * The version's resource name,
-   * `projects/{project}/regions/{region}/keys/{key}/versions/{version}`,
+   * The version's full name,
+   * `//kms.origincloudapis.eu/projects/{project}/regions/{region}/keys/{key}/versions/{version}`,
    * numbered from 1.
    */
   keyVersion?: string;
@@ -536,7 +536,7 @@ export interface EncryptRequest {
 export interface EncryptResponse {
   /** The ciphertext, to store and pass to Decrypt. */
   ciphertext?: string;
-  /** The key version that encrypted it. */
+  /** The full name of the key version that encrypted it. */
   keyVersion?: string;
 }
 
@@ -554,7 +554,7 @@ export interface DecryptRequest {
 export interface DecryptResponse {
   /** The decrypted data. */
   plaintext?: string;
-  /** The key version that decrypted it. */
+  /** The full name of the key version that decrypted it. */
   keyVersion?: string;
 }
 
@@ -575,7 +575,7 @@ export interface GenerateDataKeyResponse {
    * pass to Decrypt.
    */
   ciphertext?: string;
-  /** The key version that encrypted it. */
+  /** The full name of the key version that encrypted it. */
   keyVersion?: string;
 }
 
@@ -586,7 +586,8 @@ export interface SignRequest {
   /** The data to sign, at most 64 KiB. */
   data?: string;
   /**
-   * The version of `name` to sign with, `{name}/versions/{version}`.
+   * The full name of the version of `name` to sign with,
+   * `//kms.origincloudapis.eu/{name}/versions/{version}`.
    * Without it, the key's primary version signs. Name it when the
    * signature's verifiers must know the version before the signature
    * exists, for example a token whose header names its key: the primary
@@ -600,7 +601,10 @@ export interface SignRequest {
 export interface SignResponse {
   /** The signature: ASN.1 DER for ECDSA, 64 bytes for Ed25519. */
   signature?: string;
-  /** The key version that signed, whose public key verifies it. */
+  /**
+   * The full name of the key version that signed, whose public key
+   * verifies it.
+   */
   keyVersion?: string;
 }
 

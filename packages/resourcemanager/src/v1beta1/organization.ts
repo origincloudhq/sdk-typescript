@@ -159,11 +159,6 @@ export class OrganizationClient {
 export interface Organization {
   /** The organization's resource name, `organizations/{organization}`. */
   name?: string;
-  /**
-   * The organization's URN, the identifier access policies and the audit
-   * log use.
-   */
-  urn?: string;
   /** The name the console shows, typically the company's name. Not empty. */
   displayName?: string;
   /**
@@ -174,8 +169,10 @@ export interface Organization {
   /** When the organization was created. */
   createTime?: string;
   /**
-   * The principal that created the organization, such as `user:<id>` or
-   * `service_account:<id>`.
+   * The principal that created the organization, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform did.
    */
   creator?: string;
 }

@@ -51,8 +51,8 @@ export interface AssumeServiceAccountRequest {
   /** The OIDC token, a JWT its issuer signed, such as a CI job's. */
   oidcToken?: string;
   /**
-   * The service account to assume,
-   * `organizations/{organization}/serviceAccounts/{service_account}`. Only
+   * The full name of the service account to assume,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`. Only
    * its federated credentials are considered. Without it, any service
    * account's credential that trusts the token is.
    */
@@ -74,10 +74,13 @@ export interface AssumeServiceAccountResponse {
   /** When the access token expires. */
   expireTime?: string;
   /**
-   * The service account assumed,
-   * `organizations/{organization}/serviceAccounts/{service_account}`.
+   * The full name of the service account assumed,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`.
    */
   serviceAccount?: string;
-  /** The federated credential that trusted the token. */
+  /**
+   * The full name of the federated credential that trusted the token, on
+   * iam.
+   */
   federatedCredential?: string;
 }
