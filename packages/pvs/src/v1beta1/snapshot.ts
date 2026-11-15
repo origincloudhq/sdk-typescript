@@ -199,12 +199,7 @@ export class SnapshotClient {
 export interface Snapshot {
   /** The snapshot's resource name. */
   name?: string;
-  /**
-   * The snapshot's URN, the identifier access policies and the audit log
-   * use.
-   */
-  urn?: string;
-  /** The volume copied, in the same project and zone. */
+  /** The full name of the volume copied, in the same project and zone. */
   sourceVolume?: string;
   /**
    * The source volume's size in GiB when it was copied: the least a volume
@@ -223,8 +218,11 @@ export interface Snapshot {
    */
   protectionReason?: string;
   /**
-   * The principal that took the snapshot, such as `user:<id>` or
-   * `service_account:<id>`.
+   * The principal that took the snapshot, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform took
+   * it.
    */
   creator?: string;
   /**
