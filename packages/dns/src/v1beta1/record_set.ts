@@ -180,11 +180,6 @@ export interface RecordSet {
   /** The record set's resource name. */
   name?: string;
   /**
-   * The record set's URN, the identifier access policies and the audit log
-   * use.
-   */
-  urn?: string;
-  /**
    * The name the records answer for: the zone's `dnsName` or a name below
    * it, written in full, such as `www.example.com`, without the final dot;
    * answered in lowercase. Labels may hold `_` (`_dmarc.example.com`), and
@@ -261,8 +256,8 @@ export interface BasicRecordData {
  */
 export interface AliasRecordData {
   /**
-   * The Floating IP whose address the record set answers with, in the
-   * zone's project. A Floating IP's address is an IPv4 address, so the
+   * The full name of the Floating IP whose address the record set answers
+   * with, in the zone's project. A Floating IP's address is an IPv4 address, so the
    * record set is of type `A`; an `AAAA` alias is refused.
    */
   floatingIp?: string;
@@ -356,7 +351,7 @@ export interface BatchChangeRecordSetsRequest {
    * `projects/{project}/hostedZones/{hosted_zone}`.
    */
   parent?: string;
-  /** The record sets to delete, by name. */
+  /** The record sets to delete, by their full names. */
   deletions?: string[];
   /**
    * The record sets to change, each with the fields to change, as

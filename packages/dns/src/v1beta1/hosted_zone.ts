@@ -196,8 +196,6 @@ export class HostedZoneClient {
 export interface HostedZone {
   /** The zone's resource name. */
   name?: string;
-  /** The zone's URN, the identifier access policies and the audit log use. */
-  urn?: string;
   /**
    * The domain, such as `example.com`, without the final dot; answered in
    * lowercase. A public zone's has at least two labels and at most 235
@@ -230,8 +228,10 @@ export interface HostedZone {
   /** When the zone was created. */
   createTime?: string;
   /**
-   * The principal that created the zone, such as `user:<id>` or
-   * `service_account:<id>`.
+   * The principal that created the zone, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform did.
    */
   creator?: string;
   /**
