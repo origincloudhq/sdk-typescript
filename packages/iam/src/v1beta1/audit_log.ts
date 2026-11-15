@@ -86,17 +86,17 @@ export interface AuditLogEntry {
   /** The entry's resource name. */
   name?: string;
   /**
-   * The project the change was limited to, `projects/{project}`; empty for
-   * a change to the whole organization.
+   * The full name of the project the change was limited to,
+   * `//resourcemanager.origincloudapis.eu/projects/{project}`; empty for a
+   * change to the whole organization.
    */
   project?: string;
   /**
-   * Who made the change, as it was when the change was made:
-   * `user:{email}` with the verified address the account had then,
-   * `userId:{user}` when none was recorded, `serviceAccount:{service_account}`,
-   * `serviceAgent:{service_agent}` for a platform service agent acting in
-   * the organization, or `platform` for a change the platform made itself.
-   * A later change of address doesn't change it.
+   * The full name of who made the change: `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * `//iam.origincloudapis.eu/serviceAgents/{service_agent}` for a platform
+   * service agent, or `//iam.origincloudapis.eu/services/{service}` for a
+   * change the platform made itself.
    */
   actor?: string;
   /**
@@ -105,8 +105,8 @@ export interface AuditLogEntry {
    */
   action?: string;
   /**
-   * What it was done to, written as `actor` is, or the email address
-   * invited; empty when the action has no target.
+   * The full name of what it was done to, such as a member's, or the email
+   * address invited; empty when the action has no target.
    */
   target?: string;
   /** Whether the change was made. */
@@ -153,14 +153,14 @@ export interface ListAuditLogEntriesRequest {
    */
   parent?: string;
   /**
-   * Only the entries of changes limited to this project,
-   * `projects/{project}`. Every entry when empty.
+   * Only the entries of changes limited to this project, by its full name,
+   * `//resourcemanager.origincloudapis.eu/projects/{project}`. Every entry
+   * when empty.
    */
   project?: string;
   /**
-   * Only the entries of changes made by this member, named by its full
-   * name as a role binding's member is, or as an entry's `actor` shows it.
-   * Every actor's when empty.
+   * Only the entries of changes made by this member, by its full name, as
+   * a role binding's `member` names it. Every actor's when empty.
    */
   actor?: string;
   /**

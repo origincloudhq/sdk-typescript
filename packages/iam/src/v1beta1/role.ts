@@ -60,15 +60,13 @@ export interface Role {
    * `roles/billing.administrator`. A role binding names its role by it.
    */
   name?: string;
-  /** The role's URN, the identifier access policies and the audit log use. */
-  urn?: string;
   /** The name the console shows, such as `Owner`. */
   displayName?: string;
   /** What holding the role allows, in a sentence. */
   description?: string;
   /**
-   * The permissions the role grants, `permissions/{permission}`, in
-   * catalog order.
+   * The full names of the permissions the role grants,
+   * `//iam.origincloudapis.eu/permissions/{permission}`, in catalog order.
    */
   includedPermissions?: string[];
 }

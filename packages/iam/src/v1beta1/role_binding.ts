@@ -19,7 +19,7 @@ import {
  * of its bindings. Each binding is managed on its own, so creating or
  * deleting one never touches another, whoever made it.
  *
- * A member is named by its full name, one of:
+ * A member is named by its full name, and only by it, one of:
  * - `//iam.origincloudapis.eu/users/{user}`: a user, by the id of their
  *   account, which must exist and be enabled.
  * - `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`:
@@ -33,21 +33,8 @@ import {
  *   agent bound to `roles/kms.grant-delegate`; delete that binding and
  *   compute makes no new grants on the organization's keys.
  *
- * A member is also accepted in the form responses show it in:
- * - `user:{email}`: a user, by the verified email address of their
- *   account. A binding holds on to the account, not the address: it
- *   follows a later change of address, and is always shown with the
- *   account's current one.
- * - `serviceAccount:{service_account}`: a service account of the same
- *   organization, by its id.
- * - `serviceAgent:{service_agent}`: a platform service agent, by its name,
- *   such as `serviceAgent:compute`.
- *
- * and shown, never accepted, as:
- * - `userId:{user}`: a user by the id of their account, when no verified
- *   address can be shown: the account's current address isn't verified, or
- *   the caller may only see their own bindings.
- * - `deleted:user:{user}`: a user whose account no longer exists.
+ * A user known only by an email address is found with
+ * `UserService.LookupUser`, which answers their name.
  */
 export class RoleBindingClient {
   /**
@@ -119,9 +106,7 @@ export class RoleBindingClient {
    * the role at the binding's scope: a permission held on the organization
    * counts for any scope, one held on a project only for that project.
    * Refused with `NOT_FOUND` when `member` names a user without an enabled
-   * account, a service account of another organization, or an address no
-   * enabled account has verified: nothing is held for an address until its
-   * account exists.
+   * account or a service account of another organization.
    * Refused with `CONFLICT` when the member already holds the role at that
    * scope, and with `BAD_REQUEST` when the member is a deleted service
    * account, names no service agent the platform has, or is a service
@@ -176,31 +161,32 @@ export interface RoleBinding {
   /** The binding's resource name. */
   name?: string;
   /**
-   * The binding's URN, the identifier access policies and the audit log
-   * use.
-   */
-  urn?: string;
-  /**
-   * Who holds the role: given as a member's full name, such as
-   * `//iam.origincloudapis.eu/users/{user}`, or in the form shown here.
-   * Shown as `user:{email}`, `serviceAccount:{service_account}` or
-   * `serviceAgent:{service_agent}`: a user with their account's current
-   * verified address, as `userId:{user}` when it has none, or as
-   * `deleted:user:{user}` once the account is gone.
+   * The full name of who holds the role: a user,
+   * `//iam.origincloudapis.eu/users/{user}`, one of the organization's
+   * service accounts,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent,
+   * `//iam.origincloudapis.eu/serviceAgents/{service_agent}`.
    */
   member?: string;
-  /** The role granted, `roles/{role}`. */
+  /**
+   * The full name of the role granted,
+   * `//iam.origincloudapis.eu/roles/{role}`.
+   */
   role?: string;
   /**
-   * The project the binding is limited to, `projects/{project}`, one of
-   * the organization's. Empty for a binding on the whole organization,
-   * which covers every project in it.
+   * The full name of the project the binding is limited to, one of the
+   * organization's: `//resourcemanager.origincloudapis.eu/projects/{project}`.
+   * Empty for a binding on the whole organization, which covers every
+   * project in it.
    */
   project?: string;
   /**
-   * Who created the binding, written as a member is, or `platform` for a
-   * binding the platform made itself. Always `userId:{user}` for a user in
-   * a list of the caller's own bindings (`organizations/-`).
+   * The full name of who created the binding: `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * `//iam.origincloudapis.eu/serviceAgents/{service_agent}` for a platform
+   * service agent, or `//iam.origincloudapis.eu/services/{service}` for a
+   * change the platform made itself.
    */
   creator?: string;
   /** When the binding was created. */
@@ -222,13 +208,13 @@ export interface ListRoleBindingsRequest {
    */
   parent?: string;
   /**
-   * Only the bindings of this member, by its full name, such as
-   * `//iam.origincloudapis.eu/users/{user}`, or as a binding's `member`
-   * shows it. Every member's when empty.
+   * Only the bindings of this member, by its full name, as a binding's
+   * `member` names it. Every member's when empty.
    */
   member?: string;
   /**
-   * Only the bindings limited to this project, `projects/{project}`. Every
+   * Only the bindings limited to this project, by its full name,
+   * `//resourcemanager.origincloudapis.eu/projects/{project}`. Every
    * binding, organization-wide or not, when empty.
    */
   project?: string;

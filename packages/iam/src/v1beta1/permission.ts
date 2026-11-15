@@ -87,11 +87,6 @@ export interface Permission {
    * such as `permissions/pvs.volume.create`.
    */
   name?: string;
-  /**
-   * The permission's URN, the identifier access policies and the audit log
-   * use.
-   */
-  urn?: string;
   /** The service whose API checks it, such as `pvs`. */
   service?: string;
   /** The kind of resource it applies to, such as `volume`. */

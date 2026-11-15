@@ -164,8 +164,9 @@ export interface ServiceAccount {
   /** A name of your own, shown in the console; at most 100 characters. */
   displayName?: string;
   /**
-   * The member a role binding names it by,
-   * `serviceAccount:{service_account}`.
+   * The service account's full name,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * which a role binding names it by as a member.
    */
   member?: string;
   /**
@@ -182,8 +183,11 @@ export interface ServiceAccount {
   /** Where the service account is in its lifecycle. */
   state?: ServiceAccount_State;
   /**
-   * Who created the service account, written as a role binding's member
-   * is.
+   * The full name of who created the service account: `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * `//iam.origincloudapis.eu/serviceAgents/{service_agent}` for a platform
+   * service agent, or `//iam.origincloudapis.eu/services/{service}` for a
+   * change the platform made itself.
    */
   creator?: string;
   /** When the service account was created. */
