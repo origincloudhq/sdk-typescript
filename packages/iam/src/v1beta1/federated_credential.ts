@@ -166,8 +166,11 @@ export interface FederatedCredential {
   /** Where the federated credential is in its lifecycle. */
   state?: FederatedCredential_State;
   /**
-   * Who created the federated credential, written as a role binding's
-   * member is.
+   * The full name of who created the federated credential: `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * `//iam.origincloudapis.eu/serviceAgents/{service_agent}` for a platform
+   * service agent, or `//iam.origincloudapis.eu/services/{service}` for a
+   * change the platform made itself.
    */
   creator?: string;
   /** When the federated credential was created. */

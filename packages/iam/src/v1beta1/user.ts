@@ -46,9 +46,8 @@ export class UserClient {
 
   /**
    * Looks up the user whose account has verified an email address, and
-   * answers them with their `name`: their full name is
-   * `//iam.origincloudapis.eu/` followed by it, which is how a role
-   * binding names them as a member. Needs `iam.role.assign` on
+   * answers them with their `name` and their full name, `member`, which is
+   * how a role binding names them. Needs `iam.role.assign` on
    * `organization`, the permission a binding of the user needs anyway.
    * Refused with `NOT_FOUND` when no enabled account has verified the
    * address, and with `CONFLICT` when more than one has. The answer leaves
@@ -75,8 +74,8 @@ export interface User {
    */
   name?: string;
   /**
-   * How a role binding shows the user: `user:{email}` once `email` is
-   * verified, `userId:{user}` until then.
+   * The user's full name, `//iam.origincloudapis.eu/users/{user}`, which a
+   * role binding names them by as a member.
    */
   member?: string;
   /** The email address the user signs in with. */
@@ -103,8 +102,9 @@ export interface LookupUserRequest {
    */
   email?: string;
   /**
-   * The organization the caller looks the user up for, where it needs
-   * `iam.role.assign`: `organizations/{organization}`, or its full name.
+   * The full name of the organization the caller looks the user up for,
+   * where it needs `iam.role.assign`:
+   * `//resourcemanager.origincloudapis.eu/organizations/{organization}`.
    */
   organization?: string;
 }
