@@ -74,8 +74,6 @@ export class PublicImageClient {
 export interface PublicImage {
   /** The image's resource name, `zones/{zone}/images/{image}`. */
   name?: string;
-  /** The image's URN, the identifier access policies and the audit log use. */
-  urn?: string;
   /** What the image holds. */
   description?: string;
   /**
@@ -94,8 +92,9 @@ export interface PublicImage {
   /** Where it is in its lifecycle. */
   state?: Image_State;
   /**
-   * The family the image belongs to, `imageFamilies/{image_family}`; empty
-   * for an image of none.
+   * The full name of the family the image belongs to,
+   * `//compute.origincloudapis.eu/imageFamilies/{image_family}`; empty for
+   * an image of none.
    */
   imageFamily?: string;
   /** Whether `imageFamily` launches this image now. */

@@ -139,11 +139,6 @@ export interface KeyPair {
   /** The key pair's resource name. */
   name?: string;
   /**
-   * The key pair's URN, the identifier access policies and the audit log
-   * use.
-   */
-  urn?: string;
-  /**
    * The OpenSSH public key line, such as `ssh-ed25519 AAAA... comment`.
    * Left empty, the platform generates the key pair.
    */
@@ -155,8 +150,10 @@ export interface KeyPair {
    */
   privateKey?: string;
   /**
-   * The principal that created the key pair, such as `user:<id>` or
-   * `service_account:<id>`.
+   * The principal that created the key pair, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform did.
    */
   creator?: string;
   /**

@@ -228,33 +228,31 @@ export interface Instance {
   /** The instance's resource name. */
   name?: string;
   /**
-   * The instance's URN, the identifier access policies and the audit log
-   * use.
-   */
-  urn?: string;
-  /**
-   * The instance type, `instanceTypes/{instance_type}`, such as
-   * `instanceTypes/gp1.core.2`: one whose `available` is true. Changing it
+   * The instance type by its full name,
+   * `//compute.origincloudapis.eu/instanceTypes/{instance_type}`, such as
+   * `//compute.origincloudapis.eu/instanceTypes/gp1.core.2`: one whose
+   * `available` is true. Changing it
    * needs the instance `STOPPED`.
    */
   instanceType?: string;
   /**
-   * The image the boot volume is created from, in the instance's zone: one
-   * of the project's own, `projects/{project}/zones/{zone}/images/{image}`,
-   * or a public one, `zones/{zone}/images/{image}`. Set exactly one of
+   * The full name of the image the boot volume is created from, in the
+   * instance's zone: one of the project's own,
+   * `//compute.origincloudapis.eu/projects/{project}/zones/{zone}/images/{image}`,
+   * or a public one, `//compute.origincloudapis.eu/zones/{zone}/images/{image}`. Set exactly one of
    * `image` and `imageFamily`; launched from a family, this is the public
    * image the family resolved to.
    */
   image?: string;
   /**
-   * The image family to launch the current public image of,
-   * `imageFamilies/{image_family}`. Set exactly one of `image` and
+   * The full name of the image family to launch the current public image
+   * of, `//compute.origincloudapis.eu/imageFamilies/{image_family}`. Set exactly one of `image` and
    * `imageFamily`. Empty when the instance was launched from an image.
    */
   imageFamily?: string;
   /**
-   * The key pair whose public key is installed for `loginUser`, in the
-   * instance's project.
+   * The full name of the key pair whose public key is installed for
+   * `loginUser`, in the instance's project.
    */
   keyPair?: string;
   /**
@@ -270,8 +268,8 @@ export interface Instance {
    */
   bootVolume?: BootVolume;
   /**
-   * The network interfaces, in device order, the boot interface first;
-   * exactly one today. Each is an existing interface in the instance's
+   * The network interfaces' full names, in device order, the boot
+   * interface first; exactly one today. Each is an existing interface in the instance's
    * project and zone that nothing else holds, created with the network
    * service: its subnet and security groups are the instance's.
    * Terminating the instance releases it, and it stays. An instance
@@ -295,8 +293,10 @@ export interface Instance {
   /** When the instance was launched. */
   createTime?: string;
   /**
-   * The principal that launched the instance, such as `user:<id>` or
-   * `service_account:<id>`.
+   * The principal that launched the instance, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform did.
    */
   creator?: string;
   /**
@@ -310,8 +310,8 @@ export interface Instance {
    */
   interfaceAddresses?: InterfaceAddresses[];
   /**
-   * The service account the instance runs as,
-   * `organizations/{organization}/serviceAccounts/{service_account}`: a
+   * The full name of the service account the instance runs as,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`: a
    * `WORKLOAD` service account of the instance's organization that isn't
    * deleted. Launching with one, or updating the instance to one, needs
    * `iam.service_account.act_as` on the organization as well; an update
@@ -364,17 +364,18 @@ export interface BootVolume {
    */
   sizeGib?: number;
   /**
-   * The storage class, `storageClasses/{storage_class}` of the persistent
-   * volume service; the default class when left empty.
+   * The storage class by its full name,
+   * `//pvs.origincloudapis.eu/storageClasses/{storage_class}`; the default
+   * class when left empty.
    */
   storageClass?: string;
-  /** The volume, in the instance's project and zone. */
+  /** The volume's full name, in the instance's project and zone. */
   volume?: string;
 }
 
 /** The private addresses of one of an instance's network interfaces. */
 export interface InterfaceAddresses {
-  /** The network interface. */
+  /** The network interface's full name. */
   networkInterface?: string;
   /** Its private IPv4 address. */
   ipv4Address?: string;

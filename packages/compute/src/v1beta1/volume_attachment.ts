@@ -141,12 +141,7 @@ export class VolumeAttachmentClient {
 export interface VolumeAttachment {
   /** The attachment's resource name. */
   name?: string;
-  /**
-   * The attachment's URN, the identifier access policies and the audit log
-   * use.
-   */
-  urn?: string;
-  /** The volume, in the instance's project and zone. */
+  /** The volume's full name, in the instance's project and zone. */
   volume?: string;
   /**
    * The device name the guest sees the volume under, `vda` to `vdz`. The
@@ -209,7 +204,10 @@ export interface ListVolumeAttachmentsRequest {
   pageSize?: number;
   /** A previous response's `nextPageToken`, for the page after it. */
   pageToken?: string;
-  /** Only the attachments of this volume; every volume's when left empty. */
+  /**
+   * Only the attachments of this volume, by its full name; every volume's
+   * when left empty.
+   */
   volume?: string;
 }
 

@@ -139,8 +139,6 @@ export class ImageClient {
 export interface Image {
   /** The image's resource name. */
   name?: string;
-  /** The image's URN, the identifier access policies and the audit log use. */
-  urn?: string;
   /** What the image holds, as you describe it. */
   description?: string;
   /**
@@ -163,7 +161,12 @@ export interface Image {
   platform?: Image_Platform;
   /** Where it is in its lifecycle. */
   state?: Image_State;
-  /** The principal that created the image, such as `user:<id>`. */
+  /**
+   * The principal that created the image, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform did.
+   */
   creator?: string;
   /**
    * Labels of your own, at most 50. The `origin:name` tag is the name the
@@ -215,8 +218,8 @@ export interface ImageBlockDevice {
   /** The disk's size in GiB, at least the snapshot's. */
   sizeGib?: number;
   /**
-   * The protected snapshot the disk is created from, in the image's
-   * project and zone; an empty disk when left empty.
+   * The full name of the protected snapshot the disk is created from, in
+   * the image's project and zone; an empty disk when left empty.
    */
   sourceSnapshot?: string;
 }
