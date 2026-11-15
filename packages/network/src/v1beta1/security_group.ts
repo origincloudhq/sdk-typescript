@@ -164,9 +164,10 @@ export class SecurityGroupClient {
 export interface SecurityGroup {
   /** The group's resource name. */
   name?: string;
-  /** The group's URN, the identifier access policies and the audit log use. */
-  urn?: string;
-  /** The VPC the group belongs to, in the same project and region. */
+  /**
+   * The full name of the VPC the group belongs to, in the same project and
+   * region.
+   */
   vpc?: string;
   /**
    * Whether the platform created the group with the VPC. Only the
@@ -177,8 +178,10 @@ export interface SecurityGroup {
   /** When the security group was created. */
   createTime?: string;
   /**
-   * The principal that created the security group, such as `user:<id>` or
-   * `service_account:<id>`; empty for one the platform created.
+   * The principal that created the security group, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform did.
    */
   creator?: string;
   /**
@@ -208,7 +211,7 @@ export interface ListSecurityGroupsRequest {
   pageSize?: number;
   /** A previous response's `nextPageToken`, for the page after it. */
   pageToken?: string;
-  /** Only the groups of this VPC, when set. */
+  /** Only the groups of this VPC, by its full name, when set. */
   vpc?: string;
 }
 

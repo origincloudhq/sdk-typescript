@@ -93,7 +93,7 @@ export interface WaitOperationRequest {
 
 /** What an operation is about. */
 export interface OperationMetadata {
-  /** The resource the operation acts on. */
+  /** The full name of the resource the operation acts on. */
   target?: string;
   /**
    * What it does, as the method that started it names it: for example

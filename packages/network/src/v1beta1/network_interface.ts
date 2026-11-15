@@ -165,17 +165,14 @@ export interface NetworkInterface {
   /** The interface's resource name. */
   name?: string;
   /**
-   * The interface's URN, the identifier access policies and the audit log
-   * use.
-   */
-  urn?: string;
-  /**
-   * The subnet the interface has its addresses in, in the same project
+   * The full name of the subnet the interface has its addresses in, in the
+   * same project
    * and zone.
    */
   subnet?: string;
   /**
-   * The security groups that filter the interface's traffic, as its
+   * The full names of the security groups that filter the interface's
+   * traffic, as its
    * security group associations (each a `SecurityGroupAssociation`) set
    * them. The interface admits the traffic any of them allows. With none,
    * it admits and sends nothing except replies to its own traffic and
@@ -196,15 +193,18 @@ export interface NetworkInterface {
   /** Whether the interface is in use. */
   state?: NetworkInterface_State;
   /**
-   * The instance the interface is attached to; empty while it is
+   * The full name of the instance the interface is attached to, on the
+   * compute service; empty while it is
    * `AVAILABLE`. An instance attaches interfaces when it is launched.
    */
   instance?: string;
   /** When the network interface was created. */
   createTime?: string;
   /**
-   * The principal that created the network interface, such as `user:<id>`
-   * or `service_account:<id>`; empty for one the platform created.
+   * The principal that created the network interface, by its full name on iam:
+   * `//iam.origincloudapis.eu/users/{user}`,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
+   * or a platform service agent's or service's name when the platform did.
    */
   creator?: string;
   /**
@@ -247,7 +247,7 @@ export interface ListNetworkInterfacesRequest {
   pageSize?: number;
   /** A previous response's `nextPageToken`, for the page after it. */
   pageToken?: string;
-  /** Only the interfaces in this subnet, when set. */
+  /** Only the interfaces in this subnet, by its full name, when set. */
   subnet?: string;
 }
 
