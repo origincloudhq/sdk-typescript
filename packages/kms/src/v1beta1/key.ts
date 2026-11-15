@@ -36,7 +36,9 @@ export class KeyClient {
 
   /** Returns a key, deleted or not. Needs `kms.key.get` on the project. */
   async getKey(request: GetKeyRequest, options?: CallOptions): Promise<Key> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/keys/*");
+    const n0 = this.service.relativeName("name", request.name, ["kms"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/keys/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Key>(
       {
         method: "GET",
@@ -55,7 +57,9 @@ export class KeyClient {
    * on the project.
    */
   async listKeys(request: ListKeysRequest, options?: CallOptions): Promise<ListKeysResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["kms"]);
+    const p0 = pathValue("parent", n0, "projects/*/regions/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListKeysResponse>(
       {
         method: "GET",
@@ -88,7 +92,9 @@ export class KeyClient {
    */
   async createKey(request: CreateKeyRequest, options?: CallOptions): Promise<Key> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["kms"]);
+    const p0 = pathValue("parent", n0, "projects/*/regions/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<Key>(
       {
         method: "POST",
@@ -113,7 +119,9 @@ export class KeyClient {
    */
   async updateKey(request: UpdateKeyRequest, options?: CallOptions): Promise<Key> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("key.name", request.key?.name, "projects/*/regions/*/keys/*");
+    const n0 = this.service.relativeName("key.name", request.key?.name, ["kms"]);
+    const p0 = pathValue("key.name", n0, "projects/*/regions/*/keys/*");
+    if (n0 !== (request.key?.name ?? "")) request = { ...request, key: { ...request.key, name: n0 } };
     return this.service.call<Key>(
       {
         method: "PATCH",
@@ -136,7 +144,9 @@ export class KeyClient {
    */
   async deleteKey(request: DeleteKeyRequest, options?: CallOptions): Promise<Key> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/keys/*");
+    const n0 = this.service.relativeName("name", request.name, ["kms"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/keys/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Key>(
       {
         method: "DELETE",
@@ -157,7 +167,9 @@ export class KeyClient {
    */
   async undeleteKey(request: UndeleteKeyRequest, options?: CallOptions): Promise<Key> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/keys/*");
+    const n0 = this.service.relativeName("name", request.name, ["kms"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/keys/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Key>(
       {
         method: "POST",
@@ -178,7 +190,9 @@ export class KeyClient {
    */
   async rotateKey(request: RotateKeyRequest, options?: CallOptions): Promise<Key> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/keys/*");
+    const n0 = this.service.relativeName("name", request.name, ["kms"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/keys/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Key>(
       {
         method: "POST",
@@ -198,7 +212,9 @@ export class KeyClient {
    * `kms.key.encrypt` on the project.
    */
   async encrypt(request: EncryptRequest, options?: CallOptions): Promise<EncryptResponse> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/keys/*");
+    const n0 = this.service.relativeName("name", request.name, ["kms"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/keys/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<EncryptResponse>(
       {
         method: "POST",
@@ -217,7 +233,9 @@ export class KeyClient {
    * project.
    */
   async decrypt(request: DecryptRequest, options?: CallOptions): Promise<DecryptResponse> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/keys/*");
+    const n0 = this.service.relativeName("name", request.name, ["kms"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/keys/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<DecryptResponse>(
       {
         method: "POST",
@@ -236,7 +254,9 @@ export class KeyClient {
    * `kms.key.generate_data_key` on the project.
    */
   async generateDataKey(request: GenerateDataKeyRequest, options?: CallOptions): Promise<GenerateDataKeyResponse> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/keys/*");
+    const n0 = this.service.relativeName("name", request.name, ["kms"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/keys/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<GenerateDataKeyResponse>(
       {
         method: "POST",
@@ -255,7 +275,9 @@ export class KeyClient {
    * `ENCRYPT_DECRYPT` key. Needs `kms.key.sign` on the project.
    */
   async sign(request: SignRequest, options?: CallOptions): Promise<SignResponse> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/keys/*");
+    const n0 = this.service.relativeName("name", request.name, ["kms"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/keys/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<SignResponse>(
       {
         method: "POST",
@@ -273,7 +295,9 @@ export class KeyClient {
    * Needs `kms.key.get_public_key` on the project.
    */
   async getPublicKey(request: GetPublicKeyRequest, options?: CallOptions): Promise<PublicKey> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/keys/*/versions/*/publicKey");
+    const n0 = this.service.relativeName("name", request.name, ["kms"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/keys/*/versions/*/publicKey");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<PublicKey>(
       {
         method: "GET",

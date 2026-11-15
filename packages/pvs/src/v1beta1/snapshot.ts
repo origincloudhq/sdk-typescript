@@ -34,7 +34,9 @@ export class SnapshotClient {
 
   /** Returns a snapshot. */
   async getSnapshot(request: GetSnapshotRequest, options?: CallOptions): Promise<Snapshot> {
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/snapshots/*");
+    const n0 = this.service.relativeName("name", request.name, ["pvs"]);
+    const p0 = pathValue("name", n0, "projects/*/zones/*/snapshots/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Snapshot>(
       {
         method: "GET",
@@ -53,7 +55,9 @@ export class SnapshotClient {
    * each zone's snapshots.
    */
   async listSnapshots(request: ListSnapshotsRequest, options?: CallOptions): Promise<ListSnapshotsResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["pvs"]);
+    const p0 = pathValue("parent", n0, "projects/*/zones/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListSnapshotsResponse>(
       {
         method: "GET",
@@ -87,7 +91,9 @@ export class SnapshotClient {
    */
   async createSnapshot(request: CreateSnapshotRequest, options?: CallOptions): Promise<Operation<Snapshot, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["pvs"]);
+    const p0 = pathValue("parent", n0, "projects/*/zones/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -103,7 +109,9 @@ export class SnapshotClient {
 
   /** Changes a snapshot's tags. */
   async updateSnapshot(request: UpdateSnapshotRequest, options?: CallOptions): Promise<Snapshot> {
-    const p0 = pathValue("snapshot.name", request.snapshot?.name, "projects/*/zones/*/snapshots/*");
+    const n0 = this.service.relativeName("snapshot.name", request.snapshot?.name, ["pvs"]);
+    const p0 = pathValue("snapshot.name", n0, "projects/*/zones/*/snapshots/*");
+    if (n0 !== (request.snapshot?.name ?? "")) request = { ...request, snapshot: { ...request.snapshot, name: n0 } };
     return this.service.call<Snapshot>(
       {
         method: "PATCH",
@@ -123,7 +131,9 @@ export class SnapshotClient {
    */
   async deleteSnapshot(request: DeleteSnapshotRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/snapshots/*");
+    const n0 = this.service.relativeName("name", request.name, ["pvs"]);
+    const p0 = pathValue("name", n0, "projects/*/zones/*/snapshots/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",
@@ -144,7 +154,9 @@ export class SnapshotClient {
    */
   async protectSnapshot(request: ProtectSnapshotRequest, options?: CallOptions): Promise<Operation<Snapshot, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/snapshots/*");
+    const n0 = this.service.relativeName("name", request.name, ["pvs"]);
+    const p0 = pathValue("name", n0, "projects/*/zones/*/snapshots/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -167,7 +179,9 @@ export class SnapshotClient {
    */
   async unprotectSnapshot(request: UnprotectSnapshotRequest, options?: CallOptions): Promise<Operation<Snapshot, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/snapshots/*");
+    const n0 = this.service.relativeName("name", request.name, ["pvs"]);
+    const p0 = pathValue("name", n0, "projects/*/zones/*/snapshots/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",

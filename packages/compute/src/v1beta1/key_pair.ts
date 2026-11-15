@@ -33,7 +33,9 @@ export class KeyPairClient {
 
   /** Returns a key pair, its public key only. */
   async getKeyPair(request: GetKeyPairRequest, options?: CallOptions): Promise<KeyPair> {
-    const p0 = pathValue("name", request.name, "projects/*/keyPairs/*");
+    const n0 = this.service.relativeName("name", request.name, ["compute"]);
+    const p0 = pathValue("name", n0, "projects/*/keyPairs/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<KeyPair>(
       {
         method: "GET",
@@ -47,7 +49,9 @@ export class KeyPairClient {
 
   /** Lists a project's key pairs, oldest first. */
   async listKeyPairs(request: ListKeyPairsRequest, options?: CallOptions): Promise<ListKeyPairsResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["resourcemanager"]);
+    const p0 = pathValue("parent", n0, "projects/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListKeyPairsResponse>(
       {
         method: "GET",
@@ -83,7 +87,9 @@ export class KeyPairClient {
    */
   async createKeyPair(request: CreateKeyPairRequest, options?: CallOptions): Promise<KeyPair> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["resourcemanager"]);
+    const p0 = pathValue("parent", n0, "projects/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<KeyPair>(
       {
         method: "POST",
@@ -98,7 +104,9 @@ export class KeyPairClient {
 
   /** Changes a key pair's tags. */
   async updateKeyPair(request: UpdateKeyPairRequest, options?: CallOptions): Promise<KeyPair> {
-    const p0 = pathValue("keyPair.name", request.keyPair?.name, "projects/*/keyPairs/*");
+    const n0 = this.service.relativeName("keyPair.name", request.keyPair?.name, ["compute"]);
+    const p0 = pathValue("keyPair.name", n0, "projects/*/keyPairs/*");
+    if (n0 !== (request.keyPair?.name ?? "")) request = { ...request, keyPair: { ...request.keyPair, name: n0 } };
     return this.service.call<KeyPair>(
       {
         method: "PATCH",
@@ -112,7 +120,9 @@ export class KeyPairClient {
 
   /** Deletes a key pair. Instances launched with it keep the key installed. */
   async deleteKeyPair(request: DeleteKeyPairRequest, options?: CallOptions): Promise<Empty> {
-    const p0 = pathValue("name", request.name, "projects/*/keyPairs/*");
+    const n0 = this.service.relativeName("name", request.name, ["compute"]);
+    const p0 = pathValue("name", n0, "projects/*/keyPairs/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Empty>(
       {
         method: "DELETE",

@@ -28,7 +28,9 @@ export class UserClient {
    * profile.
    */
   async getUser(request: GetUserRequest, options?: CallOptions): Promise<User> {
-    const p0 = pathValue("name", request.name, "users/*");
+    const n0 = this.service.relativeName("name", request.name, ["iam"]);
+    const p0 = pathValue("name", n0, "users/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<User>(
       {
         method: "GET",

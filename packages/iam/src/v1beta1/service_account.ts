@@ -38,7 +38,9 @@ export class ServiceAccountClient {
    * `iam.service_account.list` on the organization.
    */
   async getServiceAccount(request: GetServiceAccountRequest, options?: CallOptions): Promise<ServiceAccount> {
-    const p0 = pathValue("name", request.name, "organizations/*/serviceAccounts/*");
+    const n0 = this.service.relativeName("name", request.name, ["iam"]);
+    const p0 = pathValue("name", n0, "organizations/*/serviceAccounts/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<ServiceAccount>(
       {
         method: "GET",
@@ -56,7 +58,9 @@ export class ServiceAccountClient {
    * `iam.service_account.list` on the organization.
    */
   async listServiceAccounts(request: ListServiceAccountsRequest, options?: CallOptions): Promise<ListServiceAccountsResponse> {
-    const p0 = pathValue("parent", request.parent, "organizations/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["resourcemanager"]);
+    const p0 = pathValue("parent", n0, "organizations/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListServiceAccountsResponse>(
       {
         method: "GET",
@@ -90,7 +94,9 @@ export class ServiceAccountClient {
    */
   async createServiceAccount(request: CreateServiceAccountRequest, options?: CallOptions): Promise<ServiceAccount> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "organizations/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["resourcemanager"]);
+    const p0 = pathValue("parent", n0, "organizations/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ServiceAccount>(
       {
         method: "POST",
@@ -114,7 +120,9 @@ export class ServiceAccountClient {
    */
   async rotateServiceAccountSecret(request: RotateServiceAccountSecretRequest, options?: CallOptions): Promise<ServiceAccount> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "organizations/*/serviceAccounts/*");
+    const n0 = this.service.relativeName("name", request.name, ["iam"]);
+    const p0 = pathValue("name", n0, "organizations/*/serviceAccounts/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<ServiceAccount>(
       {
         method: "POST",
@@ -135,7 +143,9 @@ export class ServiceAccountClient {
    * organization.
    */
   async deleteServiceAccount(request: DeleteServiceAccountRequest, options?: CallOptions): Promise<Empty> {
-    const p0 = pathValue("name", request.name, "organizations/*/serviceAccounts/*");
+    const n0 = this.service.relativeName("name", request.name, ["iam"]);
+    const p0 = pathValue("name", n0, "organizations/*/serviceAccounts/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Empty>(
       {
         method: "DELETE",

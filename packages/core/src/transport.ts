@@ -1,6 +1,7 @@
 import type { ClientBase as Client } from "./client.js";
 import { readLimitedBytes } from "./credentials.js";
 import { OriginCloudError, errorFromResponse } from "./errors.js";
+import { pathName } from "./names.js";
 
 /** The header that carries the consistency token, in responses and in requests. */
 export const CONSISTENCY_TOKEN_HEADER = "Origin-Consistency-Token";
@@ -73,10 +74,45 @@ export class Service {
   readonly client: Client;
   /** The base URL, without a trailing slash. */
   readonly base: string;
+  /**
+   * The service's shortcode, such as `pvs`: its host's first label, and the
+   * service a full resource name in a path field must name.
+   */
+  readonly shortcode: string;
 
-  constructor(client: Client, base: string) {
+  constructor(client: Client, base: string, shortcode: string) {
     this.client = client;
     this.base = base.replace(/\/+$/, "");
+    this.shortcode = shortcode;
+  }
+
+  /**
+   * The relative name `value`, the path field `field` of a call to this
+   * service, stands for: `value` itself, or the relative name of a full
+   * resource name it is. Generated clients call it, and send the relative
+   * name in the path and in the body alike.
+   *
+   * `services` are the short codes of the services whose full names the
+   * field takes: the service of the type the field refers to, such as
+   * `resourcemanager` for a billing account's `parent` (`organizations/*`),
+   * `"*"` for a field referring to any type, or none for this service's own.
+   * A full name of one of them, such as
+   * `//resourcemanager.origincloudapis.eu/organizations/o`, stands for its
+   * relative name. A full name of another service, one with a regional or
+   * zonal host or an API version, a URN, a URL or a malformed full name is
+   * refused with a `FullNameError` naming the hosts the field takes.
+   */
+  relativeName(field: string, value: string | undefined, services: readonly string[] = []): string {
+    return pathName(this.shortcode, services, field, value ?? "");
+  }
+
+  /**
+   * `value`, the path field `field` of a call to this service, as the path
+   * segments of the request: its {@link relativeName}, checked against
+   * `pattern` and escaped as the function {@link pathValue} does.
+   */
+  pathValue(field: string, value: string | undefined, pattern: string, services: readonly string[] = []): string {
+    return pathValue(field, this.relativeName(field, value, services), pattern);
   }
 
   /**
@@ -259,9 +295,11 @@ function queryScalar(path: string, value: unknown): string {
 }
 
 /**
- * `value` as the path segments of a request, checking it has the form
- * `pattern` gives it: the same segments, where a `*` in the pattern
- * stands for any one non-empty segment. `field` names it in the error.
+ * `value`, a relative resource name, as the path segments of a request,
+ * checking it has the form `pattern` gives it: the same segments, where a
+ * `*` in the pattern stands for any one non-empty segment. `field` names it
+ * in the error. {@link Service.pathValue} also takes a full resource name
+ * of its service.
  */
 export function pathValue(field: string, value: string | undefined, pattern: string): string {
   const got = (value ?? "").split("/");

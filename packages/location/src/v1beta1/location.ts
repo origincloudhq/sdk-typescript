@@ -25,7 +25,9 @@ export class LocationClient {
 
   /** Returns a region. */
   async getRegion(request: GetRegionRequest, options?: CallOptions): Promise<Region> {
-    const p0 = pathValue("name", request.name, "regions/*");
+    const n0 = this.service.relativeName("name", request.name, ["location"]);
+    const p0 = pathValue("name", n0, "regions/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Region>(
       {
         method: "GET",
@@ -52,7 +54,9 @@ export class LocationClient {
 
   /** Returns a zone. */
   async getZone(request: GetZoneRequest, options?: CallOptions): Promise<Zone> {
-    const p0 = pathValue("name", request.name, "zones/*");
+    const n0 = this.service.relativeName("name", request.name, ["location"]);
+    const p0 = pathValue("name", n0, "zones/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Zone>(
       {
         method: "GET",

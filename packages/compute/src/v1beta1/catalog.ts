@@ -24,7 +24,9 @@ export class InstanceTypeClient {
 
   /** Returns an instance type. */
   async getInstanceType(request: GetInstanceTypeRequest, options?: CallOptions): Promise<InstanceType> {
-    const p0 = pathValue("name", request.name, "instanceTypes/*");
+    const n0 = this.service.relativeName("name", request.name, ["compute"]);
+    const p0 = pathValue("name", n0, "instanceTypes/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<InstanceType>(
       {
         method: "GET",
@@ -76,7 +78,9 @@ export class ImageFamilyClient {
 
   /** Returns an image family. */
   async getImageFamily(request: GetImageFamilyRequest, options?: CallOptions): Promise<ImageFamily> {
-    const p0 = pathValue("name", request.name, "imageFamilies/*");
+    const n0 = this.service.relativeName("name", request.name, ["compute"]);
+    const p0 = pathValue("name", n0, "imageFamilies/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<ImageFamily>(
       {
         method: "GET",

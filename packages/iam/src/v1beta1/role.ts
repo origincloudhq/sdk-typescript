@@ -25,7 +25,9 @@ export class RoleClient {
 
   /** Returns a role. */
   async getRole(request: GetRoleRequest, options?: CallOptions): Promise<Role> {
-    const p0 = pathValue("name", request.name, "roles/*");
+    const n0 = this.service.relativeName("name", request.name, ["iam"]);
+    const p0 = pathValue("name", n0, "roles/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Role>(
       {
         method: "GET",

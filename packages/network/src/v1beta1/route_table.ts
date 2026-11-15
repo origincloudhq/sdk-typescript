@@ -35,7 +35,9 @@ export class RouteTableClient {
 
   /** Returns a route table. */
   async getRouteTable(request: GetRouteTableRequest, options?: CallOptions): Promise<RouteTable> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/routeTables/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/routeTables/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<RouteTable>(
       {
         method: "GET",
@@ -49,7 +51,9 @@ export class RouteTableClient {
 
   /** Lists the route tables in a region, oldest first. */
   async listRouteTables(request: ListRouteTablesRequest, options?: CallOptions): Promise<ListRouteTablesResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/regions/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListRouteTablesResponse>(
       {
         method: "GET",
@@ -83,7 +87,9 @@ export class RouteTableClient {
    */
   async createRouteTable(request: CreateRouteTableRequest, options?: CallOptions): Promise<Operation<RouteTable, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/regions/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -105,7 +111,9 @@ export class RouteTableClient {
    */
   async updateRouteTable(request: UpdateRouteTableRequest, options?: CallOptions): Promise<Operation<RouteTable, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("routeTable.name", request.routeTable?.name, "projects/*/regions/*/routeTables/*");
+    const n0 = this.service.relativeName("routeTable.name", request.routeTable?.name, ["network"]);
+    const p0 = pathValue("routeTable.name", n0, "projects/*/regions/*/routeTables/*");
+    if (n0 !== (request.routeTable?.name ?? "")) request = { ...request, routeTable: { ...request.routeTable, name: n0 } };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "PATCH",
@@ -129,7 +137,9 @@ export class RouteTableClient {
    */
   async deleteRouteTable(request: DeleteRouteTableRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/routeTables/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/routeTables/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

@@ -36,7 +36,9 @@ export class NetworkInterfaceClient {
 
   /** Returns a network interface. */
   async getNetworkInterface(request: GetNetworkInterfaceRequest, options?: CallOptions): Promise<NetworkInterface> {
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/networkInterfaces/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/zones/*/networkInterfaces/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<NetworkInterface>(
       {
         method: "GET",
@@ -50,7 +52,9 @@ export class NetworkInterfaceClient {
 
   /** Lists the network interfaces in a zone, oldest first. */
   async listNetworkInterfaces(request: ListNetworkInterfacesRequest, options?: CallOptions): Promise<ListNetworkInterfacesResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/zones/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListNetworkInterfacesResponse>(
       {
         method: "GET",
@@ -86,7 +90,9 @@ export class NetworkInterfaceClient {
    */
   async createNetworkInterface(request: CreateNetworkInterfaceRequest, options?: CallOptions): Promise<Operation<NetworkInterface, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/zones/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -109,7 +115,9 @@ export class NetworkInterfaceClient {
    */
   async updateNetworkInterface(request: UpdateNetworkInterfaceRequest, options?: CallOptions): Promise<Operation<NetworkInterface, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("networkInterface.name", request.networkInterface?.name, "projects/*/zones/*/networkInterfaces/*");
+    const n0 = this.service.relativeName("networkInterface.name", request.networkInterface?.name, ["network"]);
+    const p0 = pathValue("networkInterface.name", n0, "projects/*/zones/*/networkInterfaces/*");
+    if (n0 !== (request.networkInterface?.name ?? "")) request = { ...request, networkInterface: { ...request.networkInterface, name: n0 } };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "PATCH",
@@ -133,7 +141,9 @@ export class NetworkInterfaceClient {
    */
   async deleteNetworkInterface(request: DeleteNetworkInterfaceRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/networkInterfaces/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/zones/*/networkInterfaces/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

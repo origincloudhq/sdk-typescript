@@ -41,7 +41,9 @@ export class RouteTableAssociationClient {
 
   /** Returns a route table association. */
   async getRouteTableAssociation(request: GetRouteTableAssociationRequest, options?: CallOptions): Promise<RouteTableAssociation> {
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/subnets/*/routeTableAssociations/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/zones/*/subnets/*/routeTableAssociations/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<RouteTableAssociation>(
       {
         method: "GET",
@@ -55,7 +57,9 @@ export class RouteTableAssociationClient {
 
   /** Lists a subnet's route table associations: none or one. */
   async listRouteTableAssociations(request: ListRouteTableAssociationsRequest, options?: CallOptions): Promise<ListRouteTableAssociationsResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*/subnets/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/zones/*/subnets/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListRouteTableAssociationsResponse>(
       {
         method: "GET",
@@ -90,7 +94,9 @@ export class RouteTableAssociationClient {
    */
   async createRouteTableAssociation(request: CreateRouteTableAssociationRequest, options?: CallOptions): Promise<Operation<RouteTableAssociation, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*/subnets/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/zones/*/subnets/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -114,7 +120,9 @@ export class RouteTableAssociationClient {
    */
   async deleteRouteTableAssociation(request: DeleteRouteTableAssociationRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/subnets/*/routeTableAssociations/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/zones/*/subnets/*/routeTableAssociations/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

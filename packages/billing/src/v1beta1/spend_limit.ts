@@ -30,7 +30,9 @@ export class SpendLimitClient {
    * `limit`. Needs `admin.spend_limit.get` on the organization.
    */
   async getSpendLimit(request: GetSpendLimitRequest, options?: CallOptions): Promise<SpendLimit> {
-    const p0 = pathValue("name", request.name, "organizations/*/billingAccounts/*/spendLimit");
+    const n0 = this.service.relativeName("name", request.name, ["billing"]);
+    const p0 = pathValue("name", n0, "organizations/*/billingAccounts/*/spendLimit");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<SpendLimit>(
       {
         method: "GET",
@@ -49,7 +51,9 @@ export class SpendLimitClient {
    * `admin.spend_limit.update` on the organization.
    */
   async updateSpendLimit(request: UpdateSpendLimitRequest, options?: CallOptions): Promise<SpendLimit> {
-    const p0 = pathValue("spendLimit.name", request.spendLimit?.name, "organizations/*/billingAccounts/*/spendLimit");
+    const n0 = this.service.relativeName("spendLimit.name", request.spendLimit?.name, ["billing"]);
+    const p0 = pathValue("spendLimit.name", n0, "organizations/*/billingAccounts/*/spendLimit");
+    if (n0 !== (request.spendLimit?.name ?? "")) request = { ...request, spendLimit: { ...request.spendLimit, name: n0 } };
     return this.service.call<SpendLimit>(
       {
         method: "PATCH",

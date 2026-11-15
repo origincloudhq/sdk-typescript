@@ -38,7 +38,9 @@ export class LegalAcceptanceClient {
    * `admin.billing_account.get` on the organization.
    */
   async listLegalAcceptances(request: ListLegalAcceptancesRequest, options?: CallOptions): Promise<ListLegalAcceptancesResponse> {
-    const p0 = pathValue("parent", request.parent, "organizations/*/billingAccounts/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["billing"]);
+    const p0 = pathValue("parent", n0, "organizations/*/billingAccounts/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListLegalAcceptancesResponse>(
       {
         method: "GET",
@@ -69,7 +71,9 @@ export class LegalAcceptanceClient {
    * `admin.billing_account.get` on the organization.
    */
   async getLegalAcceptance(request: GetLegalAcceptanceRequest, options?: CallOptions): Promise<LegalAcceptance> {
-    const p0 = pathValue("name", request.name, "organizations/*/billingAccounts/*/legalAcceptances/*");
+    const n0 = this.service.relativeName("name", request.name, ["billing"]);
+    const p0 = pathValue("name", n0, "organizations/*/billingAccounts/*/legalAcceptances/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<LegalAcceptance>(
       {
         method: "GET",
@@ -90,7 +94,9 @@ export class LegalAcceptanceClient {
    * only. Needs `admin.billing_account.update` on the organization.
    */
   async acceptLegalDocuments(request: AcceptLegalDocumentsRequest, options?: CallOptions): Promise<ListLegalAcceptancesResponse> {
-    const p0 = pathValue("name", request.name, "organizations/*/billingAccounts/*");
+    const n0 = this.service.relativeName("name", request.name, ["billing"]);
+    const p0 = pathValue("name", n0, "organizations/*/billingAccounts/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<ListLegalAcceptancesResponse>(
       {
         method: "POST",
@@ -110,7 +116,9 @@ export class LegalAcceptanceClient {
    * `admin.billing_account.get` on the organization.
    */
   async queryLegalRequirements(request: QueryLegalRequirementsRequest, options?: CallOptions): Promise<QueryLegalRequirementsResponse> {
-    const p0 = pathValue("name", request.name, "organizations/*/billingAccounts/*");
+    const n0 = this.service.relativeName("name", request.name, ["billing"]);
+    const p0 = pathValue("name", n0, "organizations/*/billingAccounts/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<QueryLegalRequirementsResponse>(
       {
         method: "GET",

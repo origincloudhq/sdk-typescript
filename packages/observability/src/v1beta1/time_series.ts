@@ -45,7 +45,9 @@ export class MetricClient {
    * points it returns; a refused one isn't.
    */
   async queryTimeSeries(request: QueryTimeSeriesRequest, options?: CallOptions): Promise<QueryTimeSeriesResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["resourcemanager"]);
+    const p0 = pathValue("parent", n0, "projects/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<QueryTimeSeriesResponse>(
       {
         method: "GET",

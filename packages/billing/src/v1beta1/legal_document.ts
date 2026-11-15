@@ -73,7 +73,9 @@ export class LegalDocumentClient {
    * version.
    */
   async getLegalDocument(request: GetLegalDocumentRequest, options?: CallOptions): Promise<LegalDocument> {
-    const p0 = pathValue("name", request.name, "legalDocuments/*");
+    const n0 = this.service.relativeName("name", request.name, ["billing"]);
+    const p0 = pathValue("name", n0, "legalDocuments/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<LegalDocument>(
       {
         method: "GET",
@@ -88,7 +90,9 @@ export class LegalDocumentClient {
 
   /** Lists a legal document's published versions, the latest first. */
   async listLegalDocumentVersions(request: ListLegalDocumentVersionsRequest, options?: CallOptions): Promise<ListLegalDocumentVersionsResponse> {
-    const p0 = pathValue("parent", request.parent, "legalDocuments/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["billing"]);
+    const p0 = pathValue("parent", n0, "legalDocuments/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListLegalDocumentVersionsResponse>(
       {
         method: "GET",
@@ -117,7 +121,9 @@ export class LegalDocumentClient {
 
   /** Returns one published version of a legal document, its text included. */
   async getLegalDocumentVersion(request: GetLegalDocumentVersionRequest, options?: CallOptions): Promise<LegalDocumentVersion> {
-    const p0 = pathValue("name", request.name, "legalDocuments/*/versions/*");
+    const n0 = this.service.relativeName("name", request.name, ["billing"]);
+    const p0 = pathValue("name", n0, "legalDocuments/*/versions/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<LegalDocumentVersion>(
       {
         method: "GET",
@@ -138,7 +144,9 @@ export class LegalDocumentClient {
    * It answers with the file itself: its bytes, as they came, and their content type.
    */
   async downloadLegalDocumentVersion(request: DownloadLegalDocumentVersionRequest, options?: CallOptions): Promise<HttpBody> {
-    const p0 = pathValue("name", request.name, "legalDocuments/*/versions/*");
+    const n0 = this.service.relativeName("name", request.name, ["billing"]);
+    const p0 = pathValue("name", n0, "legalDocuments/*/versions/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.download(
       {
         method: "GET",

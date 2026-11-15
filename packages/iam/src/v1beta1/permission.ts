@@ -25,7 +25,9 @@ export class PermissionClient {
 
   /** Returns a permission. */
   async getPermission(request: GetPermissionRequest, options?: CallOptions): Promise<Permission> {
-    const p0 = pathValue("name", request.name, "permissions/*");
+    const n0 = this.service.relativeName("name", request.name, ["iam"]);
+    const p0 = pathValue("name", n0, "permissions/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Permission>(
       {
         method: "GET",
@@ -63,7 +65,9 @@ export class PermissionClient {
    * catalog doesn't name is never held.
    */
   async testIamPermissions(request: TestIamPermissionsRequest, options?: CallOptions): Promise<TestIamPermissionsResponse> {
-    const p0 = pathValue("resource", request.resource, "*/*");
+    const n0 = this.service.relativeName("resource", request.resource, ["*"]);
+    const p0 = pathValue("resource", n0, "*/*");
+    if (n0 !== (request.resource ?? "")) request = { ...request, resource: n0 };
     return this.service.call<TestIamPermissionsResponse>(
       {
         method: "POST",

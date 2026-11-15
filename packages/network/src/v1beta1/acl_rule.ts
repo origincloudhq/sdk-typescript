@@ -38,7 +38,9 @@ export class AclRuleClient {
 
   /** Returns an ACL rule. */
   async getAclRule(request: GetAclRuleRequest, options?: CallOptions): Promise<AclRule> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/acls/*/rules/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/acls/*/rules/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<AclRule>(
       {
         method: "GET",
@@ -52,7 +54,9 @@ export class AclRuleClient {
 
   /** Lists an ACL's rules of both directions, oldest first. */
   async listAclRules(request: ListAclRulesRequest, options?: CallOptions): Promise<ListAclRulesResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*/acls/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/regions/*/acls/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListAclRulesResponse>(
       {
         method: "GET",
@@ -89,7 +93,9 @@ export class AclRuleClient {
    */
   async createAclRule(request: CreateAclRuleRequest, options?: CallOptions): Promise<Operation<AclRule, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*/acls/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/regions/*/acls/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -111,7 +117,9 @@ export class AclRuleClient {
    */
   async deleteAclRule(request: DeleteAclRuleRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/acls/*/rules/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/acls/*/rules/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

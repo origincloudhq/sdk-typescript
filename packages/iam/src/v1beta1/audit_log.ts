@@ -32,7 +32,9 @@ export class AuditLogClient {
    * organization.
    */
   async getAuditLogEntry(request: GetAuditLogEntryRequest, options?: CallOptions): Promise<AuditLogEntry> {
-    const p0 = pathValue("name", request.name, "organizations/*/auditLogEntries/*");
+    const n0 = this.service.relativeName("name", request.name, ["iam"]);
+    const p0 = pathValue("name", n0, "organizations/*/auditLogEntries/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<AuditLogEntry>(
       {
         method: "GET",
@@ -50,7 +52,9 @@ export class AuditLogClient {
    * `iam.audit_log.list` on the organization.
    */
   async listAuditLogEntries(request: ListAuditLogEntriesRequest, options?: CallOptions): Promise<ListAuditLogEntriesResponse> {
-    const p0 = pathValue("parent", request.parent, "organizations/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["resourcemanager"]);
+    const p0 = pathValue("parent", n0, "organizations/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListAuditLogEntriesResponse>(
       {
         method: "GET",

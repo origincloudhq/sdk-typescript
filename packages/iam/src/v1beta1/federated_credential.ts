@@ -39,7 +39,9 @@ export class FederatedCredentialClient {
    * `iam.service_account.list` on the organization.
    */
   async getFederatedCredential(request: GetFederatedCredentialRequest, options?: CallOptions): Promise<FederatedCredential> {
-    const p0 = pathValue("name", request.name, "organizations/*/serviceAccounts/*/federatedCredentials/*");
+    const n0 = this.service.relativeName("name", request.name, ["iam"]);
+    const p0 = pathValue("name", n0, "organizations/*/serviceAccounts/*/federatedCredentials/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<FederatedCredential>(
       {
         method: "GET",
@@ -57,7 +59,9 @@ export class FederatedCredentialClient {
    * `iam.service_account.list` on the organization.
    */
   async listFederatedCredentials(request: ListFederatedCredentialsRequest, options?: CallOptions): Promise<ListFederatedCredentialsResponse> {
-    const p0 = pathValue("parent", request.parent, "organizations/*/serviceAccounts/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["iam"]);
+    const p0 = pathValue("parent", n0, "organizations/*/serviceAccounts/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListFederatedCredentialsResponse>(
       {
         method: "GET",
@@ -96,7 +100,9 @@ export class FederatedCredentialClient {
    */
   async createFederatedCredential(request: CreateFederatedCredentialRequest, options?: CallOptions): Promise<FederatedCredential> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "organizations/*/serviceAccounts/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["iam"]);
+    const p0 = pathValue("parent", n0, "organizations/*/serviceAccounts/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<FederatedCredential>(
       {
         method: "POST",
@@ -116,7 +122,9 @@ export class FederatedCredentialClient {
    * succeeds. Needs `iam.service_account.revoke` on the organization.
    */
   async deleteFederatedCredential(request: DeleteFederatedCredentialRequest, options?: CallOptions): Promise<Empty> {
-    const p0 = pathValue("name", request.name, "organizations/*/serviceAccounts/*/federatedCredentials/*");
+    const n0 = this.service.relativeName("name", request.name, ["iam"]);
+    const p0 = pathValue("name", n0, "organizations/*/serviceAccounts/*/federatedCredentials/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Empty>(
       {
         method: "DELETE",

@@ -33,7 +33,9 @@ export class OrganizationClient {
 
   /** Returns an organization. */
   async getOrganization(request: GetOrganizationRequest, options?: CallOptions): Promise<Organization> {
-    const p0 = pathValue("name", request.name, "organizations/*");
+    const n0 = this.service.relativeName("name", request.name, ["resourcemanager"]);
+    const p0 = pathValue("name", n0, "organizations/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Organization>(
       {
         method: "GET",
@@ -96,7 +98,9 @@ export class OrganizationClient {
 
   /** Renames an organization. */
   async updateOrganization(request: UpdateOrganizationRequest, options?: CallOptions): Promise<Organization> {
-    const p0 = pathValue("organization.name", request.organization?.name, "organizations/*");
+    const n0 = this.service.relativeName("organization.name", request.organization?.name, ["resourcemanager"]);
+    const p0 = pathValue("organization.name", n0, "organizations/*");
+    if (n0 !== (request.organization?.name ?? "")) request = { ...request, organization: { ...request.organization, name: n0 } };
     return this.service.call<Organization>(
       {
         method: "PATCH",
@@ -117,7 +121,9 @@ export class OrganizationClient {
    * still be invoiced.
    */
   async deleteOrganization(request: DeleteOrganizationRequest, options?: CallOptions): Promise<Empty> {
-    const p0 = pathValue("name", request.name, "organizations/*");
+    const n0 = this.service.relativeName("name", request.name, ["resourcemanager"]);
+    const p0 = pathValue("name", n0, "organizations/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Empty>(
       {
         method: "DELETE",
@@ -134,7 +140,9 @@ export class OrganizationClient {
    * set by the platform; ask support to raise one.
    */
   async getOrganizationQuota(request: GetOrganizationQuotaRequest, options?: CallOptions): Promise<OrganizationQuota> {
-    const p0 = pathValue("name", request.name, "organizations/*/quota");
+    const n0 = this.service.relativeName("name", request.name, ["resourcemanager"]);
+    const p0 = pathValue("name", n0, "organizations/*/quota");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<OrganizationQuota>(
       {
         method: "GET",

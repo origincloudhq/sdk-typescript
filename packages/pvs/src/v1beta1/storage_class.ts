@@ -24,7 +24,9 @@ export class StorageClassClient {
 
   /** Returns a storage class. */
   async getStorageClass(request: GetStorageClassRequest, options?: CallOptions): Promise<StorageClass> {
-    const p0 = pathValue("name", request.name, "storageClasses/*");
+    const n0 = this.service.relativeName("name", request.name, ["pvs"]);
+    const p0 = pathValue("name", n0, "storageClasses/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<StorageClass>(
       {
         method: "GET",

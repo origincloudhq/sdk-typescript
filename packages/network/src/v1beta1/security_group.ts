@@ -38,7 +38,9 @@ export class SecurityGroupClient {
 
   /** Returns a security group. */
   async getSecurityGroup(request: GetSecurityGroupRequest, options?: CallOptions): Promise<SecurityGroup> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/securityGroups/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/securityGroups/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<SecurityGroup>(
       {
         method: "GET",
@@ -52,7 +54,9 @@ export class SecurityGroupClient {
 
   /** Lists the security groups in a region, oldest first. */
   async listSecurityGroups(request: ListSecurityGroupsRequest, options?: CallOptions): Promise<ListSecurityGroupsResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/regions/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListSecurityGroupsResponse>(
       {
         method: "GET",
@@ -87,7 +91,9 @@ export class SecurityGroupClient {
    */
   async createSecurityGroup(request: CreateSecurityGroupRequest, options?: CallOptions): Promise<Operation<SecurityGroup, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/regions/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -109,7 +115,9 @@ export class SecurityGroupClient {
    */
   async updateSecurityGroup(request: UpdateSecurityGroupRequest, options?: CallOptions): Promise<Operation<SecurityGroup, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("securityGroup.name", request.securityGroup?.name, "projects/*/regions/*/securityGroups/*");
+    const n0 = this.service.relativeName("securityGroup.name", request.securityGroup?.name, ["network"]);
+    const p0 = pathValue("securityGroup.name", n0, "projects/*/regions/*/securityGroups/*");
+    if (n0 !== (request.securityGroup?.name ?? "")) request = { ...request, securityGroup: { ...request.securityGroup, name: n0 } };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "PATCH",
@@ -133,7 +141,9 @@ export class SecurityGroupClient {
    */
   async deleteSecurityGroup(request: DeleteSecurityGroupRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/securityGroups/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/securityGroups/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

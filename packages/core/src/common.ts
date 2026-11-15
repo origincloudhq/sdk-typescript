@@ -14,6 +14,15 @@ export {
 } from "./credentials.js";
 export { type CalendarDate } from "./date.js";
 export { type FieldViolation, OriginCloudError, reasonOf } from "./errors.js";
+export {
+  ANY_SERVICE,
+  DOMAIN,
+  FullName,
+  FullNameError,
+  type FullNameReason,
+  type Principal,
+  RESOURCE_SERVICES,
+} from "./names.js";
 export { type Any, type Empty, type LongrunningOperation, Operation, type Status } from "./operation.js";
 export {
   type CallOptions,

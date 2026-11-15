@@ -38,7 +38,9 @@ export class RouteClient {
 
   /** Returns a route. */
   async getRoute(request: GetRouteRequest, options?: CallOptions): Promise<Route> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/routeTables/*/routes/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/routeTables/*/routes/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Route>(
       {
         method: "GET",
@@ -55,7 +57,9 @@ export class RouteClient {
    * listed: they are the table's `localRoutes`.
    */
   async listRoutes(request: ListRoutesRequest, options?: CallOptions): Promise<ListRoutesResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*/routeTables/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/regions/*/routeTables/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListRoutesResponse>(
       {
         method: "GET",
@@ -90,7 +94,9 @@ export class RouteClient {
    */
   async createRoute(request: CreateRouteRequest, options?: CallOptions): Promise<Operation<Route, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*/routeTables/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/regions/*/routeTables/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -112,7 +118,9 @@ export class RouteClient {
    */
   async deleteRoute(request: DeleteRouteRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/routeTables/*/routes/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/routeTables/*/routes/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

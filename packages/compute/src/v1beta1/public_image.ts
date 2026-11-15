@@ -25,7 +25,9 @@ export class PublicImageClient {
 
   /** Returns a public image. */
   async getPublicImage(request: GetPublicImageRequest, options?: CallOptions): Promise<PublicImage> {
-    const p0 = pathValue("name", request.name, "zones/*/images/*");
+    const n0 = this.service.relativeName("name", request.name, ["compute"]);
+    const p0 = pathValue("name", n0, "zones/*/images/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<PublicImage>(
       {
         method: "GET",
@@ -39,7 +41,9 @@ export class PublicImageClient {
 
   /** Lists the public images in a zone, oldest first. */
   async listPublicImages(request: ListPublicImagesRequest, options?: CallOptions): Promise<ListPublicImagesResponse> {
-    const p0 = pathValue("parent", request.parent, "zones/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["location"]);
+    const p0 = pathValue("parent", n0, "zones/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListPublicImagesResponse>(
       {
         method: "GET",

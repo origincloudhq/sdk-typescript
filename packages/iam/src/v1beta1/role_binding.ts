@@ -55,7 +55,9 @@ export class RoleBindingClient {
 
   /** Returns a role binding. Needs `iam.member.list` on the organization. */
   async getRoleBinding(request: GetRoleBindingRequest, options?: CallOptions): Promise<RoleBinding> {
-    const p0 = pathValue("name", request.name, "organizations/*/roleBindings/*");
+    const n0 = this.service.relativeName("name", request.name, ["iam"]);
+    const p0 = pathValue("name", n0, "organizations/*/roleBindings/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<RoleBinding>(
       {
         method: "GET",
@@ -75,7 +77,9 @@ export class RoleBindingClient {
    * there.
    */
   async listRoleBindings(request: ListRoleBindingsRequest, options?: CallOptions): Promise<ListRoleBindingsResponse> {
-    const p0 = pathValue("parent", request.parent, "organizations/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["resourcemanager"]);
+    const p0 = pathValue("parent", n0, "organizations/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListRoleBindingsResponse>(
       {
         method: "GET",
@@ -115,7 +119,9 @@ export class RoleBindingClient {
    */
   async createRoleBinding(request: CreateRoleBindingRequest, options?: CallOptions): Promise<RoleBinding> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "organizations/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["resourcemanager"]);
+    const p0 = pathValue("parent", n0, "organizations/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<RoleBinding>(
       {
         method: "POST",
@@ -137,7 +143,9 @@ export class RoleBindingClient {
    */
   async deleteRoleBinding(request: DeleteRoleBindingRequest, options?: CallOptions): Promise<Empty> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "organizations/*/roleBindings/*");
+    const n0 = this.service.relativeName("name", request.name, ["iam"]);
+    const p0 = pathValue("name", n0, "organizations/*/roleBindings/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Empty>(
       {
         method: "DELETE",

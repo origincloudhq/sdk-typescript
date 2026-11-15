@@ -31,7 +31,9 @@ export class CostClient {
    * or daily buckets. Needs `admin.usage.list` on the organization.
    */
   async queryProjectCost(request: QueryProjectCostRequest, options?: CallOptions): Promise<CostReport> {
-    const p0 = pathValue("project", request.project, "projects/*");
+    const n0 = this.service.relativeName("project", request.project, ["resourcemanager"]);
+    const p0 = pathValue("project", n0, "projects/*");
+    if (n0 !== (request.project ?? "")) request = { ...request, project: n0 };
     return this.service.call<CostReport>(
       {
         method: "GET",
@@ -50,7 +52,9 @@ export class CostClient {
    * cost in it.
    */
   async queryOrganizationCost(request: QueryOrganizationCostRequest, options?: CallOptions): Promise<OrganizationCostReport> {
-    const p0 = pathValue("organization", request.organization, "organizations/*");
+    const n0 = this.service.relativeName("organization", request.organization, ["resourcemanager"]);
+    const p0 = pathValue("organization", n0, "organizations/*");
+    if (n0 !== (request.organization ?? "")) request = { ...request, organization: n0 };
     return this.service.call<OrganizationCostReport>(
       {
         method: "GET",
@@ -70,7 +74,9 @@ export class CostClient {
    * `limit`. Needs `admin.spend_limit.get` on the organization.
    */
   async queryBillingAccountCost(request: QueryBillingAccountCostRequest, options?: CallOptions): Promise<CostReport> {
-    const p0 = pathValue("billingAccount", request.billingAccount, "organizations/*/billingAccounts/*");
+    const n0 = this.service.relativeName("billingAccount", request.billingAccount, ["billing"]);
+    const p0 = pathValue("billingAccount", n0, "organizations/*/billingAccounts/*");
+    if (n0 !== (request.billingAccount ?? "")) request = { ...request, billingAccount: n0 };
     return this.service.call<CostReport>(
       {
         method: "GET",
@@ -88,7 +94,9 @@ export class CostClient {
    * on the organization.
    */
   async queryProjectUsage(request: QueryProjectUsageRequest, options?: CallOptions): Promise<QueryProjectUsageResponse> {
-    const p0 = pathValue("project", request.project, "projects/*");
+    const n0 = this.service.relativeName("project", request.project, ["resourcemanager"]);
+    const p0 = pathValue("project", n0, "projects/*");
+    if (n0 !== (request.project ?? "")) request = { ...request, project: n0 };
     return this.service.call<QueryProjectUsageResponse>(
       {
         method: "GET",

@@ -38,7 +38,9 @@ export class DnsPolicyAssociationClient {
 
   /** Returns a DNS policy association. */
   async getDnsPolicyAssociation(request: GetDnsPolicyAssociationRequest, options?: CallOptions): Promise<DnsPolicyAssociation> {
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/vpcs/*/dnsPolicyAssociations/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/vpcs/*/dnsPolicyAssociations/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<DnsPolicyAssociation>(
       {
         method: "GET",
@@ -52,7 +54,9 @@ export class DnsPolicyAssociationClient {
 
   /** Lists a VPC's DNS policy associations: none or one. */
   async listDnsPolicyAssociations(request: ListDnsPolicyAssociationsRequest, options?: CallOptions): Promise<ListDnsPolicyAssociationsResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*/vpcs/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/regions/*/vpcs/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListDnsPolicyAssociationsResponse>(
       {
         method: "GET",
@@ -87,7 +91,9 @@ export class DnsPolicyAssociationClient {
    */
   async createDnsPolicyAssociation(request: CreateDnsPolicyAssociationRequest, options?: CallOptions): Promise<Operation<DnsPolicyAssociation, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/regions/*/vpcs/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["network"]);
+    const p0 = pathValue("parent", n0, "projects/*/regions/*/vpcs/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -111,7 +117,9 @@ export class DnsPolicyAssociationClient {
    */
   async deleteDnsPolicyAssociation(request: DeleteDnsPolicyAssociationRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/regions/*/vpcs/*/dnsPolicyAssociations/*");
+    const n0 = this.service.relativeName("name", request.name, ["network"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/vpcs/*/dnsPolicyAssociations/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",

@@ -38,7 +38,9 @@ export class InstanceClient {
    * day after it was terminated.
    */
   async getInstance(request: GetInstanceRequest, options?: CallOptions): Promise<Instance> {
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/instances/*");
+    const n0 = this.service.relativeName("name", request.name, ["compute"]);
+    const p0 = pathValue("name", n0, "projects/*/zones/*/instances/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     return this.service.call<Instance>(
       {
         method: "GET",
@@ -58,7 +60,9 @@ export class InstanceClient {
    * instances.
    */
   async listInstances(request: ListInstancesRequest, options?: CallOptions): Promise<ListInstancesResponse> {
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["compute"]);
+    const p0 = pathValue("parent", n0, "projects/*/zones/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     return this.service.call<ListInstancesResponse>(
       {
         method: "GET",
@@ -94,7 +98,9 @@ export class InstanceClient {
    */
   async createInstance(request: CreateInstanceRequest, options?: CallOptions): Promise<Operation<Instance, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("parent", request.parent, "projects/*/zones/*");
+    const n0 = this.service.relativeName("parent", request.parent, ["compute"]);
+    const p0 = pathValue("parent", n0, "projects/*/zones/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -120,7 +126,9 @@ export class InstanceClient {
    */
   async updateInstance(request: UpdateInstanceRequest, options?: CallOptions): Promise<Operation<Instance, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("instance.name", request.instance?.name, "projects/*/zones/*/instances/*");
+    const n0 = this.service.relativeName("instance.name", request.instance?.name, ["compute"]);
+    const p0 = pathValue("instance.name", n0, "projects/*/zones/*/instances/*");
+    if (n0 !== (request.instance?.name ?? "")) request = { ...request, instance: { ...request.instance, name: n0 } };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "PATCH",
@@ -147,7 +155,9 @@ export class InstanceClient {
    */
   async deleteInstance(request: DeleteInstanceRequest, options?: CallOptions): Promise<Operation<Empty, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/instances/*");
+    const n0 = this.service.relativeName("name", request.name, ["compute"]);
+    const p0 = pathValue("name", n0, "projects/*/zones/*/instances/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "DELETE",
@@ -172,7 +182,9 @@ export class InstanceClient {
    */
   async startInstance(request: StartInstanceRequest, options?: CallOptions): Promise<Operation<Instance, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/instances/*");
+    const n0 = this.service.relativeName("name", request.name, ["compute"]);
+    const p0 = pathValue("name", n0, "projects/*/zones/*/instances/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",
@@ -195,7 +207,9 @@ export class InstanceClient {
    */
   async stopInstance(request: StopInstanceRequest, options?: CallOptions): Promise<Operation<Instance, OperationMetadata>> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const p0 = pathValue("name", request.name, "projects/*/zones/*/instances/*");
+    const n0 = this.service.relativeName("name", request.name, ["compute"]);
+    const p0 = pathValue("name", n0, "projects/*/zones/*/instances/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
     const op = await this.service.call<LongrunningOperation>(
       {
         method: "POST",

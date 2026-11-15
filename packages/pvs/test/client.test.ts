@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
 
-import { Client, accessToken } from "@origincloud/core";
+import { Client, FullNameError, accessToken } from "@origincloud/core";
 import { VolumeClient } from "@origincloud/pvs/v1beta1";
 
 import { type Handler, type Received, json, serve } from "../../../test-support/fake-server.js";
@@ -148,6 +148,83 @@ test("a name of the wrong form is refused before sending", async () => {
     /name must have the form projects\/\*\/zones\/\*\/volumes\/\*, got "vol-1"/,
   );
   await assert.rejects(volumes.updateVolume({ volume: { sizeGib: 2 } }), /volume\.name must have the form/);
+  assert.equal(calls.length, 0);
+});
+
+// A full resource name of the client's own service is sent as its relative
+// name: the same request as the relative name makes.
+test("a full name of the service is sent as its relative name", async () => {
+  const [volumes, calls] = await recordingClient();
+  const relative = `${zone}/volumes/vol-1`;
+  for (const prefix of ["", "//pvs.origincloudapis.eu/"]) {
+    await volumes.getVolume({ name: prefix + relative });
+    await volumes.listVolumes({ parent: prefix + zone });
+    await volumes.deleteVolume({ name: prefix + relative, requestId: "given" });
+  }
+  const sent = calls.map((c) => `${c.method} ${c.path} ${c.query.toString()}`);
+  const once = [
+    `GET /v1beta1/${relative} `,
+    `GET /v1beta1/${zone}/volumes `,
+    `DELETE /v1beta1/${relative} requestId=given`,
+  ];
+  assert.deepEqual(sent, [...once, ...once]);
+});
+
+// A full name in a path field that the body also carries, as an update's
+// resource does, is sent as the relative name in both, and the caller's
+// request is left as it was.
+test("a full name in the body's resource is sent as its relative name", async () => {
+  const [volumes, calls] = await recordingClient();
+  const relative = `${zone}/volumes/vol-1`;
+  for (const prefix of ["", "//pvs.origincloudapis.eu/"]) {
+    const update = { volume: { name: prefix + relative, sizeGib: 2 }, requestId: "given" };
+    await volumes.updateVolume(update);
+    assert.equal(update.volume.name, prefix + relative);
+    await volumes.importVolume({ parent: prefix + zone, requestId: "given" });
+  }
+  const sent = calls.map((c) => [c.method, c.path, c.query.toString(), c.body]);
+  assert.deepEqual(sent.slice(2), sent.slice(0, 2));
+  assert.deepEqual(JSON.parse(calls[2]!.body), { name: relative, sizeGib: 2 });
+  assert.equal(JSON.parse(calls[3]!.body).parent, zone);
+});
+
+// A full name of another service, or one that isn't a valid full name, is
+// refused before anything is sent, naming the field and the host the
+// client calls.
+test("a name of another service is refused before sending", async () => {
+  const [volumes, calls] = await recordingClient();
+  for (const [name, says, reason] of [
+    [
+      "//compute.origincloudapis.eu/projects/p/zones/z/volumes/vol-1",
+      "name must be a name on pvs.origincloudapis.eu, got",
+      "otherService",
+    ],
+    [
+      "//pvs.eu-central1-az1.origincloudapis.eu/projects/p/zones/z/volumes/vol-1",
+      "the service's global host, pvs.origincloudapis.eu",
+      "notGlobalHost",
+    ],
+    ["//pvs.origincloudapis.eu/v1beta1/projects/p/zones/z/volumes/vol-1", 'carries the API version "v1beta1"', "version"],
+    ["urn:origincloud:storage:o:p:volume:vol-1", "is a URN", "urn"],
+    ["//pvs.origincloudapis.eu/projects/p/zones/z/volumes/vol-1/", "ends with a '/'", "trailingSlash"],
+  ] as const) {
+    await assert.rejects(volumes.getVolume({ name }), (err: unknown) => {
+      assert.ok(err instanceof FullNameError, `${name}: ${String(err)}`);
+      assert.equal(err.reason, reason, name);
+      assert.ok(err.message.startsWith("origincloud: name"), err.message);
+      assert.ok(err.message.includes(says), err.message);
+      return true;
+    });
+  }
+  // A full name of the service, but not of a volume.
+  await assert.rejects(
+    volumes.getVolume({ name: "//pvs.origincloudapis.eu/projects/p/zones/z/snapshots/s-1" }),
+    /name must have the form projects\/\*\/zones\/\*\/volumes\/\*/,
+  );
+  await assert.rejects(
+    volumes.listVolumes({ parent: "//resourcemanager.origincloudapis.eu/projects/p" }),
+    /parent must be a name on pvs\.origincloudapis\.eu/,
+  );
   assert.equal(calls.length, 0);
 });
 
