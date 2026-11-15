@@ -158,9 +158,9 @@ export interface ListAuditLogEntriesRequest {
    */
   project?: string;
   /**
-   * Only the entries of changes made by this member's account,
-   * `user:{email}`, `serviceAccount:{service_account}` or
-   * `serviceAgent:{service_agent}`. Every actor's when empty.
+   * Only the entries of changes made by this member, named by its full
+   * name as a role binding's member is, or as an entry's `actor` shows it.
+   * Every actor's when empty.
    */
   actor?: string;
   /**
