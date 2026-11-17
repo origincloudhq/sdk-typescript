@@ -82,9 +82,9 @@ export class VpcClient {
 
   /**
    * Creates an empty VPC: no subnets, security groups, ACLs, route tables
-   * or internet gateway. It relays DNS through the project's default DNS
-   * policy in its region until a DNS policy association names another. The
-   * operation is done once the VPC is recorded.
+   * or internet gateway. It relays DNS through the project's default
+   * resolver policy in its region until a resolver policy association names
+   * another. The operation is done once the VPC is recorded.
    *
    * It answers with an operation to wait on, whose result is the Vpc.
    */
@@ -131,7 +131,7 @@ export class VpcClient {
   }
 
   /**
-   * Deletes a VPC with its DNS policy association. Refused with
+   * Deletes a VPC with its resolver policy association. Refused with
    * `FAILED_PRECONDITION` while the VPC has subnets, security groups,
    * ACLs, route tables or an internet gateway, except those the platform
    * created with it, which are deleted with it. The operation is done once
@@ -177,13 +177,12 @@ export interface Vpc {
   /** How many more subnets the VPC's address space holds. */
   availableSubnetCount?: number;
   /**
-   * The full name of the DNS policy the VPC's resolver relays through, as
-   * the VPC's DNS
-   * policy association (a `DnsPolicyAssociation`) sets it. Empty while it
-   * has none: the VPC then relays through the project's default DNS policy
-   * in its region.
+   * The full name of the resolver policy the VPC's resolver relays through, as
+   * the VPC's resolver policy association (a `ResolverPolicyAssociation`) sets
+   * it. Empty while it has none: the VPC then relays through the project's
+   * default resolver policy in its region.
    */
-  dnsPolicy?: string;
+  resolverPolicy?: string;
   /** The full name of the VPC's internet gateway; empty while it has none. */
   internetGateway?: string;
   /**
