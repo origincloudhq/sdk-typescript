@@ -6,4 +6,5 @@ export * from "./permission.js";
 export * from "./role.js";
 export * from "./role_binding.js";
 export * from "./service_account.js";
+export * from "./service_account_key.js";
 export * from "./user.js";
