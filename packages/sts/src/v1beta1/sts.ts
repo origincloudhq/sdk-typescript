@@ -30,7 +30,8 @@ export class SecurityTokenClient {
    * conditions. The token is verified with its issuer's published keys
    * (RS256), and a pull request's job is admitted only by a credential that
    * names its `event_name`. Refused with `PERMISSION_DENIED` when the token
-   * isn't trusted, without saying why, and with `UNAVAILABLE` when its
+   * isn't trusted, without saying why, with `INVALID_ARGUMENT` when it asks
+   * for an audience no token is issued for, and with `UNAVAILABLE` when its
    * issuer or the trust can't be read now.
    */
   async assumeServiceAccount(request: AssumeServiceAccountRequest, options?: CallOptions): Promise<AssumeServiceAccountResponse> {
@@ -62,6 +63,13 @@ export interface AssumeServiceAccountRequest {
    * when unset.
    */
   lifetime?: string;
+  /**
+   * Who the access token is for: `origincloud:api`, the platform's APIs, when
+   * unset, or `https://mcp.origincloudapis.eu`, the hosted MCP server. A
+   * token for the hosted MCP server isn't accepted by the APIs. Any other
+   * audience is refused with `INVALID_ARGUMENT`, before the token is checked.
+   */
+  audience?: string;
 }
 
 /** The response of `AssumeServiceAccount`. */
