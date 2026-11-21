@@ -88,7 +88,13 @@ absent from a response: `volume.sizeGib ?? 0`.
    trusts it: no secret is stored. The token is read from the file
    `ORIGINCLOUD_OIDC_TOKEN_FILE` names (any CI provider, or a Kubernetes
    projected token), or else taken from `ORIGINCLOUD_OIDC_TOKEN`, which holds
-   the token itself, or else, in GitHub Actions, requested from GitHub, which
+   the token itself, or else an HCP Terraform run's workload identity token,
+   `TFC_WORKLOAD_IDENTITY_TOKEN` (for a workspace whose
+   `TFC_WORKLOAD_IDENTITY_AUDIENCE` is `https://sts.origincloudapis.eu`), or
+   `TFC_WORKLOAD_IDENTITY_TOKEN_<TAG>` when
+   `ORIGINCLOUD_TFC_WORKLOAD_IDENTITY_TAG` names the tag of a tagged audience
+   (the tagged variable is the only one read then; empty or unset, the call
+   rejects naming it), or else, in GitHub Actions, requested from GitHub, which
    the workflow allows with `permissions: id-token: write`; its audience is
    `https://sts.origincloudapis.eu`, or `ORIGINCLOUD_OIDC_AUDIENCE`. A fresh
    job token is exchanged a minute before each access token expires. A job
@@ -106,8 +112,8 @@ absent from a response: `volume.sizeGib ?? 0`.
          aud: https://sts.origincloudapis.eu
    ```
 
-   A token in the variable can't be renewed: each access token is exchanged
-   for the same job token, which works until that token expires; the call
+   A token in a variable, this or HCP Terraform's, can't be renewed: each
+   access token is exchanged for the same job token, which works until that token expires; the call
    then rejects saying so. A job that outlasts its token asks the CI provider
    for a longer-lived one, or names a file the provider rotates in
    `ORIGINCLOUD_OIDC_TOKEN_FILE`.
