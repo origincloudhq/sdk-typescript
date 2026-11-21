@@ -118,8 +118,11 @@ export class InstanceClient {
 
   /**
    * Launches an instance from a recipe: the instance it describes, with a
-   * network interface created from each interface spec it holds. Nothing
-   * is created when the launch is refused, as for an invalid field, a
+   * network interface created from each interface spec it holds. The
+   * recipe is sent inline as `launchTemplateData`, or is a version of a
+   * launch template named by `launchTemplate`, with the fields set in
+   * `launchTemplateData` overriding that version's for this launch only.
+   * Nothing is created when the launch is refused, as for an invalid field, a
    * quota or a subnet with no address left. The operation is done once
    * the instance is `RUNNING`, or failed once it is `FAILED`, with the
    * reason in `stateReason`; a failed instance still exists, keeps the
@@ -350,6 +353,15 @@ export interface Instance {
    * change. Empty for an instance that runs as none.
    */
   serviceAccount?: string;
+  /**
+   * The full name of the launch template version the instance was launched
+   * from,
+   * `//compute.origincloudapis.eu/projects/{project}/launchTemplates/{launch_template}@{version}`,
+   * with the number the launch resolved `@default` or `@latest` to. Empty
+   * for an instance launched without a template. The template may since
+   * have been changed or deleted.
+   */
+  launchTemplate?: string;
 }
 
 /** Where the instance is in its lifecycle. */
@@ -555,13 +567,34 @@ export interface CreateInstanceRequest {
 export interface LaunchInstanceRequest {
   /** The zone to launch the instance in, `projects/{project}/zones/{zone}`. */
   parent?: string;
-  /** The recipe of the instance to launch. */
+  /**
+   * The recipe of the instance to launch. Required unless
+   * `launchTemplate` is set. With `launchTemplate`, the fields set here
+   * override the version's for this launch only, and the version stays as
+   * it is: a field left empty keeps the version's, so an override can't
+   * clear one. `image` or `imageFamily` replaces both of the version's,
+   * `sizeGib` and `storageClass` of `bootVolume` each replace the
+   * version's own, and `tags` and `networkInterfaces` replace the
+   * version's whole.
+   */
   launchTemplateData?: LaunchTemplateData;
   /**
    * A UUID; a repeat with the same id returns the first request's
    * operation instead of launching a second instance.
    */
   requestId?: string;
+  /**
+   * The full name of a launch template of the instance's project to launch
+   * from,
+   * `//compute.origincloudapis.eu/projects/{project}/launchTemplates/{launch_template}`
+   * for its default version, or with `@{version}`, `@default` or `@latest`
+   * after it for that version, resolved when the launch is made. Launching
+   * from one needs `compute.launch_template.get` on it as well. An unknown
+   * template or version is refused with `NOT_FOUND`, and a version whose
+   * image, key pair or subnet is gone is refused naming that field of
+   * `launchTemplateData`.
+   */
+  launchTemplate?: string;
 }
 
 /** The request for UpdateInstance. */
