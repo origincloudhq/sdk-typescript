@@ -38,6 +38,12 @@ const ENV = [
   "ORIGINCLOUD_OIDC_TOKEN",
   "ORIGINCLOUD_OIDC_AUDIENCE",
   "ORIGINCLOUD_STS_ENDPOINT",
+  // HCP Terraform sets the token, or a tagged one when its audience has a tag;
+  // the tag variable is ours.
+  "TFC_WORKLOAD_IDENTITY_TOKEN",
+  "TFC_WORKLOAD_IDENTITY_TOKEN_ORIGIN",
+  "TFC_WORKLOAD_IDENTITY_TOKEN_OTHER",
+  "ORIGINCLOUD_TFC_WORKLOAD_IDENTITY_TAG",
   // A GitHub Actions runner sets these when its workflow may request an OIDC token.
   "ACTIONS_ID_TOKEN_REQUEST_URL",
   "ACTIONS_ID_TOKEN_REQUEST_TOKEN",
@@ -822,6 +828,80 @@ test("in the default chain, the token in ORIGINCLOUD_OIDC_TOKEN comes after the 
   assert.equal(sts.forms.length, 3, "an expired token isn't sent");
   assert.equal(github.requests.length, 0);
 
+  process.env["ORIGINCLOUD_OIDC_DISABLED"] = "true";
+  assert.ok(defaultCredentials() instanceof InstanceMetadataCredentials);
+});
+
+test("in the default chain, an HCP Terraform run's token is exchanged as it is", async () => {
+  const sts = await stsServer(900);
+  process.env["ORIGINCLOUD_STS_ENDPOINT"] = sts.url;
+  const jobToken = unsignedJwt({ sub: "organization:org:project:p:workspace:w:run_phase:plan", exp: Math.floor(Date.now() / 1000) + 3600 });
+  process.env["TFC_WORKLOAD_IDENTITY_TOKEN"] = jobToken;
+  // A tagged token is left out without its tag.
+  process.env["TFC_WORKLOAD_IDENTITY_TOKEN_ORIGIN"] = "tagged-token";
+
+  const credentials = defaultCredentials();
+  assert.ok(credentials instanceof FederatedCredentials);
+  assert.equal(await credentials.token(), "access-1");
+  assert.equal(sts.forms[0]?.get("subject_token"), jobToken);
+
+  const expired = unsignedJwt({ sub: "organization:org", exp: Math.floor(Date.now() / 1000) - 60 });
+  process.env["TFC_WORKLOAD_IDENTITY_TOKEN"] = expired;
+  await assert.rejects(defaultCredentials().token(), /^Error: origincloud: the CI job's OIDC token in TFC_WORKLOAD_IDENTITY_TOKEN expired at /);
+  assert.equal(sts.forms.length, 1, "an expired token isn't sent");
+});
+
+test("in the default chain, a tag picks the tagged HCP Terraform token alone", async () => {
+  const sts = await stsServer(900);
+  process.env["ORIGINCLOUD_STS_ENDPOINT"] = sts.url;
+  process.env["TFC_WORKLOAD_IDENTITY_TOKEN"] = "untagged-token";
+  process.env["TFC_WORKLOAD_IDENTITY_TOKEN_ORIGIN"] = "tagged-token";
+  process.env["TFC_WORKLOAD_IDENTITY_TOKEN_OTHER"] = "other-token";
+  process.env["ORIGINCLOUD_TFC_WORKLOAD_IDENTITY_TAG"] = " ORIGIN ";
+  assert.equal(await defaultCredentials().token(), "access-1");
+  assert.equal(sts.forms[0]?.get("subject_token"), "tagged-token");
+});
+
+test("a tag without its HCP Terraform token fails naming the variable, with no fallback", async () => {
+  const sts = await stsServer(900);
+  process.env["ORIGINCLOUD_STS_ENDPOINT"] = sts.url;
+  process.env["TFC_WORKLOAD_IDENTITY_TOKEN"] = "untagged-token";
+  process.env["ORIGINCLOUD_TFC_WORKLOAD_IDENTITY_TAG"] = "ORIGIN";
+  await assert.rejects(defaultCredentials().token(), /in TFC_WORKLOAD_IDENTITY_TOKEN_ORIGIN is empty or not set$/);
+  process.env["TFC_WORKLOAD_IDENTITY_TOKEN_ORIGIN"] = "";
+  await assert.rejects(defaultCredentials().token(), /in TFC_WORKLOAD_IDENTITY_TOKEN_ORIGIN is empty or not set$/);
+  assert.equal(sts.forms.length, 0, "nothing is sent");
+});
+
+test("a tagged HCP Terraform token without its tag is no CI job's token", () => {
+  process.env["TFC_WORKLOAD_IDENTITY_TOKEN_ORIGIN"] = "tagged-token";
+  assert.ok(defaultCredentials() instanceof InstanceMetadataCredentials);
+});
+
+test("in the default chain, HCP Terraform's token comes after the file and the variable and before GitHub Actions", async () => {
+  const github = await githubServer();
+  const sts = await stsServer(900);
+  inGitHubActions(github.url);
+  process.env["ORIGINCLOUD_STS_ENDPOINT"] = sts.url;
+  process.env["TFC_WORKLOAD_IDENTITY_TOKEN"] = "tfc-token";
+
+  assert.equal(await defaultCredentials().token(), "access-1");
+  assert.equal(sts.forms[0]?.get("subject_token"), "tfc-token");
+  assert.equal(github.requests.length, 0);
+
+  process.env["ORIGINCLOUD_OIDC_TOKEN"] = "variable-token";
+  assert.equal(await defaultCredentials().token(), "access-2");
+  assert.equal(sts.forms[1]?.get("subject_token"), "variable-token");
+
+  process.env["ORIGINCLOUD_OIDC_TOKEN_FILE"] = writeTokenFile("file-token");
+  assert.equal(await defaultCredentials().token(), "access-3");
+  assert.equal(sts.forms[2]?.get("subject_token"), "file-token");
+  assert.equal(github.requests.length, 0);
+});
+
+test("ORIGINCLOUD_OIDC_DISABLED=true leaves HCP Terraform's token out of the default chain", () => {
+  process.env["TFC_WORKLOAD_IDENTITY_TOKEN"] = "tfc-token";
+  process.env["ORIGINCLOUD_TFC_WORKLOAD_IDENTITY_TAG"] = "ORIGIN";
   process.env["ORIGINCLOUD_OIDC_DISABLED"] = "true";
   assert.ok(defaultCredentials() instanceof InstanceMetadataCredentials);
 });

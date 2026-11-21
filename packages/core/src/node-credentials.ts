@@ -28,6 +28,12 @@ const ENV_OIDC_TOKEN_FILE = "ORIGINCLOUD_OIDC_TOKEN_FILE";
 const ENV_OIDC_TOKEN = "ORIGINCLOUD_OIDC_TOKEN";
 const ENV_OIDC_AUDIENCE = "ORIGINCLOUD_OIDC_AUDIENCE";
 const ENV_STS_ENDPOINT = "ORIGINCLOUD_STS_ENDPOINT";
+// What an HCP Terraform workspace with dynamic credentials sets in a run: the
+// workload identity token in ENV_TFC_TOKEN, or, for an audience variable with
+// a tag (TFC_WORKLOAD_IDENTITY_AUDIENCE_<TAG>), in ENV_TFC_TOKEN_<TAG>.
+// ENV_TFC_TAG names the tag to read.
+const ENV_TFC_TOKEN = "TFC_WORKLOAD_IDENTITY_TOKEN";
+const ENV_TFC_TAG = "ORIGINCLOUD_TFC_WORKLOAD_IDENTITY_TAG";
 const ENV_GITHUB_REQUEST_URL = "ACTIONS_ID_TOKEN_REQUEST_URL";
 const ENV_GITHUB_REQUEST_TOKEN = "ACTIONS_ID_TOKEN_REQUEST_TOKEN";
 
@@ -45,7 +51,7 @@ export class NoCredentialsError extends Error {
       "origincloud: no credentials: set ORIGINCLOUD_CLIENT_ID and ORIGINCLOUD_CLIENT_SECRET, " +
         "set ORIGINCLOUD_ACCESS_TOKEN, run in a CI job whose OIDC token the STS trusts " +
         "(GitHub Actions with `permissions: id-token: write`, ORIGINCLOUD_OIDC_TOKEN_FILE " +
-        "or ORIGINCLOUD_OIDC_TOKEN), " +
+        "ORIGINCLOUD_OIDC_TOKEN or HCP Terraform's TFC_WORKLOAD_IDENTITY_TOKEN), " +
         "log in with `origin id login`, " +
         "or run on an instance that runs as a service account",
       options,
@@ -65,7 +71,10 @@ export class NoCredentialsError extends Error {
  *    account's access tokens ({@link federated}): the file
  *    `ORIGINCLOUD_OIDC_TOKEN_FILE` names, or else the token
  *    `ORIGINCLOUD_OIDC_TOKEN` holds (as GitLab CI's `id_tokens` sets it), or
- *    else GitHub Actions' token when `ACTIONS_ID_TOKEN_REQUEST_URL` and
+ *    else an HCP Terraform run's workload identity token,
+ *    `TFC_WORKLOAD_IDENTITY_TOKEN`, or `TFC_WORKLOAD_IDENTITY_TOKEN_<TAG>`
+ *    when `ORIGINCLOUD_TFC_WORKLOAD_IDENTITY_TAG` names the tag of a tagged
+ *    audience, or else GitHub Actions' token when `ACTIONS_ID_TOKEN_REQUEST_URL` and
  *    `ACTIONS_ID_TOKEN_REQUEST_TOKEN` are set. `ORIGINCLOUD_STS_ENDPOINT`
  *    names another STS,
  *    `ORIGINCLOUD_OIDC_AUDIENCE` another audience for GitHub's token;
@@ -540,6 +549,9 @@ export function oidcToken(token: string, options?: FederatedOptions): FederatedC
 function givenToken(token: string, options: FederatedOptions = {}, variable?: string): FederatedCredentials {
   const subjectToken = token.trim();
   return new FederatedCredentials(() => {
+    if (!subjectToken) {
+      throw new Error(`origincloud: the CI job's OIDC token${variable ? ` in ${variable}` : ""} is empty or not set`);
+    }
     const expiry = expiryClaim(subjectToken);
     if (expiry !== undefined && expiry <= Date.now()) {
       throw new Error(
@@ -623,7 +635,8 @@ export function githubActions(options: GitHubActionsOptions = {}): FederatedCred
 /**
  * The CI job's credentials the environment names, unless
  * `ORIGINCLOUD_OIDC_DISABLED=true`: a token file, which may be rotated in
- * place, before a token in a variable, before GitHub Actions.
+ * place, before a token in a variable, before an HCP Terraform run's token,
+ * before GitHub Actions.
  */
 function ciJobCredentials(): FederatedCredentials | undefined {
   if (process.env[ENV_OIDC_DISABLED]?.toLowerCase() === "true") return undefined;
@@ -633,8 +646,22 @@ function ciJobCredentials(): FederatedCredentials | undefined {
   if (file) return oidcTokenFile(file, options);
   const token = process.env[ENV_OIDC_TOKEN];
   if (token) return givenToken(token, options, ENV_OIDC_TOKEN);
+  const tfcVariable = tfcTokenVariable();
+  if (tfcVariable) return givenToken(process.env[tfcVariable] ?? "", options, tfcVariable);
   if (!process.env[ENV_GITHUB_REQUEST_URL] || !process.env[ENV_GITHUB_REQUEST_TOKEN]) return undefined;
   const audience = process.env[ENV_OIDC_AUDIENCE];
   if (audience) options.audience = audience;
   return githubActions(options);
+}
+
+/**
+ * The variable an HCP Terraform run's workload identity token is read from:
+ * the tagged one when `ORIGINCLOUD_TFC_WORKLOAD_IDENTITY_TAG` names a tag,
+ * even if that variable is unset, so that the error names it; the untagged
+ * one otherwise, when it is set; `undefined` when the run has none.
+ */
+function tfcTokenVariable(): string | undefined {
+  const tag = process.env[ENV_TFC_TAG]?.trim();
+  if (tag) return `${ENV_TFC_TOKEN}_${tag}`;
+  return process.env[ENV_TFC_TOKEN] ? ENV_TFC_TOKEN : undefined;
 }
