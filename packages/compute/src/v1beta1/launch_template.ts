@@ -193,7 +193,7 @@ export class LaunchTemplateClient {
    * fetching the next page as the loop reaches it. A page that fails ends
    * the iteration with its error.
    */
-  async *allLaunchTemplates(request: ListLaunchTemplateVersionsRequest, options?: CallOptions): AsyncGenerator<LaunchTemplate, void, undefined> {
+  async *allLaunchTemplateVersions(request: ListLaunchTemplateVersionsRequest, options?: CallOptions): AsyncGenerator<LaunchTemplate, void, undefined> {
     for (let page = request; ; ) {
       const response = await this.listLaunchTemplateVersions(page, options);
       yield* response.launchTemplates ?? [];

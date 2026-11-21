@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { Client, FullNameError, accessToken } from "@origincloud/core";
-import { InstanceClient, InstanceTypeClient } from "@origincloud/compute/v1beta1";
+import { InstanceClient, InstanceTypeClient, LaunchTemplateClient } from "@origincloud/compute/v1beta1";
 
 test("getInstanceType gets a resource by its name from compute.origincloudapis.eu", async () => {
   const urls: string[] = [];
@@ -69,4 +69,36 @@ test("a full name of another service is refused before sending", async () => {
       err.message.includes("name must be a name on compute.origincloudapis.eu"),
   );
   assert.equal(sent, 0);
+});
+
+// A launch template's versions are the template itself (AIP-162), so their
+// pager is named after its method, not after the field it shares with
+// allLaunchTemplates.
+test("allLaunchTemplateVersions follows the pages", async () => {
+  const template = "projects/p/launchTemplates/web";
+  const pages: Record<string, unknown> = {
+    "": { launchTemplates: [{ name: `${template}@1` }, { name: `${template}@2` }], nextPageToken: "p2" },
+    p2: { launchTemplates: [{ name: `${template}@3` }] },
+  };
+  const urls: URL[] = [];
+  const client = new Client({
+    credentials: accessToken("t"),
+    fetch: async (url) => {
+      const u = new URL(String(url));
+      urls.push(u);
+      return new Response(JSON.stringify(pages[u.searchParams.get("pageToken") ?? ""]), {
+        headers: { "content-type": "application/json" },
+      });
+    },
+  });
+
+  const names: string[] = [];
+  for await (const version of new LaunchTemplateClient(client).allLaunchTemplateVersions({ name: template })) {
+    names.push(version.name ?? "");
+  }
+  assert.deepEqual(names, [`${template}@1`, `${template}@2`, `${template}@3`]);
+  assert.deepEqual(
+    urls.map((u) => u.pathname),
+    [`/v1beta1/${template}:listVersions`, `/v1beta1/${template}:listVersions`],
+  );
 });
