@@ -13,13 +13,15 @@ import {
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
+import type { LaunchTemplateData } from "./launch_template.js";
 
 /**
  * Calls InstanceService.
  *
  * Instances: virtual machines in one zone, booted from an image onto a
- * durable boot volume, with network interfaces created beforehand with the
- * network service.
+ * durable boot volume. An instance is launched either with network
+ * interfaces created beforehand with the network service, or from a recipe
+ * whose interface specs the launch creates the interfaces from.
  */
 export class InstanceClient {
   /**
@@ -107,6 +109,34 @@ export class InstanceClient {
         path: `/v1beta1/${p0}/instances`,
         body: request.instance,
         query: query(request, ["parent", "instance"]),
+        idempotent: true,
+      },
+      options,
+    );
+    return new Operation<Instance, OperationMetadata>(this.service, op, "origincloud.compute.v1beta1.Instance");
+  }
+
+  /**
+   * Launches an instance from a recipe: the instance it describes, with a
+   * network interface created from each interface spec it holds. Nothing
+   * is created when the launch is refused, as for an invalid field, a
+   * quota or a subnet with no address left. The operation is done once
+   * the instance is `RUNNING`, or failed once it is `FAILED`, with the
+   * reason in `stateReason`; a failed instance still exists, keeps the
+   * interfaces created for it, and can be started again or deleted.
+   *
+   * It answers with an operation to wait on, whose result is the Instance.
+   */
+  async launchInstance(request: LaunchInstanceRequest, options?: CallOptions): Promise<Operation<Instance, OperationMetadata>> {
+    if (!request.requestId) request = { ...request, requestId: newRequestId() };
+    const n0 = this.service.relativeName("parent", request.parent, ["compute"]);
+    const p0 = pathValue("parent", n0, "projects/*/zones/*");
+    if (n0 !== (request.parent ?? "")) request = { ...request, parent: n0 };
+    const op = await this.service.call<LongrunningOperation>(
+      {
+        method: "POST",
+        path: `/v1beta1/${p0}/instances:launch`,
+        body: request,
         idempotent: true,
       },
       options,
@@ -273,8 +303,9 @@ export interface Instance {
    * project and zone that nothing else holds, created with the network
    * service: its subnet and security groups are the instance's.
    * Terminating the instance releases it, and it stays. An instance
-   * launched before interfaces were named at launch shows the interface
-   * created for it, which is deleted with the instance.
+   * launched from a recipe with an interface spec, or before interfaces
+   * were named at launch, shows the interface created for it once it
+   * exists, which is deleted with the instance.
    */
   networkInterfaces?: string[];
   /** Where the instance is in its lifecycle. */
@@ -513,6 +544,19 @@ export interface CreateInstanceRequest {
    * volume and tags.
    */
   instance?: Instance;
+  /**
+   * A UUID; a repeat with the same id returns the first request's
+   * operation instead of launching a second instance.
+   */
+  requestId?: string;
+}
+
+/** The request for LaunchInstance. */
+export interface LaunchInstanceRequest {
+  /** The zone to launch the instance in, `projects/{project}/zones/{zone}`. */
+  parent?: string;
+  /** The recipe of the instance to launch. */
+  launchTemplateData?: LaunchTemplateData;
   /**
    * A UUID; a repeat with the same id returns the first request's
    * operation instead of launching a second instance.

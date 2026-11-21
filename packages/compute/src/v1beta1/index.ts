@@ -4,5 +4,6 @@ export * from "./catalog.js";
 export * from "./image.js";
 export * from "./instance.js";
 export * from "./key_pair.js";
+export * from "./launch_template.js";
 export * from "./public_image.js";
 export * from "./volume_attachment.js";
