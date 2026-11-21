@@ -33,7 +33,11 @@ export class LaunchTemplateClient {
     this.service = client.service("compute", true);
   }
 
-  /** Returns a launch template, with its default version's recipe. */
+  /**
+   * Returns a launch template with one version's recipe: its default
+   * version's for a bare name or `@default`, its newest for `@latest`, or
+   * version `N` for `@N`.
+   */
   async getLaunchTemplate(request: GetLaunchTemplateRequest, options?: CallOptions): Promise<LaunchTemplate> {
     const n0 = this.service.relativeName("name", request.name, ["compute"]);
     const p0 = pathValue("name", n0, "projects/*/launchTemplates/*");
@@ -107,7 +111,10 @@ export class LaunchTemplateClient {
     );
   }
 
-  /** Changes a launch template's tags. A version's recipe never changes. */
+  /**
+   * Changes a launch template's tags or its default version, or both. A
+   * version's recipe never changes.
+   */
   async updateLaunchTemplate(request: UpdateLaunchTemplateRequest, options?: CallOptions): Promise<LaunchTemplate> {
     const n0 = this.service.relativeName("launchTemplate.name", request.launchTemplate?.name, ["compute"]);
     const p0 = pathValue("launchTemplate.name", n0, "projects/*/launchTemplates/*");
@@ -140,6 +147,80 @@ export class LaunchTemplateClient {
       options,
     );
   }
+
+  /**
+   * Adds a version to a launch template with `launchTemplateData` as its
+   * recipe, numbered one past the highest number the template has ever
+   * given, and returns the template at it. The default version stays as it
+   * is. The recipe is checked as CreateLaunchTemplate checks it. A template
+   * holds at most 100 versions.
+   */
+  async createLaunchTemplateVersion(request: CreateLaunchTemplateVersionRequest, options?: CallOptions): Promise<LaunchTemplate> {
+    const n0 = this.service.relativeName("name", request.name, ["compute"]);
+    const p0 = pathValue("name", n0, "projects/*/launchTemplates/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
+    return this.service.call<LaunchTemplate>(
+      {
+        method: "POST",
+        path: `/v1beta1/${p0}:createVersion`,
+        body: request,
+      },
+      options,
+    );
+  }
+
+  /**
+   * Lists a launch template's versions, newest first, each as the template
+   * at that version, named `{launch_template}@{version}`.
+   */
+  async listLaunchTemplateVersions(request: ListLaunchTemplateVersionsRequest, options?: CallOptions): Promise<ListLaunchTemplateVersionsResponse> {
+    const n0 = this.service.relativeName("name", request.name, ["compute"]);
+    const p0 = pathValue("name", n0, "projects/*/launchTemplates/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
+    return this.service.call<ListLaunchTemplateVersionsResponse>(
+      {
+        method: "GET",
+        path: `/v1beta1/${p0}:listVersions`,
+        query: query(request, ["name"]),
+        idempotent: true,
+      },
+      options,
+    );
+  }
+
+  /**
+   * Iterates over everything listLaunchTemplateVersions lists from the request's page on,
+   * fetching the next page as the loop reaches it. A page that fails ends
+   * the iteration with its error.
+   */
+  async *allLaunchTemplateVersions(request: ListLaunchTemplateVersionsRequest, options?: CallOptions): AsyncGenerator<LaunchTemplate, void, undefined> {
+    for (let page = request; ; ) {
+      const response = await this.listLaunchTemplateVersions(page, options);
+      yield* response.launchTemplates ?? [];
+      if (!response.nextPageToken) return;
+      page = { ...page, pageToken: response.nextPageToken };
+    }
+  }
+
+  /**
+   * Deletes one version of a launch template, named
+   * `{launch_template}@{version}`. The default version can't be deleted:
+   * set another default first. A deleted version's number is never given
+   * to another version.
+   */
+  async deleteLaunchTemplateVersion(request: DeleteLaunchTemplateVersionRequest, options?: CallOptions): Promise<Empty> {
+    const n0 = this.service.relativeName("name", request.name, ["compute"]);
+    const p0 = pathValue("name", n0, "projects/*/launchTemplates/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
+    return this.service.call<Empty>(
+      {
+        method: "DELETE",
+        path: `/v1beta1/${p0}:deleteVersion`,
+        query: query(request, ["name"]),
+      },
+      options,
+    );
+  }
 }
 
 /**
@@ -147,16 +228,23 @@ export class LaunchTemplateClient {
  * the default.
  */
 export interface LaunchTemplate {
-  /** The launch template's resource name. */
+  /**
+   * The launch template's resource name. A template read at one version,
+   * by `@{version}`, `@default` or `@latest`, is named with that version's
+   * number, `projects/{project}/launchTemplates/{launch_template}@{version}`.
+   */
   name?: string;
   /**
-   * The recipe of the default version. On creation, the recipe of version
-   * 1.
+   * The recipe of the version this shows, `version`: the default version's
+   * unless the name named another. On creation, the recipe of version 1.
    */
   launchTemplateData?: LaunchTemplateData;
-  /** The number of the version launches use when they name no version. */
+  /**
+   * The number of the version launches use when they name no version. 1 on
+   * creation; an update sets it to another version the template has.
+   */
   defaultVersion?: number;
-  /** The number of the newest version. */
+  /** The number of the newest version the template has. */
   latestVersion?: number;
   /** When the launch template was created. */
   createTime?: string;
@@ -173,11 +261,19 @@ export interface LaunchTemplate {
    * `tags` are the instances'.
    */
   tags?: Record<string, string>;
+  /** The number of the version whose recipe this shows. */
+  version?: number;
+  /** When that version was created. */
+  versionCreateTime?: string;
 }
 
 /** The request for GetLaunchTemplate. */
 export interface GetLaunchTemplateRequest {
-  /** The launch template to return. */
+  /**
+   * The launch template to return: `projects/{project}/launchTemplates/{launch_template}`
+   * for its default version, or with `@{version}`, `@default` or `@latest`
+   * after it for that version.
+   */
   name?: string;
 }
 
@@ -220,11 +316,15 @@ export interface CreateLaunchTemplateRequest {
 
 /** The request for UpdateLaunchTemplate. */
 export interface UpdateLaunchTemplateRequest {
-  /** The launch template, by its name, with the tags to set. */
+  /**
+   * The launch template, by its name, with the tags or the default version
+   * to set.
+   */
   launchTemplate?: LaunchTemplate;
   /**
-   * The fields to change: `tags`, the only field that changes. `*` is the
-   * same.
+   * The fields to change: `tags`, `defaultVersion`, or both. `*` is both,
+   * where a `defaultVersion` of 0 leaves the default as it is. A
+   * `defaultVersion` must be a version the template has.
    */
   updateMask?: string;
 }
@@ -232,6 +332,47 @@ export interface UpdateLaunchTemplateRequest {
 /** The request for DeleteLaunchTemplate. */
 export interface DeleteLaunchTemplateRequest {
   /** The launch template to delete. */
+  name?: string;
+}
+
+/** The request for CreateLaunchTemplateVersion. */
+export interface CreateLaunchTemplateVersionRequest {
+  /** The launch template to add a version to. */
+  name?: string;
+  /** The new version's recipe. */
+  launchTemplateData?: LaunchTemplateData;
+}
+
+/** The request for ListLaunchTemplateVersions. */
+export interface ListLaunchTemplateVersionsRequest {
+  /** The launch template whose versions to list. */
+  name?: string;
+  /**
+   * The most versions to return; the server clamps it, and 0 means its
+   * default.
+   */
+  pageSize?: number;
+  /** A previous response's `nextPageToken`, for the page after it. */
+  pageToken?: string;
+}
+
+/** The response for ListLaunchTemplateVersions. */
+export interface ListLaunchTemplateVersionsResponse {
+  /**
+   * The template at each version on this page, newest first, each named
+   * with its version's number.
+   */
+  launchTemplates?: LaunchTemplate[];
+  /** The token for the next page; empty on the last one. */
+  nextPageToken?: string;
+}
+
+/** The request for DeleteLaunchTemplateVersion. */
+export interface DeleteLaunchTemplateVersionRequest {
+  /**
+   * The version to delete, `projects/{project}/launchTemplates/{launch_template}@{version}`
+   * with the version's number.
+   */
   name?: string;
 }
 

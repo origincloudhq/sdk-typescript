@@ -570,9 +570,10 @@ class FileGenerator {
       "  }",
     );
     const authenticated = !UNAUTHENTICATED_SERVICES.has(shortcode) && !UNAUTHENTICATED_SERVICES.has(`${shortcode}.${s.name}`);
+    const pagers = this.pagerNames(s);
     (s.method ?? []).forEach((m, i) => {
       try {
-        this.method(m, [...path, SERVICE_METHOD, i], authenticated);
+        this.method(m, [...path, SERVICE_METHOD, i], authenticated, pagers);
       } catch (err) {
         if (err instanceof GenerateError) fail(`${s.name}.${m.name}: ${err.message}`);
         throw err;
@@ -581,7 +582,35 @@ class FileGenerator {
     this.emit("}", "");
   }
 
-  private method(m: MethodDescriptor, path: number[], authenticated: boolean): void {
+  /**
+   * The name of each list method's all... method in the service: after its
+   * repeated field, allVolumes for ListVolumes. Where two list methods'
+   * fields share a name, as a resource's and its revisions' do (AIP-162:
+   * both list the resource itself), each of them is named after its method
+   * instead, allLaunchTemplateVersions for ListLaunchTemplateVersions; a
+   * method named after its field keeps the name it had.
+   */
+  private pagerNames(s: ServiceDescriptor): Map<string, string> {
+    const lists: [string, string][] = [];
+    for (const m of s.method ?? []) {
+      const input = this.typeInfo(m.inputType).message;
+      const items = input && listItems(this.ctx.types, m, input);
+      if (items) lists.push([m.name, jsonName(items)]);
+    }
+    const names = new Map<string, string>();
+    const taken = new Set<string>();
+    for (const [method, field] of lists) {
+      const shared = lists.filter(([, f]) => f === field).length > 1;
+      const base = shared ? method.replace(/^List/, "") : field.charAt(0).toUpperCase() + field.slice(1);
+      const name = "all" + base;
+      if (taken.has(name)) fail(`${s.name}: two list methods' pagers are both named ${name}`);
+      taken.add(name);
+      names.set(method, name);
+    }
+    return names;
+  }
+
+  private method(m: MethodDescriptor, path: number[], authenticated: boolean, pagers: Map<string, string>): void {
     if (m.clientStreaming || m.serverStreaming) fail("streaming isn't supported");
     const rule = m.options?.["[google.api.http]"];
     if (!rule) fail("no google.api.http binding");
@@ -698,14 +727,13 @@ class FileGenerator {
     this.emit("  }");
 
     const items = listItems(this.ctx.types, m, inputMessage);
-    if (items) this.all(name, inputType, items, callOptions);
+    if (items) this.all(name, pagers.get(m.name)!, inputType, items, callOptions);
   }
 
-  /** An all... method iterating over every page of the list method `listName`. */
-  private all(listName: string, inputType: string, items: FieldDescriptor, callOptions: string): void {
+  /** The all... method `name` iterating over every page of the list method `listName`. */
+  private all(listName: string, name: string, inputType: string, items: FieldDescriptor, callOptions: string): void {
     const itemType = this.ref(items.typeName!);
     const field = jsonName(items);
-    const name = "all" + field.charAt(0).toUpperCase() + field.slice(1);
     this.emit("");
     this.doc(
       [
