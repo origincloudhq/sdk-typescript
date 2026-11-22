@@ -1,8 +1,14 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
 
-import { Client, OriginCloudError, accessToken } from "@origincloud/core";
-import { AuditLogClient, RoleBindingClient, ServiceAccountClient, UserClient } from "@origincloud/iam/v1beta1";
+import { Client, accessToken } from "@origincloud/core";
+import {
+  AuditLogClient,
+  RoleBindingClient,
+  ServiceAccountClient,
+  ServiceAccountKeyClient,
+  UserClient,
+} from "@origincloud/iam/v1beta1";
 
 import { type Received, json, serve } from "../../../test-support/fake-server.js";
 
@@ -60,19 +66,18 @@ test("a regional client still calls the regionless host", async () => {
   ]);
 });
 
-test("getServiceAccount reads a service account without its secret", async () => {
+test("getServiceAccount reads a service account", async () => {
   const [client, calls] = await recordingClient({
     name: "organizations/o/serviceAccounts/s",
     displayName: "CI",
     member: "serviceAccount:s",
-    clientId: "sa-s",
+    type: "EXTERNAL",
     state: "ACTIVE",
   });
 
   const account = await new ServiceAccountClient(client).getServiceAccount({ name: "organizations/o/serviceAccounts/s" });
   assert.equal(account.member, "serviceAccount:s");
-  assert.equal(account.clientId, "sa-s");
-  assert.equal(account.clientSecret, undefined);
+  assert.equal(account.type, "EXTERNAL");
   assert.equal(account.state, "ACTIVE");
 
   const [get] = calls;
@@ -83,24 +88,20 @@ test("getServiceAccount reads a service account without its secret", async () =>
   assert.deepEqual([...get.query], []);
 });
 
-// The client secret is shown once, in the response that created the
-// service account.
-test("createServiceAccount answers with its client secret", async () => {
+test("createServiceAccount sends the service account as the body", async () => {
   const [client, calls] = await recordingClient({
     name: "organizations/o/serviceAccounts/s",
     displayName: "CI",
     member: "serviceAccount:s",
-    clientId: "sa-s",
-    clientSecret: "shown-once",
+    type: "EXTERNAL",
     state: "ACTIVE",
   });
 
   const account = await new ServiceAccountClient(client).createServiceAccount({
     parent: "organizations/o",
-    serviceAccount: { displayName: "CI" },
+    serviceAccount: { displayName: "CI", type: "EXTERNAL" },
   });
-  assert.equal(account.clientSecret, "shown-once");
-  assert.equal(account.clientId, "sa-s");
+  assert.equal(account.name, "organizations/o/serviceAccounts/s");
 
   // body: "service_account": the service account is the body, the request
   // id goes in the query, filled in as it was left empty.
@@ -108,15 +109,14 @@ test("createServiceAccount answers with its client secret", async () => {
   assert.ok(created && calls.length === 1);
   assert.equal(created.method, "POST");
   assert.equal(created.path, "/v1beta1/organizations/o/serviceAccounts");
-  assert.deepEqual(JSON.parse(created.body), { displayName: "CI" });
+  assert.deepEqual(JSON.parse(created.body), { displayName: "CI", type: "EXTERNAL" });
   assert.deepEqual([...created.query.keys()], ["requestId"]);
   assert.match(created.query.get("requestId") ?? "", uuid);
 });
 
-// A create whose answer was lost is sent again with the same request id.
-// The API holds that request id, but no longer the client secret it
-// answered with: it refuses the repeat, naming the account it created.
-test("a repeated createServiceAccount is refused with the account it created", async () => {
+// A create whose answer was lost is sent again with the same request id,
+// and the API answers the repeat with the account the first one created.
+test("a repeated createServiceAccount answers with the account it created", async () => {
   const account = "organizations/o/serviceAccounts/s";
   const calls: Received[] = [];
   const server = await serve((req, res) => {
@@ -125,54 +125,52 @@ test("a repeated createServiceAccount is refused with the account it created", a
       res.socket?.destroy();
       return;
     }
-    json(
-      res,
-      {
-        error: {
-          code: 409,
-          status: "FAILED_PRECONDITION",
-          message:
-            `the service account ${account} was created by an earlier request with this request_id; ` +
-            "its client secret was returned only to that request. To get a working secret, delete that account and create a new one",
-          details: [
-            {
-              "@type": "type.googleapis.com/google.rpc.ErrorInfo",
-              reason: "CONFLICT",
-              domain: "origincloudapis.eu",
-              metadata: { serviceAccount: account },
-            },
-            { "@type": "type.googleapis.com/google.rpc.RequestInfo", requestId: "req-2" },
-          ],
-        },
-      },
-      409,
-    );
+    json(res, { name: account, state: "ACTIVE" });
   });
   closers.push(server.close);
   const client = new Client({ endpoint: server.url, credentials: accessToken("t") });
 
-  await assert.rejects(
-    new ServiceAccountClient(client).createServiceAccount({
-      parent: "organizations/o",
-      serviceAccount: { displayName: "CI" },
-    }),
-    (err: unknown) => {
-      assert.ok(err instanceof OriginCloudError);
-      assert.equal(err.httpStatus, 409);
-      assert.equal(err.reason, "CONFLICT");
-      assert.deepEqual(err.metadata, { serviceAccount: account });
-      assert.match(err.message, /organizations\/o\/serviceAccounts\/s/);
-      assert.equal(err.retryable, false);
-      return true;
-    },
-  );
+  const created = await new ServiceAccountClient(client).createServiceAccount({
+    parent: "organizations/o",
+    serviceAccount: { displayName: "CI" },
+  });
+  assert.equal(created.name, account);
 
-  // Sent twice, with one request id; the refusal is not sent again.
   assert.equal(calls.length, 2);
   const [first, second] = calls;
   assert.ok(first && second);
   assert.match(first.query.get("requestId") ?? "", uuid);
   assert.equal(second.query.get("requestId"), first.query.get("requestId"));
+});
+
+// The private key is shown once, in the credentials file of the response
+// that created the key.
+test("createServiceAccountKey answers with its credentials file", async () => {
+  const credentialsFile = JSON.stringify({
+    type: "service_account_key",
+    name: "//iam.origincloudapis.eu/organizations/o/serviceAccounts/s/keys/k",
+    service_account: "//iam.origincloudapis.eu/organizations/o/serviceAccounts/s",
+    algorithm: "ES256",
+    private_key: "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
+    sts_endpoint: "https://sts.origincloudapis.eu",
+  });
+  const [client, calls] = await recordingClient({
+    name: "organizations/o/serviceAccounts/s/keys/k",
+    algorithm: "ES256",
+    state: "ACTIVE",
+    credentialsFile,
+  });
+
+  const key = await new ServiceAccountKeyClient(client).createServiceAccountKey({
+    parent: "organizations/o/serviceAccounts/s",
+  });
+  assert.equal(key.credentialsFile, credentialsFile);
+
+  const [created] = calls;
+  assert.ok(created && calls.length === 1);
+  assert.equal(created.method, "POST");
+  assert.equal(created.path, "/v1beta1/organizations/o/serviceAccounts/s/keys");
+  assert.deepEqual([...created.query.keys()], ["requestId"]);
 });
 
 test("createRoleBinding keeps a given request id", async () => {

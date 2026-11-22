@@ -135,7 +135,7 @@ export class SecurityGroupRuleClient {
 /**
  * A security group rule: the traffic it allows in one direction, to or from
  * one peer. Set exactly one of `cidrBlock`, `peerSecurityGroup` and
- * `sameGroup`.
+ * `sameGroup`: they are the oneof `peer`.
  */
 export interface SecurityGroupRule {
   /** The rule's resource name. */
@@ -165,13 +165,12 @@ export interface SecurityGroupRule {
    */
   cidrBlock?: string;
   /**
-   * The peer as another security group of the same VPC, by its full name:
-   * its members'
-   * addresses. The rule's own group is refused here with
-   * `INVALID_ARGUMENT`: it is `sameGroup`.
+   * The peer as another security group of the same VPC, by its full
+   * name: its members' addresses. The rule's own group is refused here
+   * with `INVALID_ARGUMENT`: it is `sameGroup`.
    */
   peerSecurityGroup?: string;
-  /** The peer as the rule's own group's members. */
+  /** The peer as the rule's own group's members; only `true` is a peer. */
   sameGroup?: boolean;
   /** What the rule is for. */
   description?: string;

@@ -136,7 +136,7 @@ export class RouteClient {
 
 /**
  * A route: traffic to `destination` leaves through one gateway. Set exactly
- * one of `internetGateway` and `natGateway`.
+ * one of `internetGateway` and `natGateway`: they are the oneof `target`.
  */
 export interface Route {
   /** The route's resource name. */
@@ -153,11 +153,10 @@ export interface Route {
    */
   internetGateway?: string;
   /**
-   * The full name of the NAT gateway in the table's VPC to send the traffic
-   * to, for the
-   * IPv4 default route only: a NAT gateway translates IPv4 only. Named in
-   * the gateway's own zone; a name with another zone is refused with
-   * `INVALID_ARGUMENT`.
+   * The full name of the NAT gateway in the table's VPC to send the
+   * traffic to, for the IPv4 default route only: a NAT gateway
+   * translates IPv4 only. Named in the gateway's own zone; a name with
+   * another zone is refused with `INVALID_ARGUMENT`.
    */
   natGateway?: string;
 }
