@@ -1,7 +1,4 @@
-/**
- * The identity provider's token endpoint, where service account
- * credentials and the CLI's session are exchanged for access tokens.
- */
+/** The identity provider's token endpoint, where the CLI's session is renewed. */
 export const TOKEN_URL = "https://auth.origincloud.eu/realms/origincloud/protocol/openid-connect/token";
 
 /** How long before its expiry a token is replaced, so that it doesn't expire on the way. */
@@ -34,8 +31,8 @@ export function toCredentials(credentials: Credentials | TokenSource): Credentia
 }
 
 /**
- * Credentials that always send `token`. It is not renewed: a service
- * account's lives five minutes.
+ * Credentials that always send `token`. It is not renewed: it works until
+ * it expires.
  */
 export function accessToken(token: string): Credentials {
   return { token: async () => token };
@@ -187,51 +184,10 @@ export function expiryOf(granted: GrantedToken): number {
   return Date.now() + (Number(granted.expires_in) || 0) * 1000;
 }
 
-/** How {@link ServiceAccountCredentials} reach the identity provider. */
+/** How the CLI's session reaches the identity provider. */
 export interface TokenEndpointOptions {
   /** Where tokens are requested; {@link TOKEN_URL} by default. */
   tokenUrl?: string;
   /** The `fetch` token requests are sent with; the platform's by default. */
   fetch?: FetchLike;
-}
-
-/**
- * Credentials that exchange a service account's client ID and secret for
- * access tokens, with the client credentials grant, as they expire.
- */
-export class ServiceAccountCredentials implements Credentials {
-  readonly clientId: string;
-  private readonly clientSecret: string;
-  /** Where tokens are requested. */
-  tokenUrl: string;
-  /** The `fetch` token requests are sent with; the platform's when unset. */
-  fetch: FetchLike | undefined;
-  private readonly cache = new TokenCache();
-
-  constructor(clientId: string, clientSecret: string, options: TokenEndpointOptions = {}) {
-    this.clientId = clientId;
-    this.clientSecret = clientSecret;
-    this.tokenUrl = options.tokenUrl ?? TOKEN_URL;
-    this.fetch = options.fetch;
-  }
-
-  /** The current access token, requesting a new one when it is about to expire. */
-  token(signal?: AbortSignal): Promise<string> {
-    return this.cache.get(async () => {
-      const granted = await requestToken(this.fetch, this.tokenUrl, {
-        grant_type: "client_credentials",
-        client_id: this.clientId,
-        client_secret: this.clientSecret,
-      });
-      return { token: granted.access_token, expiry: expiryOf(granted) };
-    }, signal);
-  }
-}
-
-/**
- * Credentials that exchange a service account's client ID and secret for
- * access tokens as they expire.
- */
-export function serviceAccount(clientId: string, clientSecret: string, options?: TokenEndpointOptions): Credentials {
-  return new ServiceAccountCredentials(clientId, clientSecret, options);
 }

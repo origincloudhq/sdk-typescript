@@ -79,9 +79,13 @@ absent from a response: `volume.sizeGib ?? 0`.
 `new Client()` takes the first of:
 
 1. `ORIGINCLOUD_ACCESS_TOKEN`: an access token, sent as it is.
-2. `ORIGINCLOUD_CLIENT_ID` and `ORIGINCLOUD_CLIENT_SECRET`: a service account's
-   credential, exchanged for access tokens as they expire. This is what
-   automation should use. Setting only one of the two is an error.
+2. `ORIGINCLOUD_CREDENTIALS_FILE`: the path of an `EXTERNAL` service account
+   key's credentials file, for software that has no OIDC token of its own to
+   federate (step 3). The SDK signs an ES256 assertion with the key
+   (RFC 7523) and exchanges it at the STS the file names for the account's
+   access token, again a minute before that token expires. A file named here
+   that can't be read or isn't a key's is an error, and the steps below
+   aren't tried.
 3. A CI job's OIDC token, exchanged at the security token service
    (`https://sts.origincloudapis.eu`, or `ORIGINCLOUD_STS_ENDPOINT`) for the
    access tokens of the workload service account whose federated credential
@@ -132,10 +136,43 @@ absent from a response: `volume.sizeGib ?? 0`.
 `credentials` sets them explicitly instead:
 
 ```ts
-import { Client, serviceAccount } from "@origincloud/core";
+import { Client, credentialsFile } from "@origincloud/core";
 
-const client = new Client({ credentials: serviceAccount(clientId, clientSecret) });
+const client = new Client({ credentials: credentialsFile("/etc/myapp/origincloud-key.json") });
 ```
+
+#### A service account key's credentials file
+
+Creating a key for an `EXTERNAL` service account, in the console or with the
+API, returns its private key once, as a credentials file (`credentialsFile`
+in the response); no API returns it again. Save it as it is, readable only by the software that uses
+it, or keep it in your secret manager:
+
+```sh
+(umask 077; curl -s -X POST \
+  "https://iam.origincloudapis.eu/v1beta1/organizations/<org-id>/serviceAccounts/<service-account-id>/keys" \
+  -H "Authorization: Bearer $(origin id token --raw)" \
+  -H "Content-Type: application/json" -d '{}' \
+  | jq -r .credentialsFile > origincloud-key.json)
+export ORIGINCLOUD_CREDENTIALS_FILE="$PWD/origincloud-key.json"
+```
+
+```json
+{
+  "type": "service_account_key",
+  "name": "//iam.origincloudapis.eu/organizations/<org-id>/serviceAccounts/<service-account-id>/keys/<key-id>",
+  "service_account": "//iam.origincloudapis.eu/organizations/<org-id>/serviceAccounts/<service-account-id>",
+  "algorithm": "ES256",
+  "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
+  "sts_endpoint": "https://sts.origincloudapis.eu"
+}
+```
+
+`ServiceAccountKeyCredentials.fromJSON(json)` takes the file's content
+instead, such as from a secret manager. The credentials never print the
+private key, and their errors never quote the file. A key is the last
+resort: a CI job federates its own OIDC token (step 3), and an instance runs
+as its service account (step 5), with no key to keep.
 
 `githubActions()`, `oidcTokenFile(path)`, `oidcToken(token)` and
 `federated(getToken)` exchange a CI job's token the same way, from GitHub

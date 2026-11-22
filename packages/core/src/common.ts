@@ -7,10 +7,8 @@ export {
   type GrantedToken,
   type TokenEndpointOptions,
   type TokenSource,
-  ServiceAccountCredentials,
   TOKEN_URL,
   accessToken,
-  serviceAccount,
 } from "./credentials.js";
 export { type CalendarDate } from "./date.js";
 export { type FieldViolation, OriginCloudError, reasonOf } from "./errors.js";

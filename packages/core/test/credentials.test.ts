@@ -13,7 +13,7 @@ import {
   NoCredentialsError,
   OIDC_AUDIENCE,
   STS_ENDPOINT,
-  ServiceAccountCredentials,
+  ServiceAccountKeyCredentials,
   cliSession,
   defaultCredentials,
   federated,
@@ -23,12 +23,12 @@ import {
   oidcTokenFile,
 } from "@origincloud/core";
 
+import { newCredentialsFile } from "../../../test-support/credentials-file.js";
 import { type Received, json, serve } from "../../../test-support/fake-server.js";
 
 const ENV = [
   "ORIGINCLOUD_ACCESS_TOKEN",
-  "ORIGINCLOUD_CLIENT_ID",
-  "ORIGINCLOUD_CLIENT_SECRET",
+  "ORIGINCLOUD_CREDENTIALS_FILE",
   "ORIGINCLOUD_REGION",
   "ORIGINCLOUD_METADATA_DISABLED",
   "ORIGINCLOUD_METADATA_ENDPOINT",
@@ -81,10 +81,6 @@ async function tokenServer(expiresIn: number) {
   const server = await serve((req, res) => {
     const form = new URLSearchParams(req.body);
     forms.push(form);
-    if (form.get("client_secret") === "wrong") {
-      json(res, { error: "unauthorized_client", error_description: "Invalid client secret" }, 401);
-      return;
-    }
     json(res, {
       access_token: `token-${forms.length}`,
       expires_in: expiresIn,
@@ -103,34 +99,20 @@ function writeSession(session: Record<string, string>): string {
   return path;
 }
 
+function writeCredentialsFile(): string {
+  const path = join(dataHome, "credentials.json");
+  writeFileSync(path, newCredentialsFile().json);
+  return path;
+}
+
 const inAnHour = () => new Date(Date.now() + 3600_000).toISOString();
 const anHourAgo = () => new Date(Date.now() - 3600_000).toISOString();
 
 test("an access token in the environment comes first", async () => {
   process.env["ORIGINCLOUD_ACCESS_TOKEN"] = "from-env";
-  process.env["ORIGINCLOUD_CLIENT_ID"] = "id";
-  process.env["ORIGINCLOUD_CLIENT_SECRET"] = "secret";
+  process.env["ORIGINCLOUD_CREDENTIALS_FILE"] = join(dataHome, "not-read");
   writeSession({ access_token: "from-session", expires: inAnHour() });
   assert.equal(await defaultCredentials().token(), "from-env");
-});
-
-test("a service account in the environment comes before the CLI session", () => {
-  process.env["ORIGINCLOUD_CLIENT_ID"] = "id";
-  process.env["ORIGINCLOUD_CLIENT_SECRET"] = "secret";
-  writeSession({ access_token: "from-session", expires: inAnHour() });
-  const credentials = defaultCredentials();
-  assert.ok(credentials instanceof ServiceAccountCredentials);
-  assert.equal(credentials.clientId, "id");
-  assert.equal(credentials.tokenUrl, "https://auth.origincloud.eu/realms/origincloud/protocol/openid-connect/token");
-});
-
-test("half a service account is refused", () => {
-  writeSession({ access_token: "from-session", expires: inAnHour() });
-  process.env["ORIGINCLOUD_CLIENT_ID"] = "id";
-  assert.throws(() => defaultCredentials(), /must be set together/);
-  delete process.env["ORIGINCLOUD_CLIENT_ID"];
-  process.env["ORIGINCLOUD_CLIENT_SECRET"] = "secret";
-  assert.throws(() => defaultCredentials(), /must be set together/);
 });
 
 test("without the environment or a CLI session, the instance's metadata service is asked", () => {
@@ -155,36 +137,6 @@ test("no credentials at all", () => {
   );
   process.env["ORIGINCLOUD_METADATA_DISABLED"] = "1";
   assert.ok(defaultCredentials() instanceof InstanceMetadataCredentials, "only `true` disables it");
-});
-
-test("a service account token is reused until it is about to expire", async () => {
-  const { url, forms } = await tokenServer(3600);
-  const credentials = new ServiceAccountCredentials("id", "secret", { tokenUrl: url });
-  assert.equal(await credentials.token(), "token-1");
-  assert.equal(await credentials.token(), "token-1");
-  assert.equal(forms.length, 1);
-  assert.equal(forms[0]?.get("grant_type"), "client_credentials");
-  assert.equal(forms[0]?.get("client_id"), "id");
-  assert.equal(forms[0]?.get("client_secret"), "secret");
-
-  // A token within the expiry margin is replaced.
-  const short = await tokenServer(10);
-  const renewing = new ServiceAccountCredentials("id", "secret", { tokenUrl: short.url });
-  assert.equal(await renewing.token(), "token-1");
-  assert.equal(await renewing.token(), "token-2");
-
-  // Concurrent callers share one request.
-  const shared = await tokenServer(3600);
-  const concurrent = new ServiceAccountCredentials("id", "secret", { tokenUrl: shared.url });
-  const tokens = await Promise.all([concurrent.token(), concurrent.token(), concurrent.token()]);
-  assert.deepEqual(tokens, ["token-1", "token-1", "token-1"]);
-  assert.equal(shared.forms.length, 1);
-});
-
-test("a refused service account says why", async () => {
-  const { url } = await tokenServer(3600);
-  const credentials = new ServiceAccountCredentials("id", "wrong", { tokenUrl: url });
-  await assert.rejects(credentials.token(), /refused \(HTTP 401\): Invalid client secret/);
 });
 
 test("the CLI session is used as stored", async () => {
@@ -232,7 +184,8 @@ test("a CLI session past its refresh expiry asks to log in", async () => {
 test("a caller that aborts doesn't stop the renewal the others share", async () => {
   let answer: (response: Response) => void = () => {};
   const signals: (AbortSignal | null | undefined)[] = [];
-  const credentials = new ServiceAccountCredentials("id", "secret", {
+  const expired = { accessToken: "", expires: 0, refreshToken: "r", refreshExpires: Date.now() + 3600_000 };
+  const credentials = new CLISessionCredentials(expired, {
     fetch: (_, init) => {
       signals.push(init.signal);
       return new Promise<Response>((resolve) => (answer = resolve));
@@ -748,7 +701,7 @@ test("a failed GitHub token request names `permissions: id-token: write`, and ne
   );
 });
 
-test("in the default chain, a CI job's token comes after the service account and before the CLI session", async () => {
+test("in the default chain, a CI job's token comes after the credentials file and before the CLI session", async () => {
   const github = await githubServer();
   const sts = await stsServer(900);
   inGitHubActions(github.url);
@@ -762,15 +715,13 @@ test("in the default chain, a CI job's token comes after the service account and
   assert.equal(await credentials.token(), "access-1");
   assert.equal(github.requests[0]?.query.get("audience"), "api://custom");
 
-  process.env["ORIGINCLOUD_CLIENT_ID"] = "id";
-  process.env["ORIGINCLOUD_CLIENT_SECRET"] = "secret";
-  assert.ok(defaultCredentials() instanceof ServiceAccountCredentials);
+  process.env["ORIGINCLOUD_CREDENTIALS_FILE"] = writeCredentialsFile();
+  assert.ok(defaultCredentials() instanceof ServiceAccountKeyCredentials);
   process.env["ORIGINCLOUD_ACCESS_TOKEN"] = "from-env";
   assert.equal(await defaultCredentials().token(), "from-env");
 
   delete process.env["ORIGINCLOUD_STS_ENDPOINT"];
-  delete process.env["ORIGINCLOUD_CLIENT_ID"];
-  delete process.env["ORIGINCLOUD_CLIENT_SECRET"];
+  delete process.env["ORIGINCLOUD_CREDENTIALS_FILE"];
   delete process.env["ORIGINCLOUD_ACCESS_TOKEN"];
   const byDefault = defaultCredentials();
   assert.ok(byDefault instanceof FederatedCredentials);

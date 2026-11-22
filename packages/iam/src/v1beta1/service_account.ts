@@ -14,12 +14,14 @@ import {
 /**
  * Calls ServiceAccountService.
  *
- * Service accounts: an organization's credentials for software, which
- * authenticate with the OAuth 2.0 client credentials grant and never log
- * in interactively. A new service account holds no role: grant it one with
- * a role binding on its `member`. An `EXTERNAL` service account's client
- * secret expires (`secretExpireTime`): rotate it before then with
- * RotateServiceAccountSecret.
+ * Service accounts: an organization's identities for software, which never
+ * log in interactively. A new service account holds no role: grant it one
+ * with a role binding on its `member`. Software with an OIDC token of its
+ * own, such as a CI job, acts as a `WORKLOAD` service account through a
+ * federated credential (FederatedCredentialService). Software with none,
+ * such as a job on a server of your own, acts as an `EXTERNAL` one with a
+ * key (ServiceAccountKeyService). Either is exchanged at
+ * `https://sts.origincloudapis.eu` for the service account's access token.
  */
 export class ServiceAccountClient {
   /**
@@ -87,9 +89,8 @@ export class ServiceAccountClient {
   }
 
   /**
-   * Creates a service account and, for an `EXTERNAL` one, its client
-   * secret, which expires after `secretLifetime`. The response is the
-   * only place the secret is ever shown: store it now. Needs
+   * Creates a service account. It has no credential yet: give a
+   * `WORKLOAD` one a federated credential, an `EXTERNAL` one a key. Needs
    * `iam.service_account.create` on the organization.
    */
   async createServiceAccount(request: CreateServiceAccountRequest, options?: CallOptions): Promise<ServiceAccount> {
@@ -103,31 +104,6 @@ export class ServiceAccountClient {
         path: `/v1beta1/${p0}/serviceAccounts`,
         body: request.serviceAccount,
         query: query(request, ["parent", "serviceAccount"]),
-        idempotent: true,
-      },
-      options,
-    );
-  }
-
-  /**
-   * Issues a new client secret for an `EXTERNAL` service account and
-   * returns the service account with it in `clientSecret`, the only place
-   * it is ever shown. The previous secret is refused from then on, and the
-   * new one is accepted at once, also when the previous one had expired.
-   * It expires after `secretLifetime`. An access token issued before
-   * stays valid until it expires, within minutes. Needs
-   * `iam.service_account.create` on the organization.
-   */
-  async rotateServiceAccountSecret(request: RotateServiceAccountSecretRequest, options?: CallOptions): Promise<ServiceAccount> {
-    if (!request.requestId) request = { ...request, requestId: newRequestId() };
-    const n0 = this.service.relativeName("name", request.name, ["iam"]);
-    const p0 = pathValue("name", n0, "organizations/*/serviceAccounts/*");
-    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
-    return this.service.call<ServiceAccount>(
-      {
-        method: "POST",
-        path: `/v1beta1/${p0}:rotateSecret`,
-        body: request,
         idempotent: true,
       },
       options,
@@ -169,17 +145,6 @@ export interface ServiceAccount {
    * which a role binding names it by as a member.
    */
   member?: string;
-  /**
-   * The OAuth 2.0 client id it authenticates with; empty for a `WORKLOAD`
-   * service account.
-   */
-  clientId?: string;
-  /**
-   * The OAuth 2.0 client secret it authenticates with. Set only in the
-   * response that created an `EXTERNAL` service account or rotated its
-   * secret, and empty everywhere else: it can't be read again.
-   */
-  clientSecret?: string;
   /** Where the service account is in its lifecycle. */
   state?: ServiceAccount_State;
   /**
@@ -199,13 +164,6 @@ export interface ServiceAccount {
    * leaves it unset.
    */
   type?: ServiceAccount_Type;
-  /**
-   * When the client secret expires. From then on the secret is refused, so
-   * no new access token is issued with it, until RotateServiceAccountSecret
-   * issues a new one. Unset when the service account has no secret that
-   * expires, such as a `WORKLOAD` one.
-   */
-  secretExpireTime?: string;
 }
 
 /**
@@ -219,13 +177,15 @@ export const ServiceAccount_Type = {
    */
   TYPE_UNSPECIFIED: "TYPE_UNSPECIFIED",
   /**
-   * Authenticates with an OAuth 2.0 client id and secret, for software
-   * outside Origin Cloud such as a CI pipeline.
+   * Authenticates with a key, for software outside Origin Cloud that has
+   * no identity of its own to federate.
    */
   EXTERNAL: "EXTERNAL",
   /**
-   * Has no client id or secret and can't be given one: no credential of
-   * its own authenticates as it, wherever it was copied to.
+   * Has no key and can't be given one: no credential of its own
+   * authenticates as it, wherever it was copied to. A CI job acts as it
+   * through a federated credential, an instance through the instance's
+   * credential.
    */
   WORKLOAD: "WORKLOAD",
 } as const;
@@ -240,10 +200,7 @@ export type ServiceAccount_Type = (typeof ServiceAccount_Type)[keyof typeof Serv
 export const ServiceAccount_State = {
   /** Not set. */
   STATE_UNSPECIFIED: "STATE_UNSPECIFIED",
-  /**
-   * Not deleted. An `EXTERNAL` service account's client secret is
-   * accepted until `secretExpireTime`.
-   */
+  /** Not deleted. */
   ACTIVE: "ACTIVE",
   /** Deleted: its credential is refused, and it holds no role binding. */
   DELETED: "DELETED",
@@ -295,43 +252,15 @@ export interface CreateServiceAccountRequest {
   serviceAccount?: ServiceAccount;
   /**
    * A UUID. A repeat of the request with the same `requestId` within a
-   * day creates nothing and is refused with `CONFLICT`: the secret went to
-   * the first request only. The error's `ErrorInfo` metadata names the
-   * service account under `serviceAccount`; delete it and create a new one
-   * to get a working secret. The same `requestId` with a different
-   * request is refused with `CONFLICT` without that metadata.
+   * day creates nothing and returns the service account the first request
+   * created. The same `requestId` with a different request is refused with
+   * `CONFLICT`.
    */
   requestId?: string;
-  /**
-   * How long an `EXTERNAL` service account's client secret is accepted,
-   * from its creation: more than zero and at most 365 days. 90 days when
-   * left out. A `WORKLOAD` service account has no secret, and a create of
-   * one that sets it is refused.
-   */
-  secretLifetime?: string;
 }
 
 /** The request for DeleteServiceAccount. */
 export interface DeleteServiceAccountRequest {
   /** The service account to delete. */
   name?: string;
-}
-
-/** The request for RotateServiceAccountSecret. */
-export interface RotateServiceAccountSecretRequest {
-  /** The `EXTERNAL` service account whose secret to replace. */
-  name?: string;
-  /**
-   * How long the new secret is accepted, from now: more than zero and at
-   * most 365 days. 90 days when left out.
-   */
-  secretLifetime?: string;
-  /**
-   * A UUID. A repeat of the request with the same `requestId` within a
-   * day issues no secret and is refused with `CONFLICT`: the secret went
-   * to the first request only. Rotate again with a new `requestId` to get
-   * a working secret. The same `requestId` with a different request is
-   * refused with `CONFLICT` too.
-   */
-  requestId?: string;
 }
