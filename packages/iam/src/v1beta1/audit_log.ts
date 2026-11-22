@@ -118,6 +118,12 @@ export interface AuditLogEntry {
    * granted or a service account's `displayName`.
    */
   details?: Record<string, string>;
+  /**
+   * Who acted for `actor` when the change was made: the hosted MCP server,
+   * by the SPIFFE id of its workload, when `actor` made the change through
+   * it. Empty when no one acted for `actor`.
+   */
+  actingParty?: string;
 }
 
 /** Whether the change was made. */
