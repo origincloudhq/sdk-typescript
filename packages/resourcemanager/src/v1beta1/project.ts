@@ -76,9 +76,10 @@ export class ProjectClient {
 
   /**
    * Creates a project in an `ACTIVE` organization, under the id the caller
-   * chooses. The caller becomes the project's owner, and the project is
-   * billed to the organization's default billing account. An id in use, or
-   * used by a project that was deleted, is refused as a `CONFLICT`.
+   * chooses, or one the server generates when the caller leaves it out. The
+   * caller becomes the project's owner, and the project is billed to the
+   * organization's default billing account. An id in use, or used by a
+   * project that was deleted, is refused as a `CONFLICT`.
    */
   async createProject(request: CreateProjectRequest, options?: CallOptions): Promise<Project> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
@@ -236,12 +237,16 @@ export interface CreateProjectRequest {
   /**
    * The project's id, the last segment of its name: 6 to 16 lowercase
    * letters, digits and hyphens, starting with a letter and not ending with
-   * a hyphen, such as `acme-prod`.
+   * a hyphen, such as `acme-prod`. An id is never used twice: one a project
+   * has or had is refused as a `CONFLICT`. Left out, the server generates
+   * one, such as `escots-052954863`, and the project returned carries it in
+   * its `name`.
    */
   projectId?: string;
   /**
    * A UUID; a repeat with the same id returns the project the first request
-   * created instead of creating a second one.
+   * created instead of creating a second one, with the id it was given or
+   * generated.
    */
   requestId?: string;
 }
