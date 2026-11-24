@@ -244,6 +244,11 @@ export interface Volume {
    * console shows.
    */
   tags?: Record<string, string>;
+  /**
+   * How the volume is encrypted at rest; unset for a volume that isn't
+   * encrypted.
+   */
+  encryption?: Encryption;
 }
 
 /** Where the volume is in its lifecycle. */
@@ -287,6 +292,34 @@ export const Volume_ResizeState = {
 
 /** Where a resize is. */
 export type Volume_ResizeState = (typeof Volume_ResizeState)[keyof typeof Volume_ResizeState];
+
+/**
+ * How a volume is encrypted at rest: with a data key of its own, which the
+ * KMS key named here wraps. The data key itself is never shown.
+ */
+export interface Encryption {
+  /** The on-disk format. */
+  format?: Encryption_Format;
+  /**
+   * The full name of the KMS key that wraps the volume's data key, the
+   * project's volumes key:
+   * `//kms.origincloudapis.eu/projects/{project}/regions/{region}/keys/{key}`.
+   */
+  kmsKey?: string;
+}
+
+/** The on-disk format of the encryption. */
+export const Encryption_Format = {
+  /** Not set. */
+  FORMAT_UNSPECIFIED: "FORMAT_UNSPECIFIED",
+  /** LUKS2: a persistent volume. */
+  LUKS2: "LUKS2",
+  /** LUKS inside a qcow2 file: a host-local volume. */
+  QCOW_LUKS: "QCOW_LUKS",
+} as const;
+
+/** The on-disk format of the encryption. */
+export type Encryption_Format = (typeof Encryption_Format)[keyof typeof Encryption_Format];
 
 /** The request for GetVolume. */
 export interface GetVolumeRequest {
