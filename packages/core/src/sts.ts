@@ -33,6 +33,9 @@ export async function postToSts(
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
     body: new URLSearchParams(form).toString(),
+    // The body holds the caller's token: a redirect would resend it to a
+    // host the endpoint check never saw.
+    redirect: "error",
   };
   const url = endpoint + "/v1/token";
   for (let attempt = 0; ; attempt++) {

@@ -13,8 +13,9 @@ const volumes = new VolumeClient(new Client());
 
 In Node, `new Client()` finds its credentials in the environment, a
 service account key's credentials file (`ORIGINCLOUD_CREDENTIALS_FILE`), a CI
-job's OIDC token, the `origin` CLI's session or the instance's metadata service; in a browser, pass the session's access-token getter
-as `credentials`. See the [repository's README](https://github.com/origincloudhq/sdk-typescript#readme)
+job's OIDC token, the `origin` CLI's session or the instance's metadata service, and with `impersonateServiceAccount` (or
+`ORIGINCLOUD_IMPERSONATE_SERVICE_ACCOUNT`) acts as that service account; in a
+browser, pass the session's access-token getter as `credentials`. See the [repository's README](https://github.com/origincloudhq/sdk-typescript#readme)
 for credentials and behaviour.
 
 Apache License 2.0.
