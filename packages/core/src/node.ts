@@ -8,7 +8,13 @@
  * @packageDocumentation
  */
 import { ClientBase, type ClientOptions, VERSION } from "./client.js";
+import { impersonating } from "./impersonation.js";
 import { defaultCredentials } from "./node-credentials.js";
+export {
+  ImpersonatedCredentials,
+  type ImpersonationOptions,
+  impersonate,
+} from "./impersonation.js";
 export {
   ServiceAccountKeyCredentials,
   type ServiceAccountKeyOptions,
@@ -39,6 +45,20 @@ export {
   oidcTokenFile,
 } from "./node-credentials.js";
 
+/** How a {@link Client} is configured in Node. */
+export interface NodeClientOptions extends ClientOptions {
+  /**
+   * The full name of a service account to act as,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{serviceAccount}`:
+   * the credentials' tokens are exchanged at the STS for the account's
+   * ({@link ImpersonatedCredentials}). It overrides
+   * `ORIGINCLOUD_IMPERSONATE_SERVICE_ACCOUNT`; an empty name impersonates
+   * no one. The caller needs `roles/iam.service-account-token-creator` on
+   * the account.
+   */
+  impersonateServiceAccount?: string;
+}
+
 /**
  * What the clients of every service share. Unless `credentials` names
  * them, it takes the first of `ORIGINCLOUD_ACCESS_TOKEN`, the service
@@ -47,11 +67,18 @@ export {
  * instance's metadata service
  * ({@link defaultCredentials}), and throws when there is none.
  * `ORIGINCLOUD_REGION` picks a region unless `region` does.
+ *
+ * With `impersonateServiceAccount`, or else
+ * `ORIGINCLOUD_IMPERSONATE_SERVICE_ACCOUNT`, set, the credentials' tokens
+ * are exchanged at the STS for that service account's
+ * ({@link ImpersonatedCredentials}), and calls are sent as the account.
  */
 export class Client extends ClientBase {
-  constructor(options: ClientOptions = {}) {
-    super(options, {
+  constructor(options: NodeClientOptions = {}) {
+    const { impersonateServiceAccount, ...rest } = options;
+    super(rest, {
       credentials: defaultCredentials,
+      wrapCredentials: (credentials) => impersonating(credentials, impersonateServiceAccount),
       region: () => process.env["ORIGINCLOUD_REGION"] ?? "",
       userAgent: (product) => (product ? product + " " : "") + `origincloud-sdk-typescript/${VERSION}`,
     });

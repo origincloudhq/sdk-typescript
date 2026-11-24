@@ -2,7 +2,7 @@ import { type Credentials, type FetchLike, type TokenSource, toCredentials } fro
 import { Service } from "./transport.js";
 
 /** This SDK's version, sent in the User-Agent header from Node. */
-export const VERSION = "0.52.0";
+export const VERSION = "0.53.0";
 
 const DEFAULT_MAX_ATTEMPTS = 5;
 
@@ -47,6 +47,8 @@ export interface ClientOptions {
 /** What a platform's entry point supplies when the options leave it out. @internal */
 export interface PlatformDefaults {
   credentials(): Credentials;
+  /** The credentials calls are sent with, made from the ones given or found; as they are when unset. */
+  wrapCredentials?(credentials: Credentials): Credentials;
   region(): string;
   /** The User-Agent header, or `undefined` where it can't be set. */
   userAgent(product: string | undefined): string | undefined;
@@ -104,7 +106,8 @@ export class ClientBase {
     }
     this.userAgent = defaults.userAgent(options.userAgent);
     this.fetch = options.fetch;
-    this.credentials = options.credentials ? toCredentials(options.credentials) : defaults.credentials();
+    const credentials = options.credentials ? toCredentials(options.credentials) : defaults.credentials();
+    this.credentials = defaults.wrapCredentials ? defaults.wrapCredentials(credentials) : credentials;
   }
 
   /**

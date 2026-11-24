@@ -179,6 +179,43 @@ as its service account (step 5), with no key to keep.
 Actions, a file, a token given as it is, or any function that returns a
 fresh one.
 
+#### Impersonating a service account
+
+A person can act as a service account, with that account's roles alone,
+such as to run a deployment script with a deploy account's narrow rights.
+The client takes the token its credentials give (whichever of the steps
+above found them, typically the `origin id login` session) and exchanges it
+at the STS (`https://sts.origincloudapis.eu`, or `ORIGINCLOUD_STS_ENDPOINT`)
+for the account's token, which every call is then sent with. The audit log
+names the account as the principal and the person as the actor.
+
+```ts
+import { Client } from "@origincloud/core";
+
+const client = new Client({
+  impersonateServiceAccount: "//iam.origincloudapis.eu/organizations/<org-id>/serviceAccounts/<service-account-id>",
+});
+```
+
+or, for every client the process creates:
+
+```sh
+export ORIGINCLOUD_IMPERSONATE_SERVICE_ACCOUNT="//iam.origincloudapis.eu/organizations/<org-id>/serviceAccounts/<service-account-id>"
+```
+
+- The account is named by its full name; anything else is refused when the
+  client is created. The option overrides the variable, and an empty option
+  turns impersonation off.
+- The caller needs `roles/iam.service-account-token-creator` on the account,
+  its project or its organization, and the account must be active.
+- The account's token lives five minutes at most. It is renewed a minute
+  before it expires, from the caller's current token, and concurrent calls
+  share one renewal. A 503 from the STS is tried again twice.
+- A refused exchange rejects the call with an error naming the account. The
+  call is never sent with the caller's own token instead.
+- `impersonate(credentials, serviceAccount)` (`ImpersonatedCredentials`)
+  wraps any credentials explicitly. Node only.
+
 ### Browser
 
 A web application passes the access token of the user's session: any
@@ -217,8 +254,8 @@ import { Client, defaultCredentials } from "@origincloud/core/node";
 
 That entry point has everything `@origincloud/core` has, and also
 `defaultCredentials`, `cliSession`, `CLISessionCredentials`,
-`instanceMetadata`, `InstanceMetadataCredentials`, `METADATA_ENDPOINT` and
-`NoCredentialsError`.
+`instanceMetadata`, `InstanceMetadataCredentials`, `METADATA_ENDPOINT`,
+`impersonate`, `ImpersonatedCredentials` and `NoCredentialsError`.
 
 ## Behaviour
 
