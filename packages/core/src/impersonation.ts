@@ -22,10 +22,11 @@ export interface ImpersonationOptions {
 
 /**
  * Another credential's token exchanged at the security token service for a
- * service account's (impersonation, RFC 8693): the caller, typically a
- * person logged in with `origin id login`, acts as the account, with the
+ * service account's (impersonation, RFC 8693): the caller, a person such
+ * as one logged in with `origin id login`, acts as the account, with the
  * account's roles alone, and the audit log names both. The STS issues the
- * token only to a caller granted `roles/iam.service-account-token-creator`
+ * token only to a person (it refuses a service account's or a workload's
+ * token) granted `roles/iam.service-account-token-creator`
  * on the account (or its project or organization), and only for an active
  * `EXTERNAL` or `WORKLOAD` account.
  *
@@ -118,7 +119,8 @@ export class ImpersonatedCredentials implements Credentials {
     if (answer.body["error"] === "invalid_grant") {
       throw new Error(
         `origincloud: the STS refused to impersonate the service account ${this.serviceAccount} (invalid_grant): ` +
-          "the caller needs roles/iam.service-account-token-creator on it, and the account must exist and be active",
+          "the caller must be a person (a service account's or a workload's token can't impersonate), such as the session of `origin id login`, " +
+          "holding roles/iam.service-account-token-creator on it, and the account must exist and be active",
       );
     }
     throw this.failed(stsRefused(answer, "the token exchange", subjectToken).message.replace(/^origincloud: /, ""));

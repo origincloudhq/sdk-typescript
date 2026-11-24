@@ -171,13 +171,27 @@ test("a refusal is an error naming the account, and no call is sent with the cal
   const client = new Client({ endpoint: sts.url, credentials: accessToken("person-token"), impersonateServiceAccount: ACCOUNT });
   const refused = new RegExp(
     `the STS refused to impersonate the service account ${ACCOUNT} \\(invalid_grant\\): ` +
-      "the caller needs roles/iam.service-account-token-creator on it",
+      "the caller must be a person .* holding roles/iam.service-account-token-creator on it",
   );
   await assert.rejects(client.service("pvs").call({ method: "GET", path: "/x" }), refused);
   // Refusals aren't cached: the next call asks again.
   await assert.rejects(client.credentials.token(), refused);
   assert.equal(sts.exchanges.length, 2);
   assert.deepEqual(sts.calls, [], "the API got no call");
+});
+
+test("a redirect is refused, and the caller's token goes nowhere else", async () => {
+  const elsewhere: Received[] = [];
+  const other = await serve((req, res) => {
+    elsewhere.push(req);
+    json(res, { access_token: "stolen", token_type: "Bearer", expires_in: 300 });
+  });
+  closers.push(other.close);
+  const sts = await serve((_req, res) => json(res, {}, 307, { Location: `${other.url}/v1/token` }));
+  closers.push(sts.close);
+  const credentials = impersonate(accessToken("person-token"), ACCOUNT, { endpoint: sts.url });
+  await assert.rejects(credentials.token(), new RegExp(`impersonating the service account ${ACCOUNT}`));
+  assert.deepEqual(elsewhere, [], "the redirect target got nothing");
 });
 
 test("another refusal names the account and the STS's reason, never the caller's token", async () => {

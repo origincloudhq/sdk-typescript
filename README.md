@@ -184,7 +184,9 @@ fresh one.
 A person can act as a service account, with that account's roles alone,
 such as to run a deployment script with a deploy account's narrow rights.
 The client takes the token its credentials give (whichever of the steps
-above found them, typically the `origin id login` session) and exchanges it
+above found them, which must give a person's token, such as the
+`origin id login` session: the STS refuses a service account's or a
+workload's) and exchanges it
 at the STS (`https://sts.origincloudapis.eu`, or `ORIGINCLOUD_STS_ENDPOINT`)
 for the account's token, which every call is then sent with. The audit log
 names the account as the principal and the person as the actor.
@@ -205,8 +207,10 @@ export ORIGINCLOUD_IMPERSONATE_SERVICE_ACCOUNT="//iam.origincloudapis.eu/organiz
 
 - The account is named by its full name; anything else is refused when the
   client is created. The option overrides the variable, and an empty option
-  turns impersonation off.
-- The caller needs `roles/iam.service-account-token-creator` on the account,
+  turns impersonation off. The variable applies to credentials passed as
+  `credentials` too.
+- The caller must be a person holding
+  `roles/iam.service-account-token-creator` on the account,
   its project or its organization, and the account must be active.
 - The account's token lives five minutes at most. It is renewed a minute
   before it expires, from the caller's current token, and concurrent calls

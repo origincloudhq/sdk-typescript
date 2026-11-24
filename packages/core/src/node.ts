@@ -53,7 +53,7 @@ export interface NodeClientOptions extends ClientOptions {
    * the credentials' tokens are exchanged at the STS for the account's
    * ({@link ImpersonatedCredentials}). It overrides
    * `ORIGINCLOUD_IMPERSONATE_SERVICE_ACCOUNT`; an empty name impersonates
-   * no one. The caller needs `roles/iam.service-account-token-creator` on
+   * no one. The caller must be a person holding `roles/iam.service-account-token-creator` on
    * the account.
    */
   impersonateServiceAccount?: string;
