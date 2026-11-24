@@ -35,6 +35,15 @@ import {
  *
  * A user known only by an email address is found with
  * `UserService.LookupUser`, which answers their name.
+ *
+ * A binding is `ACTIVE` or `PENDING`. A pending binding is an invitation:
+ * a role granted to an email address that has no account yet. It grants
+ * nothing and counts toward no permission check. When someone signs up
+ * with that address and verifies it, the binding becomes active under the
+ * same name, and its member becomes the new user. It is activated only
+ * while whoever created it still holds every permission of the role in
+ * the organization; otherwise it is dropped. A pending binding is always
+ * on the whole organization.
  */
 export class RoleBindingClient {
   /**
@@ -65,11 +74,11 @@ export class RoleBindingClient {
   }
 
   /**
-   * Lists an organization's role bindings, oldest first, optionally only a
-   * member's or a project's. Needs `iam.member.list` on the organization.
-   * With the parent `organizations/-` it lists the caller's own bindings in
-   * every organization and needs no permission; `member` must be empty
-   * there.
+   * Lists an organization's role bindings, active and pending, oldest
+   * first, optionally only a member's or a project's. Needs
+   * `iam.member.list` on the organization. With the parent
+   * `organizations/-` it lists the caller's own active bindings in every
+   * organization and needs no permission; `member` must be empty there.
    */
   async listRoleBindings(request: ListRoleBindingsRequest, options?: CallOptions): Promise<ListRoleBindingsResponse> {
     const n0 = this.service.relativeName("parent", request.parent, ["resourcemanager"]);
@@ -134,7 +143,9 @@ export class RoleBindingClient {
    * and every permission of the role at the binding's scope, as
    * CreateRoleBinding does. Refused with `CONFLICT`, removing nothing,
    * when it is the organization's last organization-wide binding of
-   * `roles/owner`: bind another owner first.
+   * `roles/owner`: bind another owner first. Deleting a pending binding
+   * withdraws the invitation: signing up with its address afterwards
+   * grants nothing.
    */
   async deleteRoleBinding(request: DeleteRoleBindingRequest, options?: CallOptions): Promise<Empty> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
@@ -158,7 +169,10 @@ export class RoleBindingClient {
  * binding can't be changed: delete it and create another.
  */
 export interface RoleBinding {
-  /** The binding's resource name. */
+  /**
+   * The binding's resource name. A pending binding keeps its name when it
+   * becomes active.
+   */
   name?: string;
   /**
    * The full name of who holds the role: a user,
@@ -166,7 +180,9 @@ export interface RoleBinding {
    * service accounts,
    * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
    * or a platform service agent,
-   * `//iam.origincloudapis.eu/serviceAgents/{service_agent}`.
+   * `//iam.origincloudapis.eu/serviceAgents/{service_agent}`. A pending
+   * binding's member is `user:{email}`, the address it was granted to,
+   * until it becomes active.
    */
   member?: string;
   /**
@@ -191,7 +207,25 @@ export interface RoleBinding {
   creator?: string;
   /** When the binding was created. */
   createTime?: string;
+  /** Whether the binding grants its role yet. */
+  state?: RoleBinding_State;
 }
+
+/** Whether the binding grants its role yet. */
+export const RoleBinding_State = {
+  /** Not set. */
+  STATE_UNSPECIFIED: "STATE_UNSPECIFIED",
+  /** The member holds the role. */
+  ACTIVE: "ACTIVE",
+  /**
+   * An invitation to an email address with no account yet: it grants
+   * nothing until someone signs up with the address and verifies it.
+   */
+  PENDING: "PENDING",
+} as const;
+
+/** Whether the binding grants its role yet. */
+export type RoleBinding_State = (typeof RoleBinding_State)[keyof typeof RoleBinding_State];
 
 /** The request for GetRoleBinding. */
 export interface GetRoleBindingRequest {
@@ -209,7 +243,8 @@ export interface ListRoleBindingsRequest {
   parent?: string;
   /**
    * Only the bindings of this member, by its full name, as a binding's
-   * `member` names it. Every member's when empty.
+   * `member` names it, or a pending binding's `user:{email}`, matched
+   * without regard to case. Every member's when empty.
    */
   member?: string;
   /**
