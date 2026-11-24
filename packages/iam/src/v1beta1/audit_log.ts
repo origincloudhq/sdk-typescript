@@ -119,11 +119,24 @@ export interface AuditLogEntry {
    */
   details?: Record<string, string>;
   /**
-   * Who acted for `actor` when the change was made: the hosted MCP server,
-   * by the SPIFFE id of its workload, when `actor` made the change through
-   * it. Empty when no one acted for `actor`.
+   * Who acted for `actor` when the change was made: the first of
+   * `actingParties`. That is the hosted MCP server, by the SPIFFE id of its
+   * workload, when `actor` made the change through it, and the person, by
+   * full resource name, when the person made it as the service account
+   * `actor` with a token impersonating it. Empty when no one acted for
+   * `actor`.
    */
   actingParty?: string;
+  /**
+   * Every party that acted for `actor` when the change was made, outermost
+   * first. For a change a person made as the service account `actor` with a
+   * token impersonating it, the person, then the hosted MCP server when the
+   * person made it through it. For a change `actor` made through the MCP
+   * server with its own token, the MCP server alone. Empty when no one
+   * acted for `actor`, and on every entry recorded before the chain was
+   * recorded, which name `actingParty` alone.
+   */
+  actingParties?: string[];
 }
 
 /** Whether the change was made. */
