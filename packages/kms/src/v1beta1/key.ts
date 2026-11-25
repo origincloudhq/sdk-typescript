@@ -162,8 +162,8 @@ export class KeyClient {
    * Restores a deleted key whose material isn't destroyed yet: it becomes
    * `DISABLED`, to be enabled with UpdateKey. Refused with `CONFLICT` for a
    * key that isn't deleted, or whose `purgeTime` has passed, and with
-   * `FORBIDDEN` for a key the platform manages. Needs `kms.key.delete` on
-   * the project.
+   * `FORBIDDEN` for a key the platform manages. Needs `kms.key.undelete` on
+   * the project, which `kms.key.delete` doesn't include.
    */
   async undeleteKey(request: UndeleteKeyRequest, options?: CallOptions): Promise<Key> {
     if (!request.requestId) request = { ...request, requestId: newRequestId() };
