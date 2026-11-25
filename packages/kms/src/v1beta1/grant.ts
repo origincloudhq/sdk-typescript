@@ -161,8 +161,9 @@ export interface Grant {
   /** What the host may do with the key. */
   operation?: Grant_Operation;
   /**
-   * The platform host the grant is for, by the SPIFFE ID its certificate
-   * names, which ends in `/zones/{zone}/hosts/{host}`.
+   * The platform host or zone workload the grant is for, by the SPIFFE ID
+   * its certificate names, which ends in `/zones/{zone}/hosts/{host}` or
+   * `/zones/{zone}/workloads/{workload}`.
    */
   grantee?: string;
   /** The encryption context a use must carry, exactly; never empty. */
