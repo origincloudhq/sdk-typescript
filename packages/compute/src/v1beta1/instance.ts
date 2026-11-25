@@ -13,7 +13,7 @@ import {
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
-import type { LaunchTemplateData } from "./launch_template.js";
+import type { LaunchTemplateData, LocalDisk } from "./launch_template.js";
 
 /**
  * Calls InstanceService.
@@ -362,6 +362,16 @@ export interface Instance {
    * have been changed or deleted.
    */
   launchTemplate?: string;
+  /**
+   * Disks on the machine the instance runs on, beside its boot volume,
+   * created blank at launch; at most 16. A local disk is temporary: it
+   * comes back empty after every stop and start and after its machine
+   * restarts, and it is deleted with the instance. It can't be the boot
+   * disk, snapshotted, resized or detached, and an instance with one isn't
+   * moved to another machine while it runs. Each appears among the
+   * instance's volume attachments.
+   */
+  localDisks?: LocalDisk[];
 }
 
 /** Where the instance is in its lifecycle. */
@@ -574,8 +584,8 @@ export interface LaunchInstanceRequest {
    * it is: a field left empty keeps the version's, so an override can't
    * clear one. `image` or `imageFamily` replaces both of the version's,
    * `sizeGib` and `storageClass` of `bootVolume` each replace the
-   * version's own, and `tags` and `networkInterfaces` replace the
-   * version's whole.
+   * version's own, and `tags`, `networkInterfaces` and `localDisks`
+   * replace the version's whole.
    */
   launchTemplateData?: LaunchTemplateData;
   /**
