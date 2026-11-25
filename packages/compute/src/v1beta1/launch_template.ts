@@ -441,6 +441,25 @@ export interface LaunchTemplateData {
    * VPC's default security group.
    */
   networkInterfaces?: LaunchTemplateNetworkInterface[];
+  /**
+   * Disks on the machine the instance runs on, beside its boot volume,
+   * created blank at launch; at most 16. A local disk is temporary: it
+   * comes back empty after every stop and start and after its machine
+   * restarts, and it is deleted with the instance.
+   */
+  localDisks?: LocalDisk[];
+}
+
+/** A disk on the machine an instance runs on. */
+export interface LocalDisk {
+  /** The size in GiB, at least 1. */
+  sizeGib?: number;
+  /**
+   * The device name the guest sees the disk under, `vda` to `vdz` but
+   * `vdc`, and none the boot volume or another local disk has. The first
+   * free one, in the order the disks are listed, when left empty.
+   */
+  device?: string;
 }
 
 /** The boot volume a recipe asks for. */
