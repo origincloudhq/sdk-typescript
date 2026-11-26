@@ -10,7 +10,9 @@ import { type CallOptions, type Client, type Service, pathValue, query } from "@
  * or by their own id; the role bindings they hold are listed by
  * ListRoleBindings with the parent `organizations/-`. Anyone who may grant
  * roles in an organization can look a user up by email address, to name
- * them in a role binding.
+ * them in a role binding. A client calls ActivatePendingRoleBindings once a
+ * user has signed in, so the role bindings pending for their address become
+ * theirs.
  */
 export class UserClient {
   /**
@@ -64,6 +66,31 @@ export class UserClient {
       options,
     );
   }
+
+  /**
+   * Activates the role bindings pending for the caller's email address,
+   * once the caller's account has verified it, and returns the caller's
+   * profile, as GetUser does. Each binding becomes active under its own
+   * name with the caller as its member, while whoever created it still
+   * holds every permission of its role in the organization; otherwise it
+   * is dropped. An address not yet verified activates nothing. Calling it
+   * again activates only what has been granted to the address since. A
+   * service account caller is refused with `BAD_REQUEST`; any user but the
+   * caller is `NOT_FOUND`.
+   */
+  async activatePendingRoleBindings(request: ActivatePendingRoleBindingsRequest, options?: CallOptions): Promise<User> {
+    const n0 = this.service.relativeName("name", request.name, ["iam"]);
+    const p0 = pathValue("name", n0, "users/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
+    return this.service.call<User>(
+      {
+        method: "POST",
+        path: `/v1beta1/${p0}:activatePendingRoleBindings`,
+        body: request,
+      },
+      options,
+    );
+  }
 }
 
 /** A person who signs in to the platform. */
@@ -107,4 +134,13 @@ export interface LookupUserRequest {
    * `//resourcemanager.origincloudapis.eu/organizations/{organization}`.
    */
   organization?: string;
+}
+
+/** The request for ActivatePendingRoleBindings. */
+export interface ActivatePendingRoleBindingsRequest {
+  /**
+   * The user whose pending role bindings to activate: `users/me`, or the
+   * caller's own `users/{user}`.
+   */
+  name?: string;
 }
