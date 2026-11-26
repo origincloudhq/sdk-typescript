@@ -58,11 +58,14 @@ export class PermissionClient {
 
   /**
    * Returns the subset of `permissions` the caller holds on an organization
-   * or a project. A permission held on the organization counts for each of
-   * its projects; one held on a project counts only there. Every resource
-   * in a project is governed by the project's permissions, so asking about
-   * the project answers for each of its resources. A permission the
-   * catalog doesn't name is never held.
+   * or a project, or on one resource in it. A permission held on the
+   * organization counts for each of its projects; one held on a project
+   * counts only there. A role binding limited to a list of resources counts
+   * only for the resources it lists, never for the organization or the
+   * project itself, so asking about the project answers for each of its
+   * resources only as far as bindings on the whole project go: name the
+   * resource in `fullResourceName` to have it answered as a call on that
+   * resource is. A permission the catalog doesn't name is never held.
    */
   async testIamPermissions(request: TestIamPermissionsRequest, options?: CallOptions): Promise<TestIamPermissionsResponse> {
     const n0 = this.service.relativeName("resource", request.resource, ["*"]);
@@ -125,6 +128,20 @@ export interface TestIamPermissionsRequest {
    * at most 100.
    */
   permissions?: string[];
+  /**
+   * The full name of one resource in `resource` to test the permissions on
+   * instead, such as
+   * `//secretmanager.origincloudapis.eu/projects/{project}/regions/{region}/secrets/{secret}`:
+   * the answer is what a call on that resource is allowed, counting the
+   * role bindings that list it as well as those on its organization or
+   * project. Refused with `BAD_REQUEST` when it isn't a full name, isn't in
+   * `resource` (in the organization, or in the project), or names a kind
+   * of resource a role binding can't list: only the bindings on its
+   * organization or project apply to such a resource, so testing on the
+   * project answers for it. The resource need not exist. Empty to test on
+   * `resource` itself.
+   */
+  fullResourceName?: string;
 }
 
 /** The response for TestIamPermissions. */
