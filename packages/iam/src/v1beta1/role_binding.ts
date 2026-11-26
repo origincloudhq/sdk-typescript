@@ -18,8 +18,10 @@ import {
  * organization, in one of its projects or on one of its service accounts.
  * A binding on an organization or a project can be limited further, to a
  * list of resources within it. A member's access is the union
- * of its bindings. Each binding is managed on its own, so creating or
- * deleting one never touches another, whoever made it.
+ * of its bindings. Each binding is managed on its own, so creating,
+ * updating or deleting one never touches another, whoever made it. Of a
+ * binding, only `resources` can change; its member, role and scope never
+ * do.
  *
  * A binding's `resources` lists the full names of the resources it grants
  * its role on, such as one secret of a project. A binding with `resources`
@@ -209,12 +211,53 @@ export class RoleBindingClient {
       options,
     );
   }
+
+  /**
+   * Replaces the list of resources a binding is limited to, and answers
+   * with the binding as it is now. `updateMask` must be `resources`: no
+   * other field of a binding can change. The new list replaces the old one
+   * at once: the member keeps the role on every entry in both throughout,
+   * gains it on the entries added and loses it on those removed. An empty
+   * list widens the binding to its whole scope. The new list is checked as
+   * on CreateRoleBinding, and refused with `BAD_REQUEST` for the same
+   * entries.
+   *
+   * Needs `iam.role.assign` on the organization, and every permission of
+   * the role on each resource of the new list and of the old one, as
+   * CreateRoleBinding and DeleteRoleBinding need: a permission held on the
+   * binding's scope counts, and so does one held through a binding that
+   * lists the resource; for a binding on its whole scope, only one held on
+   * that scope counts. Refused with `NOT_FOUND` when the organization has no
+   * such binding, and with `BAD_REQUEST` when `updateMask` is empty or names
+   * another field, and for a pending binding, which is on the whole
+   * organization until it is active. Recorded in the audit log, naming the
+   * entries added and removed, unless the list stayed the same. Repeated
+   * under its `requestId`, the call answers with the binding as it is now
+   * and changes nothing.
+   */
+  async updateRoleBinding(request: UpdateRoleBindingRequest, options?: CallOptions): Promise<RoleBinding> {
+    if (!request.requestId) request = { ...request, requestId: newRequestId() };
+    const n0 = this.service.relativeName("roleBinding.name", request.roleBinding?.name, ["iam"]);
+    const p0 = pathValue("roleBinding.name", n0, "organizations/*/roleBindings/*");
+    if (n0 !== (request.roleBinding?.name ?? "")) request = { ...request, roleBinding: { ...request.roleBinding, name: n0 } };
+    return this.service.call<RoleBinding>(
+      {
+        method: "PATCH",
+        path: `/v1beta1/${p0}`,
+        body: request.roleBinding,
+        query: query(request, ["roleBinding.name", "roleBinding"]),
+        idempotent: true,
+      },
+      options,
+    );
+  }
 }
 
 /**
  * One role granted to one member, organization-wide, in one project or on
- * one service account, optionally only on a list of resources there. A
- * binding can't be changed: delete it and create another.
+ * one service account, optionally only on a list of resources there. Only
+ * its list of resources can be changed, with UpdateRoleBinding; to change
+ * anything else, delete the binding and create another.
  */
 export interface RoleBinding {
   /**
@@ -283,6 +326,7 @@ export interface RoleBinding {
    * listed. Never set together with `serviceAccount`, nor on a pending
    * binding. A resource deleted after the binding was created stays listed,
    * and the binding covers a resource created later under the same name.
+   * The one field UpdateRoleBinding changes.
    */
   resources?: string[];
 }
@@ -383,6 +427,23 @@ export interface CreateRoleBindingRequest {
    * A UUID. A repeat of the request with the same `requestId` within a
    * day returns the binding the first request created, as it is now,
    * instead of being refused as a conflict.
+   */
+  requestId?: string;
+}
+
+/** The request for UpdateRoleBinding. */
+export interface UpdateRoleBindingRequest {
+  /**
+   * The binding to change, by its `name`, with the list of resources to
+   * limit it to in `resources`. Its other fields are ignored.
+   */
+  roleBinding?: RoleBinding;
+  /** The fields to change: `resources`, the only field that can. */
+  updateMask?: string;
+  /**
+   * A UUID. A repeat of the request with the same `requestId` within a
+   * day answers with the binding as it is now, instead of changing it
+   * again.
    */
   requestId?: string;
 }
