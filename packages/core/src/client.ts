@@ -2,7 +2,7 @@ import { type Credentials, type FetchLike, type TokenSource, toCredentials } fro
 import { Service } from "./transport.js";
 
 /** This SDK's version, sent in the User-Agent header from Node. */
-export const VERSION = "0.62.0";
+export const VERSION = "0.63.0";
 
 const DEFAULT_MAX_ATTEMPTS = 5;
 
