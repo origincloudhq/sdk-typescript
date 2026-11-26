@@ -104,8 +104,8 @@ export interface PublicImage {
 /** A disk of a public image. */
 export interface PublicImageBlockDevice {
   /**
-   * The device name the disk appears under on every instance launched from
-   * the image.
+   * The slot the disk takes on every instance launched from the image. It
+   * is a hint at most, not the name the guest gives the disk.
    */
   device?: string;
   /** The disk's size in GiB. */
