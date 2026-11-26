@@ -148,7 +148,12 @@ export const AuditLogEntry_Outcome = {
   OUTCOME_UNSPECIFIED: "OUTCOME_UNSPECIFIED",
   /** It was made. */
   SUCCEEDED: "SUCCEEDED",
-  /** It was refused for lack of a permission. */
+  /**
+   * It was refused for lack of a permission: an attempted change the actor
+   * holds no permission for. `action` is the permission, `target` what it
+   * was checked on, and `details` names both. The same denial again within
+   * a minute is not recorded again.
+   */
   DENIED: "DENIED",
   /**
    * It was attempted and refused for another reason, which `details`
