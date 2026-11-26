@@ -15,7 +15,8 @@ import {
  * Calls RoleBindingService.
  *
  * Role bindings: each grants one role to one member, in a whole
- * organization or in one of its projects. A member's access is the union
+ * organization, in one of its projects or on one of its service accounts.
+ * A member's access is the union
  * of its bindings. Each binding is managed on its own, so creating or
  * deleting one never touches another, whoever made it.
  *
@@ -80,7 +81,8 @@ export class RoleBindingClient {
 
   /**
    * Lists an organization's role bindings, active and pending, oldest
-   * first, optionally only a member's or a project's. Needs
+   * first, optionally only a member's, a project's or a service account's.
+   * Needs
    * `iam.member.list` on the organization. With the parent
    * `organizations/-` it lists the caller's own active bindings in every
    * organization and needs no permission; `member` must be empty there.
@@ -120,18 +122,23 @@ export class RoleBindingClient {
    * the role at the binding's scope: a permission held on the organization
    * counts for any scope, one held on a project only for that project.
    * Refused with `NOT_FOUND` when `member` names a user without an enabled
-   * account or a service account of another organization.
+   * account or a service account of another organization, and when
+   * `serviceAccount` names an account the organization doesn't have.
    * Refused with `CONFLICT` when the member already holds the role at that
    * scope, and with `BAD_REQUEST` when the member is a deleted service
    * account, names no service agent the platform has, or is a service
-   * agent and the role isn't one its service needs.
+   * agent and the role isn't one its service needs; when both `project`
+   * and `serviceAccount` are set; when `serviceAccount` names a deleted
+   * account; and when the role has a permission that doesn't act on one
+   * service account, which only `roles/iam.service-account-token-creator`
+   * has none of.
    *
    * With `member` set to `user:{email}`, the account that verified the
    * address is bound, as above. If no enabled account has verified it, the
    * binding is created `PENDING`, organization-wide, and an invitation
    * email is sent to the address. That also needs `iam.member.create` on
-   * the organization, and is refused with `BAD_REQUEST` when `project` is
-   * set and with `CONFLICT` when the address already holds a pending
+   * the organization, and is refused with `BAD_REQUEST` when `project` or
+   * `serviceAccount` is set and with `CONFLICT` when the address already holds a pending
    * binding of the role in the organization. An address more than one
    * account has verified is refused with `CONFLICT`. Repeated under its
    * `requestId`, the call answers with the binding it created, pending or
@@ -181,8 +188,9 @@ export class RoleBindingClient {
 }
 
 /**
- * One role granted to one member, organization-wide or in one project. A
- * binding can't be changed: delete it and create another.
+ * One role granted to one member, organization-wide, in one project or on
+ * one service account. A binding can't be changed: delete it and create
+ * another.
  */
 export interface RoleBinding {
   /**
@@ -211,9 +219,22 @@ export interface RoleBinding {
    * The full name of the project the binding is limited to, one of the
    * organization's: `//resourcemanager.origincloudapis.eu/projects/{project}`.
    * Empty for a binding on the whole organization, which covers every
-   * project in it.
+   * project in it, and for a binding on one service account.
    */
   project?: string;
+  /**
+   * The full name of the service account the binding is limited to, one of
+   * the organization's active accounts:
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`.
+   * Such a binding grants its role on that account alone, and nothing on
+   * the organization or its projects. Only a role whose every permission
+   * acts on one service account can be bound so:
+   * `roles/iam.service-account-token-creator`, which lets the member get an
+   * access token for that account and no other. Empty for a binding on the
+   * whole organization or a project; never set together with `project`.
+   * The binding is removed when the account is deleted.
+   */
+  serviceAccount?: string;
   /**
    * The full name of who created the binding: `//iam.origincloudapis.eu/users/{user}`,
    * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`,
@@ -277,6 +298,13 @@ export interface ListRoleBindingsRequest {
   pageSize?: number;
   /** A previous response's `nextPageToken`, for the page after it. */
   pageToken?: string;
+  /**
+   * Only the bindings limited to this service account, by its full name,
+   * `//iam.origincloudapis.eu/organizations/{organization}/serviceAccounts/{service_account}`.
+   * Every binding, whatever its scope, when empty. Can't be set together
+   * with `project`: no binding is limited to both.
+   */
+  serviceAccount?: string;
 }
 
 /** The response for ListRoleBindings. */
@@ -296,7 +324,7 @@ export interface CreateRoleBindingRequest {
   parent?: string;
   /**
    * The binding to create: its member and role, and optionally its
-   * project.
+   * project or its service account.
    */
   roleBinding?: RoleBinding;
   /**
