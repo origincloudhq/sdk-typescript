@@ -211,8 +211,11 @@ export type Image_State = (typeof Image_State)[keyof typeof Image_State];
 /** A disk of an image. */
 export interface ImageBlockDevice {
   /**
-   * The device name the disk appears under on every instance launched from
-   * the image: `vda` to `vdz` but `vdc`, unique within the image.
+   * The slot the disk takes on every instance launched from the image:
+   * `vda` to `vdz` but `vdc`, unique within the image. It is a hint at
+   * most, not the name the guest gives the disk. In the guest, the disk's
+   * serial is its volume's id, which a Linux guest links as
+   * `/dev/disk/by-id/virtio-<volume-id>`.
    */
   device?: string;
   /** The disk's size in GiB, at least the snapshot's. */

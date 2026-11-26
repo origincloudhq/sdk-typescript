@@ -1,6 +1,6 @@
 {
   "name": "@origincloud/kms",
-  "version": "0.66.0",
+  "version": "0.67.0",
   "description": "Origin Cloud's KMS service: grants: permission for one platform host to use one key for one operation and one encryption context, for at most an hour at a time.",
   "license": "Apache-2.0",
   "homepage": "https://github.com/origincloudhq/sdk-typescript#readme",
@@ -34,9 +34,9 @@
     "!dist/**/*.tsbuildinfo"
   ],
   "peerDependencies": {
-    "@origincloud/core": "^0.66.0"
+    "@origincloud/core": "^0.67.0"
   },
   "devDependencies": {
-    "@origincloud/core": "^0.66.0"
+    "@origincloud/core": "^0.67.0"
   }
 }
