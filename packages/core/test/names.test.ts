@@ -38,6 +38,7 @@ test("the services are the APIs with resources", () => {
     "network",
     "pvs",
     "resourcemanager",
+    "secretmanager",
     "support",
   ]);
   assert.ok(Object.isFrozen(RESOURCE_SERVICES));
