@@ -17,5 +17,6 @@ export const RESOURCE_SERVICES: readonly string[] = Object.freeze([
   "network",
   "pvs",
   "resourcemanager",
+  "secretmanager",
   "support",
 ]);

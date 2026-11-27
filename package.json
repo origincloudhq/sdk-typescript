@@ -15,7 +15,8 @@
     "packages/support",
     "packages/dns",
     "packages/sts",
-    "packages/kms"
+    "packages/kms",
+    "packages/secretmanager"
   ],
   "engines": {
     "node": ">=20"
