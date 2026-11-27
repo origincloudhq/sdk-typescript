@@ -224,6 +224,32 @@ export class LaunchTemplateClient {
 }
 
 /**
+ * What happens to an instance when its own operating system shuts it down,
+ * such as with `poweroff` inside it. A stop through the API, and one the
+ * platform makes, always stops the instance, and a guest that crashed is
+ * `STOPPED` with a `stateReason` saying so.
+ */
+export const ShutdownBehavior = {
+  /** Not set: `STOP`. */
+  SHUTDOWN_BEHAVIOR_UNSPECIFIED: "SHUTDOWN_BEHAVIOR_UNSPECIFIED",
+  /** The instance stops, keeping its volumes and addresses. */
+  STOP: "STOP",
+  /**
+   * The instance is terminated, and its resources released, as
+   * `DeleteInstance` terminates it.
+   */
+  TERMINATE: "TERMINATE",
+} as const;
+
+/**
+ * What happens to an instance when its own operating system shuts it down,
+ * such as with `poweroff` inside it. A stop through the API, and one the
+ * platform makes, always stops the instance, and a guest that crashed is
+ * `STOPPED` with a `stateReason` saying so.
+ */
+export type ShutdownBehavior = (typeof ShutdownBehavior)[keyof typeof ShutdownBehavior];
+
+/**
  * A recipe kept under a name: numbered versions of it, and the one that is
  * the default.
  */
@@ -448,6 +474,11 @@ export interface LaunchTemplateData {
    * restarts, and it is deleted with the instance.
    */
   localDisks?: LocalDisk[];
+  /**
+   * What happens when the instance's operating system shuts it down. `STOP`
+   * when left unspecified.
+   */
+  shutdownBehavior?: ShutdownBehavior;
 }
 
 /** A disk on the machine an instance runs on. */

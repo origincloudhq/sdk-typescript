@@ -13,7 +13,7 @@ import {
   query,
 } from "@origincloud/core";
 import type { OperationMetadata } from "../longrunning/v1beta1/operations.js";
-import type { LaunchTemplateData, LocalDisk } from "./launch_template.js";
+import type { LaunchTemplateData, LocalDisk, ShutdownBehavior } from "./launch_template.js";
 
 /**
  * Calls InstanceService.
@@ -372,6 +372,12 @@ export interface Instance {
    * instance's volume attachments.
    */
   localDisks?: LocalDisk[];
+  /**
+   * What happens when the instance's operating system shuts it down: it
+   * stops, or it is terminated. `STOP` when left unspecified at launch.
+   * Changeable at any time before the instance is terminated.
+   */
+  shutdownBehavior?: ShutdownBehavior;
 }
 
 /** Where the instance is in its lifecycle. */
@@ -612,9 +618,10 @@ export interface UpdateInstanceRequest {
   /** The instance, by its name, with the fields to change. */
   instance?: Instance;
   /**
-   * The fields to change: any of `instanceType`, `tags` and
-   * `serviceAccount`. `*` is all three, so an empty `serviceAccount`
-   * under it removes the instance's.
+   * The fields to change: any of `instanceType`, `tags`,
+   * `serviceAccount` and `shutdownBehavior`. `*` is all four, so an empty
+   * `serviceAccount` under it removes the instance's, and an unspecified
+   * `shutdownBehavior` is `STOP`.
    */
   updateMask?: string;
   /**

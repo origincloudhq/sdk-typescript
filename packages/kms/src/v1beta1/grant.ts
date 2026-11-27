@@ -93,7 +93,8 @@ export class GrantClient {
    * Makes a grant on an `ENCRYPT_DECRYPT` key for one host, refused with
    * `BAD_REQUEST` for a key of another purpose, a host that isn't one of
    * the region's, an empty encryption context, or a `ttl` outside 1 to 60
-   * minutes, and with `CONFLICT` for a key that isn't enabled. Needs
+   * minutes, with `CONFLICT` for a key that isn't enabled, and with
+   * `FORBIDDEN` for an encryption context retired on the key. Needs
    * `kms.grant.create` on the project.
    */
   async createGrant(request: CreateGrantRequest, options?: CallOptions): Promise<Grant> {
@@ -115,8 +116,9 @@ export class GrantClient {
 
   /**
    * Extends a grant that hasn't expired to `ttl` from now. An expired
-   * grant isn't renewed: `CONFLICT`, and a new one is made instead. Needs
-   * `kms.grant.update` on the project.
+   * grant isn't renewed: `CONFLICT`, and a new one is made instead. A grant
+   * whose encryption context was retired on the key since isn't renewed
+   * either: `FORBIDDEN`. Needs `kms.grant.update` on the project.
    */
   async renewGrant(request: RenewGrantRequest, options?: CallOptions): Promise<Grant> {
     const n0 = this.service.relativeName("name", request.name, ["kms"]);

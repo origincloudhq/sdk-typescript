@@ -1,0 +1,42 @@
+{
+  "name": "@origincloud/secretmanager",
+  "version": "0.70.0",
+  "description": "Origin Cloud's secretmanager service: secrets: small confidential values, such as a database password, an API key or a TLS private key, kept encrypted and versioned by the platform and read by the people and workloads you allow.",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/origincloudhq/sdk-typescript#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/origincloudhq/sdk-typescript.git",
+    "directory": "packages/secretmanager"
+  },
+  "bugs": "https://github.com/origincloudhq/sdk-typescript/issues",
+  "keywords": [
+    "origincloud",
+    "origin-cloud",
+    "sdk",
+    "secretmanager"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    "./*": {
+      "types": "./dist/*/index.d.ts",
+      "default": "./dist/*/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "!dist/**/*.tsbuildinfo"
+  ],
+  "peerDependencies": {
+    "@origincloud/core": "^0.70.0"
+  },
+  "devDependencies": {
+    "@origincloud/core": "^0.70.0"
+  }
+}

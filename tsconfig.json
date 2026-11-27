@@ -14,6 +14,7 @@
     { "path": "packages/dns" },
     { "path": "packages/sts" },
     { "path": "packages/kms" },
+    { "path": "packages/secretmanager" },
     { "path": "generator" },
     { "path": "tsconfig.test.json" }
   ]

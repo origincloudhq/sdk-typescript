@@ -205,11 +205,41 @@ export class KeyClient {
   }
 
   /**
+   * Retires an encryption context on a key the platform manages, for good:
+   * from then on every zone refuses Encrypt, Decrypt and GenerateDataKey
+   * under exactly that context, and the making, renewal and use of a grant
+   * constrained to it, each with `FORBIDDEN`. A ciphertext made under it,
+   * wherever a copy of it is kept, never decrypts again. Only the platform
+   * retires a context: the storage service retires a deleted volume's
+   * `volume` context. Retiring a context already retired succeeds and
+   * changes nothing. Refused with `FORBIDDEN` for a key the platform doesn't
+   * manage and for anyone but a platform service agent, and with
+   * `BAD_REQUEST` for an empty context. Needs `kms.key.retire_context` on
+   * the project, which no customer role holds.
+   */
+  async retireEncryptionContext(request: RetireEncryptionContextRequest, options?: CallOptions): Promise<Key> {
+    if (!request.requestId) request = { ...request, requestId: newRequestId() };
+    const n0 = this.service.relativeName("name", request.name, ["kms"]);
+    const p0 = pathValue("name", n0, "projects/*/regions/*/keys/*");
+    if (n0 !== (request.name ?? "")) request = { ...request, name: n0 };
+    return this.service.call<Key>(
+      {
+        method: "POST",
+        path: `/v1beta1/${p0}:retireEncryptionContext`,
+        body: request,
+        idempotent: true,
+      },
+      options,
+    );
+  }
+
+  /**
    * Encrypts up to 64 KiB with an `ENCRYPT_DECRYPT` key's primary version,
    * bound to the encryption context. For more data, encrypt it yourself
    * with a data key from GenerateDataKey. Refused with `CONFLICT` for a key
-   * that isn't enabled, and with `BAD_REQUEST` for a signing key. Needs
-   * `kms.key.encrypt` on the project.
+   * that isn't enabled, with `BAD_REQUEST` for a signing key, and with
+   * `FORBIDDEN` under a context retired on the key. Needs `kms.key.encrypt`
+   * on the project.
    */
   async encrypt(request: EncryptRequest, options?: CallOptions): Promise<EncryptResponse> {
     const n0 = this.service.relativeName("name", request.name, ["kms"]);
@@ -228,9 +258,10 @@ export class KeyClient {
   /**
    * Decrypts a ciphertext Encrypt or GenerateDataKey made with this key,
    * given the same encryption context. Refused with `BAD_REQUEST` for a
-   * ciphertext that doesn't decrypt under this key and context, and with
-   * `CONFLICT` for a key that isn't enabled. Needs `kms.key.decrypt` on the
-   * project.
+   * ciphertext that doesn't decrypt under this key and context, with
+   * `CONFLICT` for a key that isn't enabled, and with `FORBIDDEN` under a
+   * context retired on the key, whatever the ciphertext. Needs
+   * `kms.key.decrypt` on the project.
    */
   async decrypt(request: DecryptRequest, options?: CallOptions): Promise<DecryptResponse> {
     const n0 = this.service.relativeName("name", request.name, ["kms"]);
@@ -250,7 +281,8 @@ export class KeyClient {
    * Returns a new random 256-bit data key, in plaintext and encrypted under
    * an `ENCRYPT_DECRYPT` key's primary version with the encryption context.
    * Encrypt your data with the plaintext, keep only the ciphertext beside
-   * it, and recover the data key with Decrypt when you need it. Needs
+   * it, and recover the data key with Decrypt when you need it. Refused
+   * with `FORBIDDEN` under a context retired on the key. Needs
    * `kms.key.generate_data_key` on the project.
    */
   async generateDataKey(request: GenerateDataKeyRequest, options?: CallOptions): Promise<GenerateDataKeyResponse> {
@@ -489,6 +521,19 @@ export interface DeleteKeyRequest {
    * 90; 30 days when unset.
    */
   destroyDelay?: string;
+  /**
+   * A UUID; a repeat with the same id within a day returns the key as the
+   * first request left it.
+   */
+  requestId?: string;
+}
+
+/** The request for RetireEncryptionContext. */
+export interface RetireEncryptionContextRequest {
+  /** The platform-managed key to retire the context on. */
+  name?: string;
+  /** The encryption context to retire, exactly: at least one pair. */
+  encryptionContext?: Record<string, string>;
   /**
    * A UUID; a repeat with the same id within a day returns the key as the
    * first request left it.
